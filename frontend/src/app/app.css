@@ -1,0 +1,232 @@
+:root {
+  color: #172026;
+  background: #f4f7f9;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px 22px;
+  color: #f8fafb;
+  background: #172026;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 8px;
+  color: #172026;
+  background: #53d1b6;
+  font-weight: 800;
+}
+
+.brand-name,
+.brand-caption,
+.page-kicker,
+.page-title,
+.page-copy,
+.metric-label,
+.metric-value,
+.env-panel strong,
+.env-panel span {
+  margin: 0;
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.brand-caption {
+  color: #aab7bf;
+  font-size: 13px;
+}
+
+.nav-list {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-item {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #dce5ea;
+  background: transparent;
+  text-align: left;
+  cursor: default;
+}
+
+.nav-item.active {
+  color: #172026;
+  background: #f3b35d;
+  font-weight: 700;
+}
+
+.env-panel {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+  padding: 14px;
+  border: 1px solid #2d3a43;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.env-panel span {
+  color: #aab7bf;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.env-panel strong {
+  color: #f8fafb;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.content-area {
+  display: flex;
+  align-items: stretch;
+  padding: 40px;
+}
+
+.page {
+  display: grid;
+  align-content: start;
+  width: min(100%, 1040px);
+  gap: 24px;
+}
+
+.page-header {
+  display: grid;
+  gap: 8px;
+}
+
+.page-kicker {
+  color: #307d70;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.page-title {
+  max-width: 720px;
+  font-size: 38px;
+  line-height: 1.12;
+}
+
+.page-copy {
+  max-width: 680px;
+  color: #5b6a72;
+  line-height: 1.6;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.status-card {
+  display: grid;
+  min-height: 132px;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #d7e0e5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.metric-label {
+  color: #62727b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.placeholder-list {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.placeholder-list li {
+  padding: 14px 16px;
+  border-left: 4px solid #53d1b6;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #44545d;
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    gap: 18px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content-area {
+    padding: 28px 18px;
+  }
+
+  .page-title {
+    font-size: 30px;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,2 @@
+-- Baseline migration for the TicketBox environment setup stage.
+-- Business tables are intentionally not created in this task.
