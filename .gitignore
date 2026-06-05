@@ -1,6 +1,7 @@
 # Environment
 .env
 *.local
+application-staging.yml
 
 # Java
 target/
