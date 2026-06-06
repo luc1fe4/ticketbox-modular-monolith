@@ -1,6 +1,7 @@
 # Environment
 .env
 *.local
+application-staging.yml
 
 # Java
 target/
@@ -26,3 +27,6 @@ yarn-error.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Agent skills
+.skills/
