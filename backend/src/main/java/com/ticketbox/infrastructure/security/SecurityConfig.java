@@ -20,7 +20,6 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/health", "/actuator/health").permitAll()
-                // Public concert endpoints — anyone can browse (GET only)
                 .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
                 .anyRequest().authenticated()
             );
