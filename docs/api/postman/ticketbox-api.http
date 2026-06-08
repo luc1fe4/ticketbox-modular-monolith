@@ -1,0 +1,27 @@
+# ============================================================
+# TicketBox Concert Public API Test Requests
+# Use the "REST Client" extension in VS Code to run these.
+# ============================================================
+
+@baseUrl = http://localhost:8080
+
+### 1. List Concerts (Default page=0, size=10)
+GET {{baseUrl}}/api/concerts
+Accept: application/json
+
+### 2. List Concerts (With Pagination - page 0, size 5)
+GET {{baseUrl}}/api/concerts?page=0&size=5
+Accept: application/json
+
+### 3. Get Concert Detail (Anh Trai Say Hi)
+# Replace the UUID with any real ID from the list response if needed
+GET {{baseUrl}}/api/concerts/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+### 4. Get Concert Detail (Sơn Tùng M-TP)
+GET {{baseUrl}}/api/concerts/22222222-2222-2222-2222-222222222222
+Accept: application/json
+
+### 5. Get Concert Detail (404 - Not Found)
+GET {{baseUrl}}/api/concerts/00000000-0000-0000-0000-000000000000
+Accept: application/json
