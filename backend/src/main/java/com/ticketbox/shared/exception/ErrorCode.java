@@ -15,7 +15,12 @@ public enum ErrorCode {
     DUPLICATE_IDEMPOTENCY_KEY(HttpStatus.CONFLICT, "Duplicate request detected"),
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "Tickets are sold out"),
     TICKET_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "Ticket purchase limit exceeded"),
-    PAYMENT_GATEWAY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Payment gateway temporarily unavailable");
+    PAYMENT_GATEWAY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Payment gateway temporarily unavailable"),
+    
+    INVALID_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "Invalid status transition"),
+    CONCERT_NOT_DELETABLE(HttpStatus.CONFLICT, "Concert can only be deleted in DRAFT status"),
+    CONCERT_HAS_TICKET_TYPES(HttpStatus.CONFLICT, "Cannot delete concert with existing ticket types"),
+    INVALID_DATE(HttpStatus.BAD_REQUEST, "Invalid date configuration");
 
     private final HttpStatus httpStatus;
     private final String message;

@@ -13,4 +13,6 @@ import java.util.UUID;
 public interface ConcertRepository extends JpaRepository<Concert, UUID> {
 
     Page<Concert> findByStatusIn(List<Concert.Status> statuses, Pageable pageable);
+
+    Page<Concert> findByStatus(Concert.Status status, Pageable pageable);
 }
