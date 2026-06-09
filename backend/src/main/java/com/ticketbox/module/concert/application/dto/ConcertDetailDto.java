@@ -15,5 +15,7 @@ public record ConcertDetailDto(
         String status,
         String seatMapSvg,
         String posterUrl,
-        OffsetDateTime createdAt
+        UUID createdBy,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
 ) {}

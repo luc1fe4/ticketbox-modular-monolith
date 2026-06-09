@@ -21,6 +21,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/health", "/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
+                .requestMatchers("/api/admin/**").permitAll() // TODO: restrict to ORGANIZER/ADMIN after auth is merged
                 .anyRequest().authenticated()
             );
 
