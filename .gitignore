@@ -5,6 +5,7 @@ application-staging.yml
 
 # Java
 target/
+out/
 *.class
 
 # Node
