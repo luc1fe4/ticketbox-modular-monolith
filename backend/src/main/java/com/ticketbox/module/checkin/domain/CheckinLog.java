@@ -45,6 +45,17 @@ public class CheckinLog {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    public CheckinLog(UUID ticketId, UUID concertId, UUID staffId, String deviceId, OffsetDateTime checkedAt, boolean isOffline, String gate) {
+        this.ticketId = ticketId;
+        this.concertId = concertId;
+        this.staffId = staffId;
+        this.deviceId = deviceId;
+        this.checkedAt = checkedAt;
+        this.isOffline = isOffline;
+        this.gate = gate;
+    }
+
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
