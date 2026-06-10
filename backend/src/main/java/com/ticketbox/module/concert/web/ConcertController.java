@@ -1,14 +1,10 @@
 package com.ticketbox.module.concert.web;
 
 import com.ticketbox.module.concert.application.ConcertService;
-import com.ticketbox.module.concert.application.TicketTypeService;
 import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
+import com.ticketbox.module.concert.application.dto.ConcertSeatMapDto;
 import com.ticketbox.module.concert.application.dto.ConcertSummaryDto;
-import com.ticketbox.module.concert.application.dto.TicketTypeDto;
-import com.ticketbox.module.concert.application.dto.TicketTypeAvailabilityDto;
 import com.ticketbox.shared.response.ApiResponse;
-
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +19,9 @@ import java.util.UUID;
 public class ConcertController {
 
     private final ConcertService concertService;
-    private final TicketTypeService ticketTypeService;
 
-    public ConcertController(ConcertService concertService, TicketTypeService ticketTypeService) {
+    public ConcertController(ConcertService concertService) {
         this.concertService = concertService;
-        this.ticketTypeService = ticketTypeService;
     }
 
     @GetMapping
@@ -51,19 +45,12 @@ public class ConcertController {
         return ResponseEntity.ok(ApiResponse.success(detail));
     }
 
-    @GetMapping("/{concertId}/ticket-types")
-    public ResponseEntity<ApiResponse<List<TicketTypeDto>>> getConcertTicketTypes(
+    @GetMapping("/{concertId}/seat-map")
+    public ResponseEntity<ApiResponse<ConcertSeatMapDto>> getConcertSeatMap(
             @PathVariable UUID concertId
     ) {
-        List<TicketTypeDto> list = ticketTypeService.getActiveTicketTypes(concertId);
-        return ResponseEntity.ok(ApiResponse.success(list));
-    }
+        ConcertSeatMapDto seatMap = concertService.getConcertSeatMap(concertId);
 
-    @GetMapping("/{concertId}/availability")
-    public ResponseEntity<ApiResponse<TicketTypeAvailabilityDto>> getAvailability(
-            @PathVariable UUID concertId
-    ) {
-        TicketTypeAvailabilityDto availability = ticketTypeService.getAvailability(concertId);
-        return ResponseEntity.ok(ApiResponse.success(availability));
+        return ResponseEntity.ok(ApiResponse.success(seatMap));
     }
 }
