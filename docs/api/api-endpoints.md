@@ -119,8 +119,28 @@ Example login response data:
 | --- | --- | --- | --- |
 | GET | `/concerts` | PUBLIC | List published/upcoming concerts. Supports pagination and filters. |
 | GET | `/concerts/{concertId}` | PUBLIC | Get concert detail including ticket types and seat map SVG. |
+| GET | `/concerts/{concertId}/seat-map` | PUBLIC | Get the concert seat map SVG and active zones with prices and remaining ticket quantities. |
 | GET | `/concerts/{concertId}/ticket-types` | PUBLIC | Get ticket types/zones for a concert. |
 | GET | `/concerts/{concertId}/availability` | PUBLIC | Get near real-time available quantity by ticket type. Can be backed by Redis cache. |
+
+Example seat map response data:
+
+```json
+{
+  "concertId": "uuid",
+  "seatMapSvg": "<svg>...</svg>",
+  "zones": [
+    {
+      "ticketTypeId": "uuid",
+      "name": "SVIP",
+      "zoneColor": "#E11D48",
+      "price": 3500000,
+      "totalQuantity": 200,
+      "availableQuantity": 120
+    }
+  ]
+}
+```
 
 Suggested concert list filters:
 

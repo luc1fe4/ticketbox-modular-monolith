@@ -1,8 +1,10 @@
 package com.ticketbox.module.concert.application;
 
 import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
+import com.ticketbox.module.concert.application.dto.ConcertSeatMapDto;
 import com.ticketbox.module.concert.application.dto.ConcertSummaryDto;
 import com.ticketbox.module.concert.application.dto.CreateConcertRequest;
+import com.ticketbox.module.concert.application.dto.SeatMapZoneDto;
 import com.ticketbox.module.concert.application.dto.UpdateConcertRequest;
 import com.ticketbox.module.concert.application.mapper.ConcertMapper;
 import com.ticketbox.module.concert.domain.Concert;
@@ -55,6 +57,27 @@ public class ConcertService {
                         "Concert not found with id: " + concertId));
 
         return ConcertMapper.toDetailDto(concert);
+    }
+
+    public ConcertSeatMapDto getConcertSeatMap(UUID concertId) {
+        Concert concert = concertRepository.findById(concertId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Concert not found with id: " + concertId));
+
+        List<SeatMapZoneDto> zones = ticketTypeRepository
+                .findActiveByConcertIdOrderByPrice(concertId)
+                .stream()
+                .map(ticketType -> new SeatMapZoneDto(
+                        ticketType.getId(),
+                        ticketType.getName(),
+                        ticketType.getZoneColor(),
+                        ticketType.getPrice(),
+                        ticketType.getTotalQuantity(),
+                        ticketType.getAvailableQty()
+                ))
+                .toList();
+
+        return new ConcertSeatMapDto(concert.getId(), concert.getSeatMapSvg(), zones);
     }
 
     public Page<ConcertDetailDto> getAllConcerts(Concert.Status status, Pageable pageable) {

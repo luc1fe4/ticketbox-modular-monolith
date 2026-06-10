@@ -2,6 +2,7 @@ package com.ticketbox.module.concert.web;
 
 import com.ticketbox.module.concert.application.ConcertService;
 import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
+import com.ticketbox.module.concert.application.dto.ConcertSeatMapDto;
 import com.ticketbox.module.concert.application.dto.ConcertSummaryDto;
 import com.ticketbox.shared.response.ApiResponse;
 import org.springframework.data.domain.Page;
@@ -42,5 +43,14 @@ public class ConcertController {
         ConcertDetailDto detail = concertService.getConcertDetail(id);
 
         return ResponseEntity.ok(ApiResponse.success(detail));
+    }
+
+    @GetMapping("/{concertId}/seat-map")
+    public ResponseEntity<ApiResponse<ConcertSeatMapDto>> getConcertSeatMap(
+            @PathVariable UUID concertId
+    ) {
+        ConcertSeatMapDto seatMap = concertService.getConcertSeatMap(concertId);
+
+        return ResponseEntity.ok(ApiResponse.success(seatMap));
     }
 }
