@@ -13,6 +13,7 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
 
     DUPLICATE_IDEMPOTENCY_KEY(HttpStatus.CONFLICT, "Duplicate request detected"),
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Email is already registered"),
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "Tickets are sold out"),
     TICKET_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "Ticket purchase limit exceeded"),
     PAYMENT_GATEWAY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Payment gateway temporarily unavailable"),
