@@ -1,17 +1,21 @@
 package com.ticketbox.module.concert.application;
 
-import com.ticketbox.module.concert.application.dto.TicketTypeDto;
-import com.ticketbox.module.concert.application.dto.CreateTicketTypeRequest;
-import com.ticketbox.module.concert.application.dto.UpdateTicketTypeRequest;
-import com.ticketbox.module.concert.application.dto.TicketTypeAvailabilityDto;
+import com.ticketbox.module.concert.web.dto.CreateTicketTypeRequest;
+import com.ticketbox.module.concert.web.dto.TicketTypeAvailabilityResponse;
+import com.ticketbox.module.concert.web.dto.TicketTypeResponse;
+import com.ticketbox.module.concert.web.dto.UpdateTicketTypeRequest;
 import com.ticketbox.module.concert.application.mapper.TicketTypeMapper;
 import com.ticketbox.module.concert.domain.Concert;
 import com.ticketbox.module.concert.domain.TicketType;
-import com.ticketbox.module.concert.infrastructure.ConcertRepository;
-import com.ticketbox.module.concert.infrastructure.TicketTypeRepository;
+import com.ticketbox.module.concert.domain.ConcertRepository;
+import com.ticketbox.module.concert.domain.TicketTypeRepository;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
+import com.ticketbox.shared.util.RedisKeyConstants;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,48 +30,71 @@ public class TicketTypeService {
 
     private final TicketTypeRepository ticketTypeRepository;
     private final ConcertRepository concertRepository;
+    private final TicketTypeMapper ticketTypeMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public List<TicketTypeDto> getTicketTypes(UUID concertId) {
+    public List<TicketTypeResponse> getTicketTypes(UUID concertId) {
         verifyConcertExists(concertId);
         return ticketTypeRepository.findByConcertId(concertId).stream()
-                .map(TicketTypeMapper::toDto)
+                .map(ticketTypeMapper::toResponse)
                 .toList();
     }
 
-    public List<TicketTypeDto> getActiveTicketTypes(UUID concertId) {
+    public List<TicketTypeResponse> getActiveTicketTypes(UUID concertId) {
         verifyConcertExists(concertId);
         return ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId).stream()
-                .map(TicketTypeMapper::toDto)
+                .map(ticketTypeMapper::toResponse)
                 .toList();
     }
 
-    public TicketTypeAvailabilityDto getAvailability(UUID concertId) {
+    public TicketTypeAvailabilityResponse getAvailability(UUID concertId) {
+        String cacheKey = RedisKeyConstants.CACHE_AVAILABILITY + concertId;
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.convertValue(cached, TicketTypeAvailabilityResponse.class);
+            }
+        } catch (Exception e) {
+            try { redisTemplate.delete(cacheKey); } catch (Exception ignored) {}
+        }
+
         verifyConcertExists(concertId);
         List<TicketType> ticketTypes = ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId);
         
-        List<TicketTypeAvailabilityDto.AvailabilityItem> items = ticketTypes.stream()
-                .map(tt -> new TicketTypeAvailabilityDto.AvailabilityItem(
+        List<TicketTypeAvailabilityResponse.AvailabilityItem> items = ticketTypes.stream()
+                .map(tt -> new TicketTypeAvailabilityResponse.AvailabilityItem(
                         tt.getId(),
                         tt.getName(),
                         tt.getAvailableQty(),
                         tt.getTotalQuantity()
                 )).toList();
 
-        return new TicketTypeAvailabilityDto(concertId, items, OffsetDateTime.now());
+        TicketTypeAvailabilityResponse result = new TicketTypeAvailabilityResponse(concertId, items, OffsetDateTime.now());
+        
+        try {
+            redisTemplate.opsForValue().set(cacheKey, result, RedisKeyConstants.TTL_AVAILABILITY.getSeconds(), TimeUnit.SECONDS);
+        } catch (Exception e) {}
+
+        return result;
     }
 
     @Transactional
-    public TicketTypeDto createTicketType(UUID concertId, CreateTicketTypeRequest request) {
+    public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request) {
         Concert concert = getConcertOrThrow(concertId);
         validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
 
-        TicketType ticketType = TicketTypeMapper.toEntity(concertId, request);
+        TicketType ticketType = ticketTypeMapper.toEntity(request);
+        ticketType.setConcertId(concertId);
+        ticketType.setAvailableQty(request.totalQuantity());
+        ticketType.setActive(true);
+
         TicketType saved = ticketTypeRepository.save(ticketType);
-        return TicketTypeMapper.toDto(saved);
+        return ticketTypeMapper.toResponse(saved);
     }
 
     @Transactional
-    public TicketTypeDto updateTicketType(UUID id, UpdateTicketTypeRequest request) {
+    public TicketTypeResponse updateTicketType(UUID id, UpdateTicketTypeRequest request) {
         TicketType ticketType = getTicketTypeOrThrow(id);
         Concert concert = getConcertOrThrow(ticketType.getConcertId());
         
@@ -77,17 +104,20 @@ public class TicketTypeService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot update ticket type after sales have begun");
         }
 
-        TicketTypeMapper.updateEntity(ticketType, request);
+        int difference = request.totalQuantity() - ticketType.getTotalQuantity();
+        ticketTypeMapper.updateTicketTypeFromRequest(request, ticketType);
+        ticketType.setAvailableQty(ticketType.getAvailableQty() + difference);
+
         TicketType saved = ticketTypeRepository.save(ticketType);
-        return TicketTypeMapper.toDto(saved);
+        return ticketTypeMapper.toResponse(saved);
     }
 
     @Transactional
-    public TicketTypeDto changeStatus(UUID id, boolean isActive) {
+    public TicketTypeResponse changeStatus(UUID id, boolean isActive) {
         TicketType ticketType = getTicketTypeOrThrow(id);
         ticketType.setActive(isActive);
         TicketType saved = ticketTypeRepository.save(ticketType);
-        return TicketTypeMapper.toDto(saved);
+        return ticketTypeMapper.toResponse(saved);
     }
 
     @Transactional

@@ -2,10 +2,10 @@ package com.ticketbox.module.checkin.application;
 
 import com.ticketbox.module.checkin.domain.CheckinLog;
 import com.ticketbox.module.checkin.domain.CheckinLogRepository;
-import com.ticketbox.module.checkin.web.SyncCheckinRequest;
-import com.ticketbox.module.checkin.web.SyncCheckinResponse.SyncResultEntry;
-import com.ticketbox.module.ticket.domain.Ticket;
-import com.ticketbox.module.ticket.domain.TicketRepository;
+import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
+import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse.SyncResultEntry;
+import com.ticketbox.module.ticket.domain.TicketCheckinPort;
+import com.ticketbox.module.ticket.domain.TicketView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -20,16 +20,16 @@ import java.util.UUID;
 public class CheckinSyncHelper {
 
     private final CheckinLogRepository checkinLogRepository;
-    private final TicketRepository ticketRepository;
+    private final TicketCheckinPort ticketCheckinPort;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SyncResultEntry syncSingleEntry(
             SyncCheckinRequest.OfflineLogEntry entry,
-            Ticket ticket,
+            TicketView ticket,
             UUID staffId,
             String deviceId
     ) {
-        if (checkinLogRepository.existsByTicketId(ticket.getId())) {
+        if (checkinLogRepository.existsByTicketId(ticket.id())) {
             return new SyncResultEntry(
                     entry.qrCode(),
                     "SKIPPED",
@@ -40,8 +40,8 @@ public class CheckinSyncHelper {
         OffsetDateTime now = OffsetDateTime.now();
 
         CheckinLog log = new CheckinLog(
-                ticket.getId(),
-                ticket.getConcertId(),
+                ticket.id(),
+                ticket.concertId(),
                 staffId,
                 deviceId,
                 entry.checkedAt(),
@@ -56,9 +56,7 @@ public class CheckinSyncHelper {
         try {
             checkinLogRepository.saveAndFlush(log);
 
-            ticket.setStatus(Ticket.Status.USED);
-            ticket.setUsedAt(entry.checkedAt());
-            ticketRepository.save(ticket);
+            ticketCheckinPort.markAsUsed(ticket.id(), entry.checkedAt());
 
             return new SyncResultEntry(entry.qrCode(), "ACCEPTED", "Check-in recorded successfully");
 

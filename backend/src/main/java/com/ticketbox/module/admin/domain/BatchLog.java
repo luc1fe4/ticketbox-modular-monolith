@@ -1,22 +1,23 @@
 package com.ticketbox.module.admin.domain;
 
+import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "batch_logs")
-public class BatchLog {
+@Getter
+@NoArgsConstructor
+public class BatchLog extends BaseEntity {
 
     public enum Status {
         RUNNING, SUCCESS, PARTIAL, FAILED
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "job_name", nullable = false, length = 100)
     private String jobName;
@@ -46,33 +47,39 @@ public class BatchLog {
     @Column(name = "error_detail", columnDefinition = "TEXT")
     private String errorDetail;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setJobName(String jobName) {
+        this.jobName = jobName;
+    }
 
-    public String getJobName() { return jobName; }
-    public void setJobName(String jobName) { this.jobName = jobName; }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setStartedAt(OffsetDateTime startedAt) {
+        this.startedAt = startedAt;
+    }
 
-    public OffsetDateTime getStartedAt() { return startedAt; }
-    public void setStartedAt(OffsetDateTime startedAt) { this.startedAt = startedAt; }
+    public void setCompletedAt(OffsetDateTime completedAt) {
+        this.completedAt = completedAt;
+    }
 
-    public OffsetDateTime getCompletedAt() { return completedAt; }
-    public void setCompletedAt(OffsetDateTime completedAt) { this.completedAt = completedAt; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setTotalRows(int totalRows) {
+        this.totalRows = totalRows;
+    }
 
-    public int getTotalRows() { return totalRows; }
-    public void setTotalRows(int totalRows) { this.totalRows = totalRows; }
+    public void setSuccessRows(int successRows) {
+        this.successRows = successRows;
+    }
 
-    public int getSuccessRows() { return successRows; }
-    public void setSuccessRows(int successRows) { this.successRows = successRows; }
+    public void setErrorRows(int errorRows) {
+        this.errorRows = errorRows;
+    }
 
-    public int getErrorRows() { return errorRows; }
-    public void setErrorRows(int errorRows) { this.errorRows = errorRows; }
-
-    public String getErrorDetail() { return errorDetail; }
-    public void setErrorDetail(String errorDetail) { this.errorDetail = errorDetail; }
+    public void setErrorDetail(String errorDetail) {
+        this.errorDetail = errorDetail;
+    }
 }

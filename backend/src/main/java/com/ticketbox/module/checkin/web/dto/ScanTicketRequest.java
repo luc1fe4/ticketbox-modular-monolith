@@ -1,4 +1,4 @@
-package com.ticketbox.module.checkin.web;
+package com.ticketbox.module.checkin.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -1,10 +1,10 @@
-package com.ticketbox.module.concert.application.dto;
+package com.ticketbox.module.concert.web.dto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record TicketTypeDto(
+public record TicketTypeResponse(
         UUID id,
         UUID concertId,
         String name,

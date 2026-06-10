@@ -1,6 +1,7 @@
 package com.ticketbox.module.checkin.web;
 
 import com.ticketbox.module.checkin.application.CheckinService;
+import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse;
 import com.ticketbox.shared.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

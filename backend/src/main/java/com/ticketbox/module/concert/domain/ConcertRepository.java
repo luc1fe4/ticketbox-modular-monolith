@@ -1,6 +1,5 @@
-package com.ticketbox.module.concert.infrastructure;
+package com.ticketbox.module.concert.domain;
 
-import com.ticketbox.module.concert.domain.Concert;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

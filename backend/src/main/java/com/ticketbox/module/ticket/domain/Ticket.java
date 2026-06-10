@@ -1,27 +1,24 @@
 package com.ticketbox.module.ticket.domain;
 
+import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Entity mapping the `tickets` table.
- * Represents an individual issued ticket with a scannable QR code.
- */
 @Entity
 @Table(name = "tickets")
-public class Ticket {
+@NoArgsConstructor
+@Getter
+public class Ticket extends BaseEntity {
 
     public enum Status {
         VALID, USED, CANCELLED, TRANSFERRED
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "order_item_id", nullable = false)
     private UUID orderItemId;
@@ -52,39 +49,39 @@ public class Ticket {
     @Column(name = "used_at")
     private OffsetDateTime usedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    public void setOrderItemId(UUID orderItemId) {
+        this.orderItemId = orderItemId;
+    }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setTicketTypeId(UUID ticketTypeId) {
+        this.ticketTypeId = ticketTypeId;
+    }
 
-    public UUID getOrderItemId() { return orderItemId; }
-    public void setOrderItemId(UUID orderItemId) { this.orderItemId = orderItemId; }
+    public void setConcertId(UUID concertId) {
+        this.concertId = concertId;
+    }
 
-    public UUID getTicketTypeId() { return ticketTypeId; }
-    public void setTicketTypeId(UUID ticketTypeId) { this.ticketTypeId = ticketTypeId; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public UUID getConcertId() { return concertId; }
-    public void setConcertId(UUID concertId) { this.concertId = concertId; }
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setQrSecret(String qrSecret) {
+        this.qrSecret = qrSecret;
+    }
 
-    public String getQrCode() { return qrCode; }
-    public void setQrCode(String qrCode) { this.qrCode = qrCode; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
-    public String getQrSecret() { return qrSecret; }
-    public void setQrSecret(String qrSecret) { this.qrSecret = qrSecret; }
+    public void setIssuedAt(OffsetDateTime issuedAt) {
+        this.issuedAt = issuedAt;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
-
-    public OffsetDateTime getIssuedAt() { return issuedAt; }
-    public void setIssuedAt(OffsetDateTime issuedAt) { this.issuedAt = issuedAt; }
-
-    public OffsetDateTime getUsedAt() { return usedAt; }
-    public void setUsedAt(OffsetDateTime usedAt) { this.usedAt = usedAt; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setUsedAt(OffsetDateTime usedAt) {
+        this.usedAt = usedAt;
+    }
 }

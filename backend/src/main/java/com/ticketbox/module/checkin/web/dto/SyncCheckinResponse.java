@@ -1,4 +1,4 @@
-package com.ticketbox.module.checkin.web;
+package com.ticketbox.module.checkin.web.dto;
 
 import java.util.List;
 

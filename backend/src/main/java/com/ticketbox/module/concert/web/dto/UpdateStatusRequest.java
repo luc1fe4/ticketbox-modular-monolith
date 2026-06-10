@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.application.dto;
+package com.ticketbox.module.concert.web.dto;
 
 import com.ticketbox.module.concert.domain.Concert;
 import jakarta.validation.constraints.NotNull;

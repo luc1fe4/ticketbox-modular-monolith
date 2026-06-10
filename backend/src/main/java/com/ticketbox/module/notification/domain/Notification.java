@@ -1,18 +1,20 @@
 package com.ticketbox.module.notification.domain;
 
+import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Entity mapping the `notifications` table.
- * Tracks outbound notification deliveries across different channels (email, SMS, etc.).
- */
 @Entity
 @Table(name = "notifications")
-public class Notification {
+@Getter
+@NoArgsConstructor
+public class Notification extends BaseEntity {
 
     public enum Channel {
         EMAIL, ZALO, SMS, APP
@@ -21,11 +23,6 @@ public class Notification {
     public enum Status {
         PENDING, SENT, FAILED, SKIPPED
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "user_id")
     private UUID userId;
@@ -56,39 +53,39 @@ public class Notification {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
 
-    public Channel getChannel() { return channel; }
-    public void setChannel(Channel channel) { this.channel = channel; }
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
 
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
+    public void setBody(String body) {
+        this.body = body;
+    }
 
-    public String getSubject() { return subject; }
-    public void setSubject(String subject) { this.subject = subject; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public void setSentAt(OffsetDateTime sentAt) {
+        this.sentAt = sentAt;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setAttempts(int attempts) {
+        this.attempts = attempts;
+    }
 
-    public OffsetDateTime getSentAt() { return sentAt; }
-    public void setSentAt(OffsetDateTime sentAt) { this.sentAt = sentAt; }
-
-    public int getAttempts() { return attempts; }
-    public void setAttempts(int attempts) { this.attempts = attempts; }
-
-    public String getLastError() { return lastError; }
-    public void setLastError(String lastError) { this.lastError = lastError; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setLastError(String lastError) {
+        this.lastError = lastError;
+    }
 }

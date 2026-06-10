@@ -1,10 +1,11 @@
 package com.ticketbox.module.concert.web;
 
 import com.ticketbox.module.concert.application.ConcertService;
-import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
-import com.ticketbox.module.concert.application.dto.ConcertSeatMapDto;
-import com.ticketbox.module.concert.application.dto.ConcertSummaryDto;
+import com.ticketbox.module.concert.web.dto.ConcertDetailResponse;
+import com.ticketbox.module.concert.web.dto.ConcertSeatMapResponse;
+import com.ticketbox.module.concert.web.dto.ConcertSummaryResponse;
 import com.ticketbox.shared.response.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,40 +17,37 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/concerts")
+@RequiredArgsConstructor
 public class ConcertController {
 
     private final ConcertService concertService;
 
-    public ConcertController(ConcertService concertService) {
-        this.concertService = concertService;
-    }
-
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<ConcertSummaryDto>>> listConcerts(
+    public ResponseEntity<ApiResponse<Page<ConcertSummaryResponse>>> listConcerts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("eventDate").ascending());
 
-        Page<ConcertSummaryDto> concerts = concertService.getPublicConcerts(pageable);
+        Page<ConcertSummaryResponse> concerts = concertService.getPublicConcerts(pageable);
 
         return ResponseEntity.ok(ApiResponse.success(concerts));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ConcertDetailDto>> getConcertDetail(
+    public ResponseEntity<ApiResponse<ConcertDetailResponse>> getConcertDetail(
             @PathVariable UUID id
     ) {
-        ConcertDetailDto detail = concertService.getConcertDetail(id);
+        ConcertDetailResponse detail = concertService.getConcertDetail(id);
 
         return ResponseEntity.ok(ApiResponse.success(detail));
     }
 
     @GetMapping("/{concertId}/seat-map")
-    public ResponseEntity<ApiResponse<ConcertSeatMapDto>> getConcertSeatMap(
+    public ResponseEntity<ApiResponse<ConcertSeatMapResponse>> getConcertSeatMap(
             @PathVariable UUID concertId
     ) {
-        ConcertSeatMapDto seatMap = concertService.getConcertSeatMap(concertId);
+        ConcertSeatMapResponse seatMap = concertService.getConcertSeatMap(concertId);
 
         return ResponseEntity.ok(ApiResponse.success(seatMap));
     }

@@ -1,4 +1,4 @@
-package com.ticketbox.module.auth.web;
+package com.ticketbox.module.auth.web.dto;
 
 import com.ticketbox.module.auth.domain.User;
 import java.util.UUID;

@@ -1,7 +1,6 @@
 package com.ticketbox.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ticketbox.module.auth.infrastructure.JwtAuthenticationFilter;
 import com.ticketbox.shared.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -51,32 +50,15 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                // Public health checks
                 .requestMatchers("/api/health", "/actuator/health").permitAll()
-
-                // Public auth endpoints
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-
-                // Public concert information endpoints (method-specific GET)
                 .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
-
-                // Public payment webhooks and mock payment endpoints
                 .requestMatchers("/api/payments/webhooks/**").permitAll()
                 .requestMatchers("/api/mock-payments/**").permitAll()
-
-                // Specific Admin User management endpoint is ADMIN only
                 .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
-
-                // Other Admin endpoints are accessible by ADMIN or ORGANIZER
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "ORGANIZER")
-
-                // Staff checkin list is accessible by STAFF, ORGANIZER, or ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/staff/concerts/*/checkins").hasAnyRole("STAFF", "ORGANIZER", "ADMIN")
-
-                // Other Staff endpoints are STAFF only
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
-
-                // Any other API request requires authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
