@@ -68,11 +68,12 @@ public class ConcertService {
     }
 
     @Transactional
-    public ConcertDetailDto createConcert(CreateConcertRequest request) {
+    public ConcertDetailDto createConcert(CreateConcertRequest request, UUID createdBy) {
         validateDates(request.eventDate(), request.doorsOpenAt());
 
         Concert concert = ConcertMapper.toEntity(request);
         concert.setStatus(Concert.Status.DRAFT);
+        concert.setCreatedBy(createdBy);
         
         Concert saved = concertRepository.save(concert);
         return ConcertMapper.toDetailDto(saved);

@@ -3,7 +3,6 @@ package com.ticketbox.module.concert.application.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 public record CreateConcertRequest(
         @NotBlank(message = "Title must not be blank")
@@ -24,8 +23,5 @@ public record CreateConcertRequest(
 
         String seatMapSvg,
 
-        String posterUrl,
-
-        @NotNull(message = "Created by user ID must not be null")
-        UUID createdBy
+        String posterUrl
 ) {}

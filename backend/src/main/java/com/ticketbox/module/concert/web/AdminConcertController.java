@@ -1,5 +1,6 @@
 package com.ticketbox.module.concert.web;
 
+import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.concert.application.ConcertService;
 import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
 import com.ticketbox.module.concert.application.dto.CreateConcertRequest;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -41,9 +43,10 @@ public class AdminConcertController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<ConcertDetailDto>> createConcert(
-            @Valid @RequestBody CreateConcertRequest request
+            @Valid @RequestBody CreateConcertRequest request,
+            @AuthenticationPrincipal User user
     ) {
-        ConcertDetailDto created = concertService.createConcert(request);
+        ConcertDetailDto created = concertService.createConcert(request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 

@@ -51,7 +51,6 @@ public class ConcertMapper {
         concert.setDoorsOpenAt(request.doorsOpenAt());
         concert.setSeatMapSvg(request.seatMapSvg());
         concert.setPosterUrl(request.posterUrl());
-        concert.setCreatedBy(request.createdBy());
         return concert;
     }
 
