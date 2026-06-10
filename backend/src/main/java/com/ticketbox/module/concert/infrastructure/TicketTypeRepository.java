@@ -23,4 +23,6 @@ public interface TicketTypeRepository extends JpaRepository<TicketType, UUID> {
     List<TicketType> findActiveByConcertIdOrderByPrice(@Param("concertId") UUID concertId);
 
     void deleteByConcertId(UUID concertId);
+    List<TicketType> findByConcertId(UUID concertId);
+    List<TicketType> findByConcertIdAndIsActiveTrue(UUID concertId);
 }
