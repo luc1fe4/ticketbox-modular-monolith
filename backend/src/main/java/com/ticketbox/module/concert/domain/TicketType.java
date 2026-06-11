@@ -2,23 +2,19 @@ package com.ticketbox.module.concert.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Entity mapping the `ticket_types` table.
- * Defines a category/zone of tickets within a concert (e.g. VIP, General Admission).
- */
 @Entity
 @Table(name = "ticket_types")
+@Getter
+@NoArgsConstructor
 public class TicketType extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "concert_id", nullable = false)
     private UUID concertId;
@@ -26,9 +22,6 @@ public class TicketType extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    /**
-     * Price in VND – stored as NUMERIC(12,0), no decimals needed.
-     */
     @Column(name = "price", nullable = false, precision = 12, scale = 0)
     private BigDecimal price;
 
@@ -53,36 +46,43 @@ public class TicketType extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setConcertId(UUID concertId) {
+        this.concertId = concertId;
+    }
 
-    public UUID getConcertId() { return concertId; }
-    public void setConcertId(UUID concertId) { this.concertId = concertId; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
 
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
+    public void setTotalQuantity(int totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
 
-    public int getTotalQuantity() { return totalQuantity; }
-    public void setTotalQuantity(int totalQuantity) { this.totalQuantity = totalQuantity; }
+    public void setAvailableQty(int availableQty) {
+        this.availableQty = availableQty;
+    }
 
-    public int getAvailableQty() { return availableQty; }
-    public void setAvailableQty(int availableQty) { this.availableQty = availableQty; }
+    public void setMaxPerAccount(int maxPerAccount) {
+        this.maxPerAccount = maxPerAccount;
+    }
 
-    public int getMaxPerAccount() { return maxPerAccount; }
-    public void setMaxPerAccount(int maxPerAccount) { this.maxPerAccount = maxPerAccount; }
+    public void setSaleStartAt(OffsetDateTime saleStartAt) {
+        this.saleStartAt = saleStartAt;
+    }
 
-    public OffsetDateTime getSaleStartAt() { return saleStartAt; }
-    public void setSaleStartAt(OffsetDateTime saleStartAt) { this.saleStartAt = saleStartAt; }
+    public void setSaleEndAt(OffsetDateTime saleEndAt) {
+        this.saleEndAt = saleEndAt;
+    }
 
-    public OffsetDateTime getSaleEndAt() { return saleEndAt; }
-    public void setSaleEndAt(OffsetDateTime saleEndAt) { this.saleEndAt = saleEndAt; }
+    public void setZoneColor(String zoneColor) {
+        this.zoneColor = zoneColor;
+    }
 
-    public String getZoneColor() { return zoneColor; }
-    public void setZoneColor(String zoneColor) { this.zoneColor = zoneColor; }
-
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 }

@@ -2,17 +2,18 @@ package com.ticketbox.module.ticket.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-
-/**
- * Entity mapping the `orders` table.
- * Represents a purchase order created by a user for one or more ticket types.
- */
+ 
 @Entity
 @Table(name = "orders")
+@Getter
+@NoArgsConstructor
 public class Order extends BaseEntity {
 
     public enum Status {
@@ -22,11 +23,6 @@ public class Order extends BaseEntity {
     public enum PaymentProvider {
         VNPAY, MOMO, MOCK
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -60,36 +56,43 @@ public class Order extends BaseEntity {
     @Column(name = "expires_at")
     private OffsetDateTime expiresAt;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setConcertId(UUID concertId) {
+        this.concertId = concertId;
+    }
 
-    public UUID getConcertId() { return concertId; }
-    public void setConcertId(UUID concertId) { this.concertId = concertId; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
 
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
 
-    public String getIdempotencyKey() { return idempotencyKey; }
-    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+    public void setPaymentProvider(PaymentProvider paymentProvider) {
+        this.paymentProvider = paymentProvider;
+    }
 
-    public PaymentProvider getPaymentProvider() { return paymentProvider; }
-    public void setPaymentProvider(PaymentProvider paymentProvider) { this.paymentProvider = paymentProvider; }
+    public void setPaymentRef(String paymentRef) {
+        this.paymentRef = paymentRef;
+    }
 
-    public String getPaymentRef() { return paymentRef; }
-    public void setPaymentRef(String paymentRef) { this.paymentRef = paymentRef; }
+    public void setPaymentUrl(String paymentUrl) {
+        this.paymentUrl = paymentUrl;
+    }
 
-    public String getPaymentUrl() { return paymentUrl; }
-    public void setPaymentUrl(String paymentUrl) { this.paymentUrl = paymentUrl; }
+    public void setPaidAt(OffsetDateTime paidAt) {
+        this.paidAt = paidAt;
+    }
 
-    public OffsetDateTime getPaidAt() { return paidAt; }
-    public void setPaidAt(OffsetDateTime paidAt) { this.paidAt = paidAt; }
-
-    public OffsetDateTime getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(OffsetDateTime expiresAt) { this.expiresAt = expiresAt; }
+    public void setExpiresAt(OffsetDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 }

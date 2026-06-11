@@ -1,58 +1,35 @@
 package com.ticketbox.module.concert.application.mapper;
 
-import com.ticketbox.module.concert.application.dto.TicketTypeDto;
-import com.ticketbox.module.concert.application.dto.CreateTicketTypeRequest;
-import com.ticketbox.module.concert.application.dto.UpdateTicketTypeRequest;
 import com.ticketbox.module.concert.domain.TicketType;
+import com.ticketbox.module.concert.web.dto.CreateTicketTypeRequest;
+import com.ticketbox.module.concert.web.dto.TicketTypeResponse;
+import com.ticketbox.module.concert.web.dto.UpdateTicketTypeRequest;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
-import java.util.UUID;
+@Mapper(componentModel = "spring")
+public interface TicketTypeMapper {
 
-public class TicketTypeMapper {
+    @Mapping(target = "isActive", source = "active")
+    TicketTypeResponse toResponse(TicketType ticketType);
 
-    private TicketTypeMapper() {}
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "concertId", ignore = true)
+    @Mapping(target = "availableQty", ignore = true)
+    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    TicketType toEntity(CreateTicketTypeRequest request);
 
-    public static TicketTypeDto toDto(TicketType entity) {
-        return new TicketTypeDto(
-                entity.getId(),
-                entity.getConcertId(),
-                entity.getName(),
-                entity.getPrice(),
-                entity.getTotalQuantity(),
-                entity.getAvailableQty(),
-                entity.getMaxPerAccount(),
-                entity.getSaleStartAt(),
-                entity.getSaleEndAt(),
-                entity.getZoneColor(),
-                entity.isActive(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
-    }
-
-    public static TicketType toEntity(UUID concertId, CreateTicketTypeRequest request) {
-        TicketType entity = new TicketType();
-        entity.setConcertId(concertId);
-        entity.setName(request.name());
-        entity.setPrice(request.price());
-        entity.setTotalQuantity(request.totalQuantity());
-        entity.setAvailableQty(request.totalQuantity());
-        entity.setMaxPerAccount(request.maxPerAccount());
-        entity.setSaleStartAt(request.saleStartAt());
-        entity.setSaleEndAt(request.saleEndAt());
-        entity.setZoneColor(request.zoneColor());
-        entity.setActive(true);
-        return entity;
-    }
-
-    public static void updateEntity(TicketType entity, UpdateTicketTypeRequest request) {
-        entity.setName(request.name());
-        entity.setPrice(request.price());
-        int difference = request.totalQuantity() - entity.getTotalQuantity();
-        entity.setTotalQuantity(request.totalQuantity());
-        entity.setAvailableQty(entity.getAvailableQty() + difference);
-        entity.setMaxPerAccount(request.maxPerAccount());
-        entity.setSaleStartAt(request.saleStartAt());
-        entity.setSaleEndAt(request.saleEndAt());
-        entity.setZoneColor(request.zoneColor());
-    }
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "concertId", ignore = true)
+    @Mapping(target = "availableQty", ignore = true) // Computed field
+    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateTicketTypeFromRequest(UpdateTicketTypeRequest request, @MappingTarget TicketType ticketType);
 }

@@ -1,6 +1,10 @@
 package com.ticketbox.module.checkin.web;
 
 import com.ticketbox.module.checkin.application.CheckinService;
+import com.ticketbox.module.checkin.web.dto.ScanTicketRequest;
+import com.ticketbox.module.checkin.web.dto.ScanTicketResponse;
+import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
+import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse;
 import com.ticketbox.shared.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

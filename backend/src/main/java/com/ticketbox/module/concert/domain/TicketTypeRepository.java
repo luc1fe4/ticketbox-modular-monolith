@@ -1,6 +1,5 @@
-package com.ticketbox.module.concert.infrastructure;
+package com.ticketbox.module.concert.domain;
 
-import com.ticketbox.module.concert.domain.TicketType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -3,9 +3,9 @@ package com.ticketbox.module.auth.application;
 import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
 import com.ticketbox.module.auth.infrastructure.JwtService;
-import com.ticketbox.module.auth.web.AuthResponse;
-import com.ticketbox.module.auth.web.LoginRequest;
-import com.ticketbox.module.auth.web.RegisterRequest;
+import com.ticketbox.module.auth.web.dto.AuthResponse;
+import com.ticketbox.module.auth.web.dto.LoginRequest;
+import com.ticketbox.module.auth.web.dto.RegisterRequest;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -32,7 +33,7 @@ public class AuthService {
         user.setFullName(request.fullName());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setPhone(request.phone());
-        user.setRole(User.Role.AUDIENCE); // Public registration defaults to AUDIENCE
+        user.setRole(User.Role.AUDIENCE); 
         user.setActive(true);
 
         User savedUser = userRepository.save(user);
@@ -45,7 +46,6 @@ public class AuthService {
         );
     }
 
-    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "Invalid email or password"));

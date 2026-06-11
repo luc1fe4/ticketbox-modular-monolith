@@ -2,6 +2,10 @@ package com.ticketbox.module.auth.web;
 
 import com.ticketbox.module.auth.application.AuthService;
 import com.ticketbox.module.auth.domain.User;
+import com.ticketbox.module.auth.web.dto.AuthResponse;
+import com.ticketbox.module.auth.web.dto.CurrentUserResponse;
+import com.ticketbox.module.auth.web.dto.LoginRequest;
+import com.ticketbox.module.auth.web.dto.RegisterRequest;
 import com.ticketbox.shared.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

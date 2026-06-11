@@ -1,10 +1,10 @@
-package com.ticketbox.module.concert.application.dto;
+package com.ticketbox.module.concert.web.dto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public record TicketTypeAvailabilityDto(
+public record TicketTypeAvailabilityResponse(
         UUID concertId,
         List<AvailabilityItem> items,
         OffsetDateTime refreshedAt

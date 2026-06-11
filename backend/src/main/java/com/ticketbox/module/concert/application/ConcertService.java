@@ -1,16 +1,20 @@
 package com.ticketbox.module.concert.application;
 
-import com.ticketbox.module.concert.application.dto.ConcertDetailDto;
-import com.ticketbox.module.concert.application.dto.ConcertSeatMapDto;
-import com.ticketbox.module.concert.application.dto.ConcertSummaryDto;
-import com.ticketbox.module.concert.application.dto.CreateConcertRequest;
-import com.ticketbox.module.concert.application.dto.SeatMapZoneDto;
-import com.ticketbox.module.concert.application.dto.UpdateConcertRequest;
+import com.ticketbox.module.concert.web.dto.ConcertDetailResponse;
+import com.ticketbox.module.concert.web.dto.ConcertSeatMapResponse;
+import com.ticketbox.module.concert.web.dto.ConcertSummaryResponse;
+import com.ticketbox.module.concert.web.dto.CreateConcertRequest;
+import com.ticketbox.module.concert.web.dto.SeatMapZoneResponse;
+import com.ticketbox.module.concert.web.dto.UpdateConcertRequest;
 import com.ticketbox.module.concert.application.mapper.ConcertMapper;
 import com.ticketbox.module.concert.domain.Concert;
-import com.ticketbox.module.concert.infrastructure.ConcertRepository;
-import com.ticketbox.module.concert.infrastructure.TicketTypeRepository;
+import com.ticketbox.module.concert.domain.ConcertRepository;
+import com.ticketbox.module.concert.domain.TicketTypeRepository;
 import com.ticketbox.shared.exception.AppException;
+import com.ticketbox.shared.util.RedisKeyConstants;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.concurrent.TimeUnit;
 import com.ticketbox.shared.exception.ErrorCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +33,9 @@ public class ConcertService {
 
     private final ConcertRepository concertRepository;
     private final TicketTypeRepository ticketTypeRepository;
+    private final ConcertMapper concertMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     private static final Map<Concert.Status, Set<Concert.Status>> VALID_TRANSITIONS = Map.of(
             Concert.Status.DRAFT, Set.of(Concert.Status.ON_SALE, Concert.Status.CANCELLED),
@@ -36,38 +43,76 @@ public class ConcertService {
             Concert.Status.SOLD_OUT, Set.of(Concert.Status.ON_SALE, Concert.Status.CANCELLED, Concert.Status.COMPLETED)
     );
 
-    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository) {
+    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository, ConcertMapper concertMapper, RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
         this.concertRepository = concertRepository;
         this.ticketTypeRepository = ticketTypeRepository;
+        this.concertMapper = concertMapper;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
-    public Page<ConcertSummaryDto> getPublicConcerts(Pageable pageable) {
+    @SuppressWarnings("unchecked")
+    public Page<ConcertSummaryResponse> getPublicConcerts(Pageable pageable) {
+        String cacheKey = RedisKeyConstants.CACHE_CONCERT_LIST + ":page:" + pageable.getPageNumber() + ":size:" + pageable.getPageSize();
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                if (cached instanceof Page) {
+                    return (Page<ConcertSummaryResponse>) cached;
+                }
+                return objectMapper.convertValue(cached, new com.fasterxml.jackson.core.type.TypeReference<Page<ConcertSummaryResponse>>() {});
+            }
+        } catch (Exception e) {
+            try { redisTemplate.delete(cacheKey); } catch (Exception ignored) {}
+        }
+
         List<Concert.Status> publicStatuses = List.of(
                 Concert.Status.ON_SALE,
                 Concert.Status.SOLD_OUT
         );
 
-        return concertRepository.findByStatusIn(publicStatuses, pageable)
-                .map(ConcertMapper::toSummaryDto);
+        Page<ConcertSummaryResponse> result = concertRepository.findByStatusIn(publicStatuses, pageable)
+                .map(concertMapper::toSummaryResponse);
+
+        try {
+            redisTemplate.opsForValue().set(cacheKey, result, RedisKeyConstants.TTL_CONCERT_LIST.getSeconds(), TimeUnit.SECONDS);
+        } catch (Exception e) {
+        }
+
+        return result;
     }
 
-    public ConcertDetailDto getConcertDetail(UUID concertId) {
+    public ConcertDetailResponse getConcertDetail(UUID concertId) {
+        String cacheKey = RedisKeyConstants.CACHE_CONCERT_DETAIL + concertId;
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.convertValue(cached, ConcertDetailResponse.class);
+            }
+        } catch (Exception e) {
+            try { redisTemplate.delete(cacheKey); } catch (Exception ignored) {}
+        }
+
         Concert concert = concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + concertId));
 
-        return ConcertMapper.toDetailDto(concert);
+        ConcertDetailResponse result = concertMapper.toDetailResponse(concert);
+        try {
+            redisTemplate.opsForValue().set(cacheKey, result, RedisKeyConstants.TTL_CONCERT_DETAIL.getSeconds(), TimeUnit.SECONDS);
+        } catch (Exception e) {}
+        return result;
     }
 
-    public ConcertSeatMapDto getConcertSeatMap(UUID concertId) {
+    public ConcertSeatMapResponse getConcertSeatMap(UUID concertId) {
         Concert concert = concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + concertId));
 
-        List<SeatMapZoneDto> zones = ticketTypeRepository
+        List<SeatMapZoneResponse> zones = ticketTypeRepository
                 .findActiveByConcertIdOrderByPrice(concertId)
                 .stream()
-                .map(ticketType -> new SeatMapZoneDto(
+                .map(ticketType -> new SeatMapZoneResponse(
                         ticketType.getId(),
                         ticketType.getName(),
                         ticketType.getZoneColor(),
@@ -77,37 +122,37 @@ public class ConcertService {
                 ))
                 .toList();
 
-        return new ConcertSeatMapDto(concert.getId(), concert.getSeatMapSvg(), zones);
+        return new ConcertSeatMapResponse(concert.getId(), concert.getSeatMapSvg(), zones);
     }
 
-    public Page<ConcertDetailDto> getAllConcerts(Concert.Status status, Pageable pageable) {
+    public Page<ConcertDetailResponse> getAllConcerts(Concert.Status status, Pageable pageable) {
         Page<Concert> concerts;
         if (status != null) {
             concerts = concertRepository.findByStatus(status, pageable);
         } else {
             concerts = concertRepository.findAll(pageable);
         }
-        return concerts.map(ConcertMapper::toDetailDto);
+        return concerts.map(concertMapper::toDetailResponse);
     }
 
     @Transactional
-    public ConcertDetailDto createConcert(CreateConcertRequest request) {
+    public ConcertDetailResponse createConcert(CreateConcertRequest request, UUID organizerId) {
         validateDates(request.eventDate(), request.doorsOpenAt());
 
-        Concert concert = ConcertMapper.toEntity(request);
+        Concert concert = concertMapper.toEntity(request);
+        concert.setCreatedBy(organizerId);
         concert.setStatus(Concert.Status.DRAFT);
-        
+
         Concert saved = concertRepository.save(concert);
-        return ConcertMapper.toDetailDto(saved);
+        return concertMapper.toDetailResponse(saved);
     }
 
     @Transactional
-    public ConcertDetailDto updateConcert(UUID id, UpdateConcertRequest request) {
+    public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + id));
 
-        // Reject updates if concert is in COMPLETED or CANCELLED status
         if (concert.getStatus() == Concert.Status.COMPLETED || concert.getStatus() == Concert.Status.CANCELLED) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "Cannot update concert information in " + concert.getStatus() + " status");
@@ -115,13 +160,14 @@ public class ConcertService {
 
         validateDates(request.eventDate(), request.doorsOpenAt());
 
-        ConcertMapper.updateEntity(concert, request);
+        concertMapper.updateConcertFromRequest(request, concert);
+
         Concert saved = concertRepository.save(concert);
-        return ConcertMapper.toDetailDto(saved);
+        return concertMapper.toDetailResponse(saved);
     }
 
     @Transactional
-    public ConcertDetailDto changeStatus(UUID id, Concert.Status newStatus) {
+    public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + id));
@@ -130,7 +176,7 @@ public class ConcertService {
 
         concert.setStatus(newStatus);
         Concert saved = concertRepository.save(concert);
-        return ConcertMapper.toDetailDto(saved);
+        return concertMapper.toDetailResponse(saved);
     }
 
     @Transactional
@@ -144,8 +190,6 @@ public class ConcertService {
                     "Cannot delete a concert with status: " + concert.getStatus());
         }
 
-        // Cascade delete associated ticket types first due to ON DELETE RESTRICT DB constraint.
-        // DRAFT status guarantees there are no active sales or check-ins.
         ticketTypeRepository.deleteByConcertId(id);
 
         concertRepository.delete(concert);

@@ -1,9 +1,10 @@
-package com.ticketbox.module.concert.application.dto;
+
+package com.ticketbox.module.concert.web.dto;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record ConcertSummaryDto(
+public record ConcertSummaryResponse(
         UUID id,
         String title,
         String venueName,

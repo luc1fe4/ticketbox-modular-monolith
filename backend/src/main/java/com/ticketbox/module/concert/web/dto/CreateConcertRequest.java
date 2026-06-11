@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.application.dto;
+package com.ticketbox.module.concert.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,8 +24,5 @@ public record CreateConcertRequest(
 
         String seatMapSvg,
 
-        String posterUrl,
-
-        @NotNull(message = "Created by user ID must not be null")
-        UUID createdBy
+        String posterUrl
 ) {}

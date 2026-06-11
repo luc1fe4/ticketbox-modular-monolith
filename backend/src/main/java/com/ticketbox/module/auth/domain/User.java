@@ -2,25 +2,21 @@ package com.ticketbox.module.auth.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-/**
- * Entity mapping the `users` table.
- * Represents any authenticated principal in the system (audience, organizer, staff, or admin).
- */
 @Entity
 @Table(name = "users")
+@Getter
+@NoArgsConstructor
 public class User extends BaseEntity {
 
     public enum Role {
         AUDIENCE, ORGANIZER, STAFF, ADMIN
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
@@ -41,24 +37,27 @@ public class User extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setRole(Role role) {
+        this.role = role;
+    }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
-
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 }

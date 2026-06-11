@@ -1,7 +1,6 @@
-package com.ticketbox.module.auth.infrastructure;
+package com.ticketbox.infrastructure.security;
 
-import com.ticketbox.module.auth.domain.User;
-import com.ticketbox.module.auth.domain.UserRepository;
+import com.ticketbox.module.auth.infrastructure.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,7 +25,6 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -47,25 +45,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (jwtService.isTokenValid(jwt)) {
                 userId = jwtService.extractUserId(jwt);
+                String role = jwtService.extractRole(jwt);
 
                 if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                    User user = userRepository.findById(userId).orElse(null);
-
-                    if (user != null && user.isActive()) {
-                        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                Collections.singletonList(authority)
-                        );
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    }
+                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userId.toString(), null, Collections.singletonList(authority)
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
-            // In case of JWT parsing error or database query issue, we ignore it and let the request proceed.
-            // SecurityConfig will block protected endpoints if context is not authenticated.
             logger.warn("JWT authentication failed: " + e.getMessage());
         }
 

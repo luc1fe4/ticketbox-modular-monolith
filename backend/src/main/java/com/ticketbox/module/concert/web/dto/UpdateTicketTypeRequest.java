@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.application.dto;
+package com.ticketbox.module.concert.web.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
