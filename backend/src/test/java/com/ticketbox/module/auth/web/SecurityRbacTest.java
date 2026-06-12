@@ -3,7 +3,7 @@ package com.ticketbox.module.auth.web;
 import com.ticketbox.infrastructure.security.SecurityConfig;
 import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
-import com.ticketbox.module.auth.infrastructure.JwtService;
+import com.ticketbox.infrastructure.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -57,7 +57,7 @@ class SecurityRbacTest {
 
     private UsernamePasswordAuthenticationToken createAuthToken(User.Role role) {
         User user = new User();
-        user.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(user, "id", UUID.fromString("11111111-1111-1111-1111-111111111111"));
         user.setEmail(role.name().toLowerCase() + "@example.com");
         user.setRole(role);
         user.setActive(true);
