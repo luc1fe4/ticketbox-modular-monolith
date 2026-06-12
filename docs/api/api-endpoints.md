@@ -301,8 +301,18 @@ If duplicate webhook, return OK without double-processing.
 | GET | `/staff/concerts/{concertId}/checkin-dataset` | STAFF | Download valid ticket dataset for offline scanner. |
 | POST | `/staff/checkins/scan` | STAFF | Online scan and check-in one QR code. |
 | POST | `/staff/checkins/sync` | STAFF | Batch sync offline check-in logs from mobile scanner. |
-| GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER | List check-in logs for a concert. |
+| GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER/ADMIN | List check-in logs for a concert. |
 | GET | `/admin/concerts/{concertId}/checkin-summary` | ORGANIZER/ADMIN | Get check-in count and conflict summary. |
+
+Check-in history pagination:
+
+```text
+GET /api/staff/concerts/{concertId}/checkins?page=0&size=20
+```
+
+Results are ordered by `checkedAt` descending. Each item contains the log ID,
+ticket ID, staff ID, device ID, gate, online/offline flag, check-in time, sync
+time, and conflict notes.
 
 Example online scan request:
 
@@ -327,6 +337,7 @@ Offline conflicts are resolved during sync.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
+| GET | `/staff/guestlist?concert_id={concertId}&phone={phone}` | STAFF | Find an active VIP guest by concert and phone at the gate. |
 | POST | `/admin/concerts/{concertId}/guest-lists/import` | ORGANIZER/ADMIN | Upload CSV and import guest list. |
 | GET | `/admin/concerts/{concertId}/guest-lists` | ORGANIZER/ADMIN/STAFF | List guest entries. |
 | GET | `/admin/batch-logs` | ORGANIZER/ADMIN | List batch job runs. |
@@ -341,6 +352,23 @@ Use upsert on (concert_id, phone).
 Write batch_logs.
 Reject or mark failed if error rate exceeds configured threshold.
 ```
+
+Example staff guest lookup response data:
+
+```json
+{
+  "found": true,
+  "guestId": "uuid",
+  "concertId": "uuid",
+  "phone": "0901234567",
+  "fullName": "VIP Guest",
+  "category": "Sponsor VIP",
+  "sponsorName": "Sponsor A",
+  "notes": "Use VIP gate"
+}
+```
+
+An inactive or unknown guest returns HTTP 200 with `"found": false`.
 
 ## Notifications
 

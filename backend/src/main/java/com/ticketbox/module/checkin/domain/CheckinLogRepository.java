@@ -1,8 +1,12 @@
 package com.ticketbox.module.checkin.domain;
 
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CheckinLogRepository extends JpaRepository<CheckinLog, UUID> {
     boolean existsByTicketId(UUID ticketId);
+
+    Page<CheckinLog> findByConcertId(UUID concertId, Pageable pageable);
 }
