@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "Invalid status transition"),
     CONCERT_NOT_DELETABLE(HttpStatus.CONFLICT, "Concert can only be deleted in DRAFT status"),
     CONCERT_HAS_TICKET_TYPES(HttpStatus.CONFLICT, "Cannot delete concert with existing ticket types"),
+    CONCERT_NOT_COMPLETED(HttpStatus.CONFLICT, "Revenue statistics are only available for completed concerts"),
     INVALID_DATE(HttpStatus.BAD_REQUEST, "Invalid date configuration");
 
     private final HttpStatus httpStatus;

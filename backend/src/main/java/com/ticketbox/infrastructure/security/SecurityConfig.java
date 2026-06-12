@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/mock-payments/**").permitAll()
                 .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "ORGANIZER")
+                .requestMatchers("/api/organizer/**").hasRole("ORGANIZER")
                 .requestMatchers(HttpMethod.GET, "/api/staff/concerts/*/checkins").hasAnyRole("STAFF", "ORGANIZER", "ADMIN")
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
                 .anyRequest().authenticated()

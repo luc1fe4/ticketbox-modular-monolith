@@ -1,0 +1,16 @@
+package com.ticketbox.module.concert.domain;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface ConcertReportingPort {
+
+    Optional<ConcertReportingView> findOwnedConcert(UUID concertId, UUID organizerId);
+
+    Page<ConcertReportingView> findCompletedConcerts(UUID organizerId, Pageable pageable);
+
+    List<TicketTypeReportingView> findTicketTypes(UUID concertId);
+}
