@@ -9,4 +9,5 @@ public interface TicketCheckinPort {
     Optional<TicketView> findByQrCode(String qrCode);
     List<TicketView> findByConcertIdAndStatusValid(UUID concertId);
     void markAsUsed(UUID ticketId, OffsetDateTime usedAt);
+    boolean markAsUsedIfValid(UUID ticketId, OffsetDateTime usedAt);
 }

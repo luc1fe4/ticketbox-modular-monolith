@@ -1,13 +1,11 @@
 package com.ticketbox.module.checkin.application;
 
-import com.ticketbox.module.checkin.domain.CheckinLog;
 import com.ticketbox.module.checkin.domain.CheckinLogRepository;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse.SyncResultEntry;
 import com.ticketbox.module.ticket.domain.TicketCheckinPort;
 import com.ticketbox.module.ticket.domain.TicketView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,39 +27,38 @@ public class CheckinSyncHelper {
             UUID staffId,
             String deviceId
     ) {
-        if (checkinLogRepository.existsByTicketId(ticket.id())) {
-            return new SyncResultEntry(
-                    entry.qrCode(),
-                    "SKIPPED",
-                    "Ticket already checked-in"
-            );
-        }
-
         OffsetDateTime now = OffsetDateTime.now();
+        UUID logId = UUID.randomUUID();
 
-        CheckinLog log = new CheckinLog(
+        int inserted = checkinLogRepository.insertOfflineIfAbsent(
+                logId,
                 ticket.id(),
                 ticket.concertId(),
                 staffId,
                 deviceId,
                 entry.checkedAt(),
-                true,
-                entry.gate()
+                now,
+                entry.gate(),
+                entry.notes()
         );
-        log.setSyncAt(now);
-        if (entry.notes() != null) {
-            log.setNotes(entry.notes());
+
+        if (inserted == 0) {
+            return new SyncResultEntry(
+                    entry.qrCode(),
+                    "SKIPPED",
+                    "Ticket was already checked in; the server record was kept"
+            );
         }
 
-        try {
-            checkinLogRepository.saveAndFlush(log);
-
-            ticketCheckinPort.markAsUsed(ticket.id(), entry.checkedAt());
-
-            return new SyncResultEntry(entry.qrCode(), "ACCEPTED", "Check-in recorded successfully");
-
-        } catch (DataIntegrityViolationException ex) {
-            return new SyncResultEntry(entry.qrCode(), "SKIPPED", "Ticket already checked-in");
+        if (!ticketCheckinPort.markAsUsedIfValid(ticket.id(), entry.checkedAt())) {
+            checkinLogRepository.deleteInsertedOfflineLog(logId);
+            return new SyncResultEntry(
+                    entry.qrCode(),
+                    "INVALID",
+                    "Ticket status changed on the server during sync"
+            );
         }
+
+        return new SyncResultEntry(entry.qrCode(), "ACCEPTED", "Check-in recorded successfully");
     }
 }
