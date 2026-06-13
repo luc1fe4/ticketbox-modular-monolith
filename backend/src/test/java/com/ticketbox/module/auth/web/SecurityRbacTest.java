@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
@@ -20,6 +22,7 @@ import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RestController
@@ -42,7 +45,40 @@ class TestStaffController {
     }
 }
 
-@WebMvcTest(controllers = {TestAdminController.class, TestStaffController.class})
+@RestController
+class TestAudienceProtectedController {
+    @GetMapping("/api/orders")
+    public String orders() {
+        return "orders-ok";
+    }
+
+    @GetMapping("/api/tickets")
+    public String tickets() {
+        return "tickets-ok";
+    }
+
+    @GetMapping("/api/payments/{orderId}/status")
+    public String paymentStatus(@PathVariable UUID orderId) {
+        return "payment-status-ok";
+    }
+
+    @PostMapping("/api/payments/{orderId}/initiate")
+    public String initiatePayment(@PathVariable UUID orderId) {
+        return "payment-initiate-ok";
+    }
+
+    @PostMapping("/api/payments/webhooks/vnpay")
+    public String paymentWebhook() {
+        return "webhook-ok";
+    }
+
+    @PostMapping("/api/mock-payments/{orderId}/success")
+    public String mockPaymentSuccess(@PathVariable UUID orderId) {
+        return "mock-payment-ok";
+    }
+}
+
+@WebMvcTest(controllers = {TestAdminController.class, TestStaffController.class, TestAudienceProtectedController.class})
 @Import(SecurityConfig.class)
 class SecurityRbacTest {
 
@@ -115,6 +151,62 @@ class SecurityRbacTest {
     void staffEndpoint_WithStaff_Returns200() throws Exception {
         mockMvc.perform(get("/api/staff/test")
                         .with(authentication(createAuthToken(User.Role.STAFF))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void ordersEndpoint_WithoutToken_Returns401() throws Exception {
+        mockMvc.perform(get("/api/orders"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ticketsEndpoint_WithoutToken_Returns401() throws Exception {
+        mockMvc.perform(get("/api/tickets"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void paymentStatusEndpoint_WithoutToken_Returns401() throws Exception {
+        mockMvc.perform(get("/api/payments/11111111-1111-1111-1111-111111111111/status"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void audienceProtectedEndpoints_WithAudience_Return200() throws Exception {
+        UsernamePasswordAuthenticationToken audience = createAuthToken(User.Role.AUDIENCE);
+
+        mockMvc.perform(get("/api/orders").with(authentication(audience)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/tickets").with(authentication(audience)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/payments/11111111-1111-1111-1111-111111111111/status").with(authentication(audience)))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/payments/11111111-1111-1111-1111-111111111111/initiate").with(authentication(audience)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void audienceProtectedEndpoints_WithNonAudience_Return403() throws Exception {
+        UsernamePasswordAuthenticationToken staff = createAuthToken(User.Role.STAFF);
+
+        mockMvc.perform(get("/api/orders").with(authentication(staff)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/tickets").with(authentication(staff)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/payments/11111111-1111-1111-1111-111111111111/status").with(authentication(staff)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paymentWebhook_WithoutToken_Returns200() throws Exception {
+        mockMvc.perform(post("/api/payments/webhooks/vnpay"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void mockPayment_WithoutToken_Returns200() throws Exception {
+        mockMvc.perform(post("/api/mock-payments/11111111-1111-1111-1111-111111111111/success"))
                 .andExpect(status().isOk());
     }
 }

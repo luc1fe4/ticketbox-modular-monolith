@@ -105,8 +105,8 @@ Example login response data:
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/users/me` | AUTHENTICATED | Get current user profile. |
-| PATCH | `/users/me` | AUTHENTICATED | Update current user profile. |
+| GET | `/users/me/profile` | AUTHENTICATED | Get current user profile. |
+| PATCH | `/users/me/profile` | AUTHENTICATED | Update allowed current user profile fields such as fullName and phone. |
 | PATCH | `/users/me/password` | AUTHENTICATED | Change current user password. |
 | GET | `/admin/users` | ADMIN | List users with filters. |
 | GET | `/admin/users/{userId}` | ADMIN | Get user detail. |
