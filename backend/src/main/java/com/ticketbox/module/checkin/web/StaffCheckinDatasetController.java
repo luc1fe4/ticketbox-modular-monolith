@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
 
 import java.util.UUID;
 
@@ -28,12 +29,12 @@ public class StaffCheckinDatasetController {
     private final CheckinService checkinService;
 
     @GetMapping("/{concertId}/checkin-dataset")
-    public ApiResponse<CheckinDatasetResponse> getDataset(@PathVariable UUID concertId) {
-        return ApiResponse.success(checkinService.getCheckinDataset(concertId));
+    public ResponseEntity<ApiResponse<CheckinDatasetResponse>> getDataset(@PathVariable UUID concertId) {
+        return ResponseEntity.ok(ApiResponse.success(checkinService.getCheckinDataset(concertId)));
     }
 
     @GetMapping("/{concertId}/checkins")
-    public ApiResponse<Page<CheckinHistoryResponse>> getCheckinHistory(
+    public ResponseEntity<ApiResponse<Page<CheckinHistoryResponse>>> getCheckinHistory(
             @PathVariable UUID concertId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
@@ -43,6 +44,6 @@ public class StaffCheckinDatasetController {
                 size,
                 Sort.by(Sort.Direction.DESC, "checkedAt")
         );
-        return ApiResponse.success(checkinService.getCheckinHistory(concertId, pageable));
+        return ResponseEntity.ok(ApiResponse.success(checkinService.getCheckinHistory(concertId, pageable)));
     }
 }

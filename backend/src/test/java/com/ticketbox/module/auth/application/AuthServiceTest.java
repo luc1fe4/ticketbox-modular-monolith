@@ -2,7 +2,7 @@ package com.ticketbox.module.auth.application;
 
 import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
-import com.ticketbox.module.auth.infrastructure.JwtService;
+import com.ticketbox.infrastructure.security.JwtService;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
 import com.ticketbox.module.auth.web.dto.RegisterRequest;
@@ -21,6 +21,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +47,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         sampleUser = new User();
-        sampleUser.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(sampleUser, "id", UUID.randomUUID());
         sampleUser.setEmail("test@example.com");
         sampleUser.setFullName("Test User");
         sampleUser.setPasswordHash("hashed_password");
@@ -90,7 +92,12 @@ class AuthServiceTest {
     void login_Success() {
         when(userRepository.findByEmail(loginRequest.email())).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches(loginRequest.password(), sampleUser.getPasswordHash())).thenReturn(true);
-        when(jwtService.generateToken(sampleUser)).thenReturn("jwt_token");
+        when(jwtService.generateToken(
+                eq(sampleUser.getId()),
+                eq(sampleUser.getEmail()),
+                eq(sampleUser.getRole().name()),
+                eq(sampleUser.getFullName())
+        )).thenReturn("jwt_token");
         when(jwtService.getExpirationMs()).thenReturn(3600000L); // 1 hour
 
         AuthResponse response = authService.login(loginRequest);
@@ -103,7 +110,12 @@ class AuthServiceTest {
 
         verify(userRepository).findByEmail(loginRequest.email());
         verify(passwordEncoder).matches(loginRequest.password(), sampleUser.getPasswordHash());
-        verify(jwtService).generateToken(sampleUser);
+        verify(jwtService).generateToken(
+                eq(sampleUser.getId()),
+                eq(sampleUser.getEmail()),
+                eq(sampleUser.getRole().name()),
+                eq(sampleUser.getFullName())
+        );
     }
 
     @Test

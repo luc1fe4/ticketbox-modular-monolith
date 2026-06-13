@@ -5,7 +5,7 @@ import com.ticketbox.infrastructure.security.SecurityConfig;
 import com.ticketbox.module.auth.application.AuthService;
 import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
-import com.ticketbox.module.auth.infrastructure.JwtService;
+import com.ticketbox.infrastructure.security.JwtService;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
 import com.ticketbox.module.auth.web.dto.RegisterRequest;
@@ -56,7 +56,7 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         sampleUser = new User();
-        sampleUser.setId(UUID.randomUUID());
+        org.springframework.test.util.ReflectionTestUtils.setField(sampleUser, "id", UUID.randomUUID());
         sampleUser.setEmail("audience@example.com");
         sampleUser.setFullName("Audience User");
         sampleUser.setPasswordHash("hashed_password");
