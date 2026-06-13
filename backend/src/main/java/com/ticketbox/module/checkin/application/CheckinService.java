@@ -126,6 +126,12 @@ public class CheckinService {
                 continue;
             }
 
+            if ("USED".equals(ticket.status())) {
+                results.add(new SyncResultEntry(entry.qrCode(), "SKIPPED", "Ticket was already used on the server"));
+                skipped++;
+                continue;
+            }
+
             SyncResultEntry result = checkinSyncHelper.syncSingleEntry(
                     entry, ticket, staffId, request.deviceId());
             results.add(result);
