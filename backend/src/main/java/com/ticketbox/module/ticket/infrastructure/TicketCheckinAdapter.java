@@ -38,6 +38,11 @@ public class TicketCheckinAdapter implements TicketCheckinPort {
         });
     }
 
+    @Override
+    public boolean markAsUsedIfValid(UUID ticketId, OffsetDateTime usedAt) {
+        return ticketRepository.markAsUsedIfValid(ticketId, usedAt) == 1;
+    }
+
     private TicketView toView(Ticket t) {
         return new TicketView(
                 t.getId(),

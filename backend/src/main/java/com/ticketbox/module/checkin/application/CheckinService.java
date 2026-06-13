@@ -4,6 +4,7 @@ import com.ticketbox.module.checkin.domain.CheckinLog;
 import com.ticketbox.module.checkin.domain.CheckinLogRepository;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse.TicketDatasetEntry;
+import com.ticketbox.module.checkin.web.dto.CheckinHistoryResponse;
 import com.ticketbox.module.checkin.web.dto.ScanTicketRequest;
 import com.ticketbox.module.checkin.web.dto.ScanTicketResponse;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
@@ -13,6 +14,8 @@ import com.ticketbox.module.ticket.domain.TicketCheckinPort;
 import com.ticketbox.module.ticket.domain.TicketView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,6 +94,23 @@ public class CheckinService {
         return new CheckinDatasetResponse(concertId, OffsetDateTime.now(), entries.size(), entries);
     }
 
+    @Transactional(readOnly = true)
+    public Page<CheckinHistoryResponse> getCheckinHistory(UUID concertId, Pageable pageable) {
+        return checkinLogRepository.findByConcertId(concertId, pageable)
+                .map(log -> new CheckinHistoryResponse(
+                        log.getId(),
+                        log.getTicketId(),
+                        log.getConcertId(),
+                        log.getStaffId(),
+                        log.getDeviceId(),
+                        log.getCheckedAt(),
+                        log.getSyncAt(),
+                        log.isOffline(),
+                        log.getGate(),
+                        log.getNotes()
+                ));
+    }
+
     @Transactional
     public SyncCheckinResponse syncOfflineLogs(SyncCheckinRequest request, UUID staffId) {
         List<SyncResultEntry> results = new ArrayList<>();
@@ -123,6 +143,12 @@ public class CheckinService {
                     || "TRANSFERRED".equals(ticket.status())) {
                 results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Ticket is cancelled or transferred"));
                 invalid++;
+                continue;
+            }
+
+            if ("USED".equals(ticket.status())) {
+                results.add(new SyncResultEntry(entry.qrCode(), "SKIPPED", "Ticket was already used on the server"));
+                skipped++;
                 continue;
             }
 
