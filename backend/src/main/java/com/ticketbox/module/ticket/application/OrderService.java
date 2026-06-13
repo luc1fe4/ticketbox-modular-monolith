@@ -16,8 +16,11 @@ import com.ticketbox.module.ticket.web.dto.OrderResponse;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -34,6 +37,9 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderMapper orderMapper;
     private final IdempotencyService idempotencyService;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final List<Order.Status> ACTIVE_STATUSES = List.of(Order.Status.AWAITING_PAYMENT, Order.Status.PAID);
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request, UUID userId, String idempotencyKey) {
@@ -42,95 +48,122 @@ public class OrderService {
             idempotencyService.checkAndStore(idempotencyKey);
         }
 
-        // 2. Validate concert exists and is ON_SALE
-        ConcertView concert = concertOrderPort.findConcertById(request.concertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
-
-        if (!"ON_SALE".equals(concert.status())) {
-            throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
+        // 2. Acquire user-specific Redis lock to prevent concurrent requests from the same user account bypassing the maxPerAccount limit
+        String lockKey = "lock:user:" + userId;
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(5));
+        if (Boolean.FALSE.equals(acquired)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Another request is being processed. Please try again.");
         }
 
-        // 3. Load requested TicketTypes
-        List<UUID> ticketTypeIds = request.items().stream()
-                .map(OrderItemRequest::ticketTypeId)
-                .toList();
+        try {
+            // 3. Validate concert exists and is ON_SALE
+            ConcertView concert = concertOrderPort.findConcertById(request.concertId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
 
-        List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
-        Map<UUID, TicketTypeView> typeMap = ticketTypes.stream()
-                .collect(Collectors.toMap(TicketTypeView::id, t -> t));
+            if (!"ON_SALE".equals(concert.status())) {
+                throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
+            }
 
-        // 4. Validate TicketTypes and calculate pricing
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> orderItems = new ArrayList<>();
-        OffsetDateTime now = OffsetDateTime.now();
+            // 4. Load requested TicketTypes
+            List<UUID> ticketTypeIds = request.items().stream()
+                    .map(OrderItemRequest::ticketTypeId)
+                    .toList();
 
-        for (OrderItemRequest itemRequest : request.items()) {
-            TicketTypeView type = typeMap.get(itemRequest.ticketTypeId());
+            List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
+            Map<UUID, TicketTypeView> typeMap = ticketTypes.stream()
+                    .collect(Collectors.toMap(TicketTypeView::id, t -> t));
+
+            // 5. Validate TicketTypes and calculate pricing
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            List<OrderItem> orderItems = new ArrayList<>();
+            OffsetDateTime now = OffsetDateTime.now();
+
+            for (OrderItemRequest itemRequest : request.items()) {
+                TicketTypeView type = typeMap.get(itemRequest.ticketTypeId());
+                
+                // Check if ticket type exists
+                if (type == null) {
+                    throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
+                            "Ticket type not found: " + itemRequest.ticketTypeId());
+                }
+
+                // Check if belongs to correct concert
+                if (!request.concertId().equals(type.concertId())) {
+                    throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
+                            "Ticket type does not belong to this concert");
+                }
+
+                // Check if ticket type is active
+                if (!type.isActive()) {
+                    throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
+                            "Ticket type is not active");
+                }
+
+                // Check sale window (saleStartAt <= now <= saleEndAt)
+                if (type.saleStartAt().isAfter(now) || (type.saleEndAt() != null && type.saleEndAt().isBefore(now))) {
+                    throw new AppException(ErrorCode.SALE_NOT_OPEN, 
+                            "Ticket sale has not started or has ended for: " + type.name());
+                }
+
+                // A. Check max_per_account limit (thread-safe due to the Redis user lock)
+                int alreadyOrdered = orderItemRepository.sumQuantityByUserIdAndTicketTypeId(userId, type.id(), ACTIVE_STATUSES);
+                if (alreadyOrdered + itemRequest.quantity() > type.maxPerAccount()) {
+                    throw new AppException(ErrorCode.TICKET_LIMIT_EXCEEDED, 
+                            "Purchase limit exceeded for zone: " + type.name() + " (Max: " + type.maxPerAccount() + ")");
+                }
+
+                // B. Atomic Reservation in database
+                boolean reserved = concertOrderPort.reserveInventory(type.id(), itemRequest.quantity());
+                if (!reserved) {
+                    throw new AppException(ErrorCode.TICKET_SOLD_OUT, 
+                            "Tickets are sold out for zone: " + type.name());
+                }
+
+                // Calculate subtotal
+                BigDecimal unitPrice = type.price();
+                BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemRequest.quantity()));
+                totalAmount = totalAmount.add(subtotal);
+
+                // Populate OrderItem entity
+                OrderItem orderItem = new OrderItem();
+                orderItem.setTicketTypeId(type.id());
+                orderItem.setQuantity(itemRequest.quantity());
+                orderItem.setUnitPrice(unitPrice);
+                orderItem.setSubtotal(subtotal);
+                orderItems.add(orderItem);
+            }
+
+            // 6. Create and save the Order
+            Order order = new Order();
+            order.setUserId(userId);
+            order.setConcertId(request.concertId());
+            order.setStatus(Order.Status.AWAITING_PAYMENT);
+            order.setTotalAmount(totalAmount);
+            order.setIdempotencyKey(idempotencyKey);
+            order.setExpiresAt(now.plusMinutes(15));
             
-            // Check if ticket type exists
-            if (type == null) {
-                throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
-                        "Ticket type not found: " + itemRequest.ticketTypeId());
+            Order savedOrder = orderRepository.save(order);
+
+            // 7. Link and save OrderItems
+            for (OrderItem orderItem : orderItems) {
+                orderItem.setOrderId(savedOrder.getId());
             }
+            orderItemRepository.saveAll(orderItems);
 
-            // Check if belongs to correct concert
-            if (!request.concertId().equals(type.concertId())) {
-                throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
-                        "Ticket type does not belong to this concert");
-            }
+            // 8. Construct and return response
+            List<OrderItemResponse> itemResponses = orderItems.stream()
+                    .map(item -> {
+                        String typeName = typeMap.get(item.getTicketTypeId()).name();
+                        return orderMapper.toItemResponse(item, typeName);
+                    })
+                    .toList();
 
-            // Check if ticket type is active
-            if (!type.isActive()) {
-                throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, 
-                        "Ticket type is not active");
-            }
+            return orderMapper.toResponse(savedOrder, itemResponses, concert.title());
 
-            // Check sale window (saleStartAt <= now <= saleEndAt)
-            if (type.saleStartAt().isAfter(now) || (type.saleEndAt() != null && type.saleEndAt().isBefore(now))) {
-                throw new AppException(ErrorCode.SALE_NOT_OPEN, 
-                        "Ticket sale has not started or has ended for: " + type.name());
-            }
-
-            // Calculate subtotal
-            BigDecimal unitPrice = type.price();
-            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemRequest.quantity()));
-            totalAmount = totalAmount.add(subtotal);
-
-            // Populate OrderItem entity
-            OrderItem orderItem = new OrderItem();
-            orderItem.setTicketTypeId(type.id());
-            orderItem.setQuantity(itemRequest.quantity());
-            orderItem.setUnitPrice(unitPrice);
-            orderItem.setSubtotal(subtotal);
-            orderItems.add(orderItem);
+        } finally {
+            // 9. Always release Redis lock
+            redisTemplate.delete(lockKey);
         }
-
-        // 5. Create and save the Order
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setConcertId(request.concertId());
-        order.setStatus(Order.Status.AWAITING_PAYMENT);
-        order.setTotalAmount(totalAmount);
-        order.setIdempotencyKey(idempotencyKey);
-        order.setExpiresAt(now.plusMinutes(15));
-        
-        Order savedOrder = orderRepository.save(order);
-
-        // 6. Link and save OrderItems
-        for (OrderItem orderItem : orderItems) {
-            orderItem.setOrderId(savedOrder.getId());
-        }
-        orderItemRepository.saveAll(orderItems);
-
-        // 7. Construct and return response
-        List<OrderItemResponse> itemResponses = orderItems.stream()
-                .map(item -> {
-                    String typeName = typeMap.get(item.getTicketTypeId()).name();
-                    return orderMapper.toItemResponse(item, typeName);
-                })
-                .toList();
-
-        return orderMapper.toResponse(savedOrder, itemResponses, concert.title());
     }
 
     public List<OrderResponse> listUserOrders(UUID userId) {

@@ -7,6 +7,7 @@ import com.ticketbox.module.concert.domain.ConcertRepository;
 import com.ticketbox.module.concert.domain.TicketTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -58,5 +59,18 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         t.isActive()
                 ))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public boolean reserveInventory(UUID ticketTypeId, int quantity) {
+        int updatedRows = ticketTypeRepository.decrementAvailableQty(ticketTypeId, quantity);
+        return updatedRows > 0;
+    }
+
+    @Override
+    @Transactional
+    public void releaseInventory(UUID ticketTypeId, int quantity) {
+        ticketTypeRepository.incrementAvailableQty(ticketTypeId, quantity);
     }
 }

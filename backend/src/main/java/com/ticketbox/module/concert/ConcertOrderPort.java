@@ -9,4 +9,6 @@ public interface ConcertOrderPort {
     Optional<ConcertView> findConcertById(UUID concertId);
     List<ConcertView> findConcertsByIds(Collection<UUID> concertIds);
     List<TicketTypeView> findTicketTypesByIds(Collection<UUID> ticketTypeIds);
+    boolean reserveInventory(UUID ticketTypeId, int quantity);
+    void releaseInventory(UUID ticketTypeId, int quantity);
 }
