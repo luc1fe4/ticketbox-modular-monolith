@@ -375,14 +375,93 @@ Use mock AI response if real AI integration is out of scope for the implementati
 Still persist artist_pdf_jobs and status transitions.
 ```
 
-## Admin Dashboard And Reporting
+## Organizer Revenue Reporting
+
+Revenue reports are available only to the organizer who owns the concert and only after the
+concert status becomes `COMPLETED`. The server returns `404` when the concert does not exist
+or does not belong to the authenticated organizer, and `409` when the concert is not completed.
+Only orders with status `PAID` are included.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/admin/dashboard/summary` | ORGANIZER/ADMIN | High-level totals: concerts, revenue, paid orders, tickets sold. |
-| GET | `/admin/concerts/{concertId}/revenue` | ORGANIZER/ADMIN | Revenue summary for one concert. |
-| GET | `/admin/concerts/{concertId}/sales-by-ticket-type` | ORGANIZER/ADMIN | Sales and remaining quantity by ticket type. |
-| GET | `/admin/concerts/{concertId}/orders/export` | ORGANIZER/ADMIN | Export orders CSV if needed. |
+| GET | `/organizer/concerts` | ORGANIZER | List the authenticated organizer's completed concerts. |
+| GET | `/organizer/concerts/{concertId}/revenue-summary` | ORGANIZER | Get total revenue, sold tickets, total ticket capacity, and sold rate. |
+| GET | `/organizer/concerts/{concertId}/zone-revenue` | ORGANIZER | Get revenue and sold quantities grouped by ticket zone. |
+| GET | `/organizer/concerts/{concertId}/sales-trend?from=2026-06-01&to=2026-06-11&groupBy=day` | ORGANIZER | Get daily paid-ticket sales and revenue. |
+| GET | `/organizer/concerts/{concertId}/revenue-report/export?format=csv` | ORGANIZER | Download the revenue summary and zone report as CSV or PDF. |
+
+Completed concert list query:
+
+```text
+GET /api/organizer/concerts?page=0&size=20
+```
+
+Revenue summary response data:
+
+```json
+{
+  "concertId": "uuid",
+  "totalRevenue": 250000000,
+  "totalTicketsSold": 520,
+  "totalTicketsAvailable": 1000,
+  "soldRate": 52.0
+}
+```
+
+`totalTicketsAvailable` currently represents the total configured ticket capacity across all
+zones. The remaining quantity is `totalTicketsAvailable - totalTicketsSold`.
+
+Zone revenue response data:
+
+```json
+[
+  {
+    "zoneName": "SVIP",
+    "price": 3000000,
+    "soldQuantity": 80,
+    "availableQuantity": 20,
+    "totalQuantity": 100,
+    "revenue": 240000000,
+    "soldRate": 80.0
+  }
+]
+```
+
+Zone revenue uses the historical `order_items.subtotal` snapshot. It does not recalculate
+historical revenue using the current ticket-type price. Zones with no paid sales are returned
+with zero values.
+
+Sales trend response data:
+
+```json
+[
+  {
+    "date": "2026-06-01",
+    "ticketsSold": 30,
+    "revenue": 45000000
+  },
+  {
+    "date": "2026-06-02",
+    "ticketsSold": 0,
+    "revenue": 0
+  }
+]
+```
+
+Sales trends use `orders.paid_at`, apply the `Asia/Ho_Chi_Minh` timezone, and fill dates with
+no paid sales using zero values. The current implementation supports only `groupBy=day`.
+
+Revenue report export:
+
+```text
+GET /api/organizer/concerts/{concertId}/revenue-report/export?format=csv
+GET /api/organizer/concerts/{concertId}/revenue-report/export?format=pdf
+```
+
+The response is a file download with `Content-Disposition: attachment`. CSV files use UTF-8
+with a BOM for spreadsheet compatibility. PDF files contain the summary cards and zone table.
+Unsupported formats return `400`. Ownership and completed-concert validation are identical to
+the JSON reporting endpoints.
 
 ## Queue And Rate Limiting
 
