@@ -2,7 +2,7 @@ package com.ticketbox.module.auth.application;
 
 import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
-import com.ticketbox.module.auth.infrastructure.JwtService;
+import com.ticketbox.infrastructure.security.JwtService;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
 import com.ticketbox.module.auth.web.dto.RegisterRequest;
@@ -58,7 +58,7 @@ public class AuthService {
             throw new AppException(ErrorCode.UNAUTHENTICATED, "Invalid email or password");
         }
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole().name(), user.getFullName());
         long expiresIn = jwtService.getExpirationMs() / 1000; // in seconds
 
         AuthResponse.UserSummary userSummary = new AuthResponse.UserSummary(
