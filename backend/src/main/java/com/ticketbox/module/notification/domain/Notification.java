@@ -2,10 +2,8 @@ package com.ticketbox.module.notification.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -53,6 +51,15 @@ public class Notification extends BaseEntity {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
+    @Column(name = "read_at")
+    private OffsetDateTime readAt;
+
+    public void markAsRead(OffsetDateTime readAt) {
+        if (this.readAt == null) {
+            this.readAt = readAt;
+        }
+    }
+
     public void setUserId(UUID userId) {
         this.userId = userId;
     }
@@ -87,5 +94,9 @@ public class Notification extends BaseEntity {
 
     public void setLastError(String lastError) {
         this.lastError = lastError;
+    }
+
+    public void setReadAt(OffsetDateTime readAt) {
+        this.readAt = readAt;
     }
 }
