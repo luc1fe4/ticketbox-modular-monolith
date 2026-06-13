@@ -9,6 +9,9 @@ import com.ticketbox.module.ticket.domain.Order;
 import com.ticketbox.module.ticket.domain.OrderItem;
 import com.ticketbox.module.ticket.domain.OrderItemRepository;
 import com.ticketbox.module.ticket.domain.OrderRepository;
+import com.ticketbox.module.ticket.domain.Ticket;
+import com.ticketbox.module.ticket.domain.TicketRepository;
+import com.ticketbox.module.ticket.application.util.TicketQrGenerator;
 import com.ticketbox.module.ticket.web.dto.CreateOrderRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemResponse;
@@ -38,6 +41,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final IdempotencyService idempotencyService;
     private final StringRedisTemplate redisTemplate;
+    private final TicketRepository ticketRepository;
 
     private static final List<Order.Status> ACTIVE_STATUSES = List.of(Order.Status.AWAITING_PAYMENT, Order.Status.PAID);
 
@@ -227,5 +231,49 @@ public class OrderService {
                 .toList();
 
         return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
+    @Transactional
+    public void handlePaymentSuccess(UUID orderId, String provider, String providerRef) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+
+        if (order.getStatus() == Order.Status.PAID) {
+            return; // Already processed (Idempotency)
+        }
+
+        order.setStatus(Order.Status.PAID);
+        order.setPaidAt(OffsetDateTime.now());
+        order.setPaymentProvider(Order.PaymentProvider.valueOf(provider));
+        order.setPaymentRef(providerRef);
+        orderRepository.save(order);
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        List<Ticket> ticketsToSave = new ArrayList<>();
+
+        for (OrderItem item : items) {
+            for (int i = 0; i < item.getQuantity(); i++) {
+                Ticket ticket = new Ticket();
+                ticket.setOrderItemId(item.getId());
+                ticket.setTicketTypeId(item.getTicketTypeId());
+                ticket.setConcertId(order.getConcertId());
+                ticket.setUserId(order.getUserId());
+                ticket.setStatus(Ticket.Status.VALID);
+                
+                String qrSecret = UUID.randomUUID().toString();
+                ticket.setQrSecret(qrSecret);
+
+                String qrCode = TicketQrGenerator.generateQrToken(
+                        ticket.getConcertId(),
+                        ticket.getTicketTypeId(),
+                        ticket.getUserId(),
+                        qrSecret
+                );
+                ticket.setQrCode(qrCode);
+                
+                ticketsToSave.add(ticket);
+            }
+        }
+        ticketRepository.saveAll(ticketsToSave);
     }
 }

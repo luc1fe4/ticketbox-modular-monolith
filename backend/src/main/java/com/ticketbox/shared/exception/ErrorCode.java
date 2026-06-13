@@ -27,7 +27,8 @@ public enum ErrorCode {
     CONCERT_NOT_ON_SALE(HttpStatus.BAD_REQUEST, "Concert is not currently on sale"),
     TICKET_TYPE_NOT_IN_CONCERT(HttpStatus.BAD_REQUEST, "Ticket type does not belong to this concert"),
     SALE_NOT_OPEN(HttpStatus.BAD_REQUEST, "Ticket sale has not started or has ended"),
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found");
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found"),
+    TICKET_NOT_FOUND(HttpStatus.NOT_FOUND, "Ticket not found");
 
     private final HttpStatus httpStatus;
     private final String message;
