@@ -46,7 +46,7 @@ public class AdminConcertController {
     ) {
         UUID organizerId = UUID.fromString(authentication.getName());
         ConcertDetailResponse created = concertService.createConcert(request, organizerId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(created));
     }
 
     @GetMapping("/{id}")

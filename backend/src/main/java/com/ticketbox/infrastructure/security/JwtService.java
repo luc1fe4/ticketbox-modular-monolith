@@ -1,6 +1,5 @@
-package com.ticketbox.module.auth.infrastructure;
+package com.ticketbox.infrastructure.security;
 
-import com.ticketbox.module.auth.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -29,15 +28,15 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(User user) {
+    public String generateToken(UUID userId, String email, String role, String fullName) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", user.getEmail());
-        claims.put("role", user.getRole().name());
-        claims.put("fullName", user.getFullName());
+        claims.put("email", email);
+        claims.put("role", role);
+        claims.put("fullName", fullName);
 
         return Jwts.builder()
                 .claims(claims)
-                .subject(user.getId().toString())
+                .subject(userId.toString())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(secretKey)
