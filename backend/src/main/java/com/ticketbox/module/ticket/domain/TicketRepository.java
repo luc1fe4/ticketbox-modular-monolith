@@ -13,15 +13,6 @@ import java.util.UUID;
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     Optional<Ticket> findByQrCode(String qrCode);
     List<Ticket> findByConcertIdAndStatus(UUID concertId, Ticket.Status status);
-
-    @Modifying
-    @Query(value = """
-            UPDATE tickets
-            SET status = 'USED', used_at = :usedAt
-            WHERE id = :ticketId AND status = 'VALID'
-            """, nativeQuery = true)
-    int markAsUsedIfValid(
-            @Param("ticketId") UUID ticketId,
-            @Param("usedAt") OffsetDateTime usedAt
-    );
+    List<Ticket> findByUserIdOrderByIssuedAtDesc(UUID userId);
+    Optional<Ticket> findByIdAndUserId(UUID id, UUID userId);
 }
