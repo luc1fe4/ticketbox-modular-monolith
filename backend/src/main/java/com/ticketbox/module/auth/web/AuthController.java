@@ -1,7 +1,6 @@
 package com.ticketbox.module.auth.web;
 
 import com.ticketbox.module.auth.application.AuthService;
-import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
 import com.ticketbox.module.auth.web.dto.CurrentUserResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
@@ -11,8 +10,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,14 +39,14 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<CurrentUserResponse>> me(
-            @AuthenticationPrincipal User user
-    ) {
-        // If user is null (shouldn't happen on authenticated endpoints), return 401
-        if (user == null) {
+    public ResponseEntity<ApiResponse<CurrentUserResponse>> me(Authentication authentication) {
+        // JwtAuthenticationFilter sets principal as userId (String).
+        // We extract it here and load the user from DB — no ClassCastException risk.
+        if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        CurrentUserResponse response = CurrentUserResponse.from(user);
+        UUID userId = UUID.fromString((String) authentication.getPrincipal());
+        CurrentUserResponse response = authService.getCurrentUser(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

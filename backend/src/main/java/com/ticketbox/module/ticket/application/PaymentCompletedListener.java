@@ -1,6 +1,6 @@
 package com.ticketbox.module.ticket.application;
 
-import com.ticketbox.module.payment.PaymentCompletedEvent;
+import com.ticketbox.shared.event.PaymentCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;

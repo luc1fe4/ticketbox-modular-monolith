@@ -6,6 +6,8 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  modulith:
+    detection-strategy: explicitly-annotated
 
 server:
   port: 8080

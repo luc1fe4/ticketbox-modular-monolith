@@ -1,4 +1,4 @@
-package com.ticketbox.module.ticket.domain;
+package com.ticketbox.module.ticket;
 
 import java.util.List;
 import java.util.UUID;

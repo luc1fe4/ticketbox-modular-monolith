@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.domain;
+package com.ticketbox.module.concert;
 
 import java.util.List;
 import java.util.Optional;

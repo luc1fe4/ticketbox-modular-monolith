@@ -31,4 +31,5 @@ spring:
 
 ticketbox:
   security:
-    jwt-secret-placeholder: ${JWT_SECRET_PLACEHOLDER}
+    jwt:
+      secret: ${JWT_SECRET}

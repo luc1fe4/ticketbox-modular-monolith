@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.domain;
+package com.ticketbox.module.concert;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

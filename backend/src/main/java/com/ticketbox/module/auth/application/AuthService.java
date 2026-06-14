@@ -4,6 +4,7 @@ import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.domain.UserRepository;
 import com.ticketbox.infrastructure.security.JwtService;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
+import com.ticketbox.module.auth.web.dto.CurrentUserResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
 import com.ticketbox.module.auth.web.dto.RegisterRequest;
 import com.ticketbox.shared.exception.AppException;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -69,5 +72,11 @@ public class AuthService {
         );
 
         return new AuthResponse(token, "Bearer", expiresIn, userSummary);
+    }
+
+    public CurrentUserResponse getCurrentUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "User not found"));
+        return CurrentUserResponse.from(user);
     }
 }

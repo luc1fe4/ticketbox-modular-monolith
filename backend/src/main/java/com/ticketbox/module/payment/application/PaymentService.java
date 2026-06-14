@@ -1,6 +1,6 @@
 package com.ticketbox.module.payment.application;
 
-import com.ticketbox.module.payment.PaymentCompletedEvent;
+import com.ticketbox.shared.event.PaymentCompletedEvent;
 import com.ticketbox.module.payment.domain.PaymentLog;
 import com.ticketbox.module.payment.domain.PaymentLogRepository;
 import com.ticketbox.module.ticket.OrderPort;

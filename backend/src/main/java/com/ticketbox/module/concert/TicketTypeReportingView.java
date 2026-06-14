@@ -1,4 +1,4 @@
-package com.ticketbox.module.concert.domain;
+package com.ticketbox.module.concert;
 
 import java.math.BigDecimal;
 import java.util.UUID;
