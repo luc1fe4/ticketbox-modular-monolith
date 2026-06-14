@@ -36,4 +36,33 @@ public class NotificationService {
 
         return NotificationResponse.from(notification);
     }
+
+    @Transactional
+    public void createPaymentSucceededNotification(
+            CreatePaymentNotificationCommand command
+    ) {
+        if (notificationRepository.existsByMessageId(
+                command.messageId()
+        )) {
+            return;
+        }
+
+        String body = "Payment for order "
+                + command.orderId()
+                + " was successful. Amount: "
+                + command.amount().toPlainString()
+                + " VND.";
+
+        Notification notification =
+                Notification.createAppNotification(
+                        command.messageId(),
+                        command.userId(),
+                        "PAYMENT_SUCCEEDED",
+                        "Payment successful",
+                        body,
+                        OffsetDateTime.now()
+                );
+
+        notificationRepository.save(notification);
+    }
 }

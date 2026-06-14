@@ -37,7 +37,7 @@ public class Order extends BaseEntity {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 0)
     private BigDecimal totalAmount;
 
-    @Column(name = "idempotency_key", unique = true, length = 255)
+    @Column(name = "idempotency_key", length = 255)
     private String idempotencyKey;
 
     @Enumerated(EnumType.STRING)

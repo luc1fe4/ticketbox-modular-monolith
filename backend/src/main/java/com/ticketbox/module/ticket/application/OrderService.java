@@ -1,5 +1,7 @@
 package com.ticketbox.module.ticket.application;
 
+import com.ticketbox.infrastructure.redis.IdempotencyService;
+
 import com.ticketbox.module.concert.ConcertOrderPort;
 import com.ticketbox.module.concert.ConcertView;
 import com.ticketbox.module.concert.TicketTypeView;
@@ -41,12 +43,8 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final StringRedisTemplate redisTemplate;
     private final TicketRepository ticketRepository;
+    private final IdempotencyService idempotencyService;
 
-    /**
-     * Lua script for atomic compare-and-delete.
-     * Only deletes the key if its current value matches the provided token,
-     * preventing a request from releasing a lock it no longer owns.
-     */
     private static final RedisScript<Long> RELEASE_LOCK_SCRIPT = RedisScript.of(
             "if redis.call('get', KEYS[1]) == ARGV[1] then " +
             "  return redis.call('del', KEYS[1]) " +
@@ -59,16 +57,30 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request, UUID userId, String idempotencyKey) {
-        // 1. Check idempotency via DB (transactional — rolls back if order creation fails)
-        if (idempotencyKey != null) {
-            orderRepository.findByIdempotencyKey(idempotencyKey).ifPresent(existing -> {
-                throw new DuplicateIdempotencyKeyException(idempotencyKey);
-            });
-        }
+        IdempotencyService.IdempotencyClaim claim =
+                idempotencyService.claimOrder(userId, idempotencyKey);
 
-        // 2. Acquire user-specific Redis lock with a random ownership token.
-        // Using a random token prevents this finally block from releasing a lock
-        // acquired by a different request after TTL expiry (ABA problem).
+        try {
+            orderRepository.findByUserIdAndIdempotencyKey(
+                            userId,
+                            claim.clientKey()
+                    )
+                    .ifPresent(existing -> {
+                        throw new DuplicateIdempotencyKeyException(claim.clientKey());
+                    });
+
+            return createOrderInsideClaim(request, userId, claim);
+        } catch (RuntimeException ex) {
+            idempotencyService.release(claim);
+            throw ex;
+        }
+    }
+
+    private OrderResponse createOrderInsideClaim(
+            CreateOrderRequest request,
+            UUID userId,
+            IdempotencyService.IdempotencyClaim claim
+    ) {
         String lockKey = "lock:user:" + userId;
         String lockToken = UUID.randomUUID().toString();
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, lockToken, Duration.ofSeconds(5));
@@ -77,7 +89,6 @@ public class OrderService {
         }
 
         try {
-            // 3. Validate concert exists and is ON_SALE
             ConcertView concert = concertOrderPort.findConcertById(request.concertId())
                     .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
 
@@ -85,7 +96,6 @@ public class OrderService {
                 throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
             }
 
-            // 4. Load requested TicketTypes
             List<UUID> ticketTypeIds = request.items().stream()
                     .map(OrderItemRequest::ticketTypeId)
                     .toList();
@@ -94,7 +104,6 @@ public class OrderService {
             Map<UUID, TicketTypeView> typeMap = ticketTypes.stream()
                     .collect(Collectors.toMap(TicketTypeView::id, t -> t));
 
-            // 5. Validate TicketTypes and calculate pricing
             BigDecimal totalAmount = BigDecimal.ZERO;
             List<OrderItem> orderItems = new ArrayList<>();
             OffsetDateTime now = OffsetDateTime.now();
@@ -146,13 +155,12 @@ public class OrderService {
                 orderItems.add(orderItem);
             }
 
-            // 6. Create and save the Order (idempotencyKey stored in DB — rolls back atomically on failure)
             Order order = new Order();
             order.setUserId(userId);
             order.setConcertId(request.concertId());
             order.setStatus(Order.Status.AWAITING_PAYMENT);
             order.setTotalAmount(totalAmount);
-            order.setIdempotencyKey(idempotencyKey);
+            order.setIdempotencyKey(claim.clientKey());
             order.setExpiresAt(now.plusMinutes(15));
             
             Order savedOrder = orderRepository.save(order);
@@ -169,10 +177,12 @@ public class OrderService {
                     })
                     .toList();
 
-            return orderMapper.toResponse(savedOrder, itemResponses, concert.title());
+            OrderResponse response = orderMapper.toResponse(savedOrder, itemResponses, concert.title());
+
+            idempotencyService.completeAfterCommit(claim, savedOrder.getId());
+            return response;
 
         } finally {
-            // 9. Release lock only if we still own it (atomic compare-and-delete via Lua)
             redisTemplate.execute(RELEASE_LOCK_SCRIPT, List.of(lockKey), lockToken);
         }
     }
@@ -183,25 +193,21 @@ public class OrderService {
             return Collections.emptyList();
         }
 
-        // Batch load all items
         List<UUID> orderIds = orders.stream().map(Order::getId).toList();
         List<OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
         Map<UUID, List<OrderItem>> itemsByOrderId = allItems.stream()
                 .collect(Collectors.groupingBy(OrderItem::getOrderId));
 
-        // Batch load all concert views
         Set<UUID> concertIds = orders.stream().map(Order::getConcertId).collect(Collectors.toSet());
         List<ConcertView> concerts = concertOrderPort.findConcertsByIds(concertIds);
         Map<UUID, String> concertTitles = concerts.stream()
                 .collect(Collectors.toMap(ConcertView::id, ConcertView::title));
 
-        // Batch load all ticket type views
         Set<UUID> ticketTypeIds = allItems.stream().map(OrderItem::getTicketTypeId).collect(Collectors.toSet());
         List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
         Map<UUID, String> ticketTypeNames = ticketTypes.stream()
                 .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
 
-        // Map everything together
         return orders.stream().map(order -> {
             List<OrderItem> orderItems = itemsByOrderId.getOrDefault(order.getId(), Collections.emptyList());
             List<OrderItemResponse> itemResponses = orderItems.stream()
@@ -242,13 +248,11 @@ public class OrderService {
 
     @Transactional
     public void handlePaymentSuccess(UUID orderId, String provider, String providerRef) {
-        // Pessimistic write lock: SELECT FOR UPDATE prevents two concurrent listeners from
-        // both reading status=AWAITING_PAYMENT and both proceeding to generate tickets.
         Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
 
         if (order.getStatus() == Order.Status.PAID) {
-            return; // Already processed — second concurrent request sees this after lock release
+            return;
         }
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {

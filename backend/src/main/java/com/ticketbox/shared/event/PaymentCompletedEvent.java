@@ -1,6 +1,7 @@
 package com.ticketbox.shared.event;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -10,8 +11,11 @@ import java.util.UUID;
  * - ticket module listens to this event (no longer causes a cycle)
  */
 public record PaymentCompletedEvent(
+        UUID eventId,
         UUID orderId,
+        UUID userId,
         String provider,
         String providerRef,
-        BigDecimal amount
+        BigDecimal amount,
+        OffsetDateTime occurredAt
 ) {}

@@ -15,9 +15,10 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByUserIdOrderByCreatedAtDesc(UUID userId);
     Optional<Order> findByIdAndUserId(UUID id, UUID userId);
-    Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM Order o WHERE o.id = :id")
     Optional<Order> findByIdForUpdate(@Param("id") UUID id);
+
+    Optional<Order> findByUserIdAndIdempotencyKey(UUID userId, String idempotencyKey);
 }

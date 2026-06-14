@@ -8,6 +8,17 @@ spring:
       write-dates-as-timestamps: false
   modulith:
     detection-strategy: explicitly-annotated
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 500ms
+          multiplier: 2
+          max-attempts: 3
+          max-interval: 2s
 
 server:
   port: 8080
@@ -21,3 +32,15 @@ management:
     health:
       probes:
         enabled: true
+
+ticketbox:
+  rate-limit:
+    purchase:
+      capacity: 5
+      refill-tokens: 1
+      refill-period: 2s
+    payment:
+      capacity: 3
+      refill-tokens: 1
+      refill-period: 5s
+

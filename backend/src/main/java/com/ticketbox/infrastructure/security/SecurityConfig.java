@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
                 .requestMatchers("/api/orders/**").hasRole("AUDIENCE")
                 .requestMatchers("/api/tickets/**").hasRole("AUDIENCE")
+                .requestMatchers("/api/mock-payments/**").hasRole("AUDIENCE")
                 .requestMatchers("/api/payments/**").hasRole("AUDIENCE")
                 .anyRequest().authenticated()
             )

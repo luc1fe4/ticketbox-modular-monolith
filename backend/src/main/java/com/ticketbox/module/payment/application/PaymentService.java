@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -23,7 +24,6 @@ public class PaymentService {
 
     @Transactional
     public void processMockPaymentSuccess(UUID orderId) {
-        // Idempotency: Check if success is already logged for this orderId
         if (paymentLogRepository.existsByOrderIdAndEventType(orderId, PaymentLog.EventType.SUCCESS)) {
             return;
         }
@@ -35,7 +35,6 @@ public class PaymentService {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order is not in payable status");
         }
 
-        // Save Success Log
         PaymentLog successLog = new PaymentLog();
         successLog.setOrderId(orderId);
         successLog.setProvider(PaymentLog.Provider.MOCK);
@@ -45,13 +44,17 @@ public class PaymentService {
         successLog.setRawPayload("{\"status\":\"SUCCESS\", \"provider\":\"MOCK\"}");
         paymentLogRepository.save(successLog);
 
-        // Publish event to notify ticket module
-        eventPublisher.publishEvent(new PaymentCompletedEvent(
-                orderId,
-                PaymentLog.Provider.MOCK.name(),
-                successLog.getProviderRef(),
-                order.totalAmount()
-        ));
+        eventPublisher.publishEvent(
+                new PaymentCompletedEvent(
+                        UUID.randomUUID(),
+                        orderId,
+                        order.userId(),
+                        PaymentLog.Provider.MOCK.name(),
+                        successLog.getProviderRef(),
+                        order.totalAmount(),
+                        OffsetDateTime.now()
+                )
+        );
     }
 
     @Transactional
