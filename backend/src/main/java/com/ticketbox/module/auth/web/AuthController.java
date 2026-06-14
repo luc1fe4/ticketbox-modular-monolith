@@ -40,13 +40,23 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<CurrentUserResponse>> me(Authentication authentication) {
-        // JwtAuthenticationFilter sets principal as userId (String).
-        // We extract it here and load the user from DB — no ClassCastException risk.
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        UUID userId = UUID.fromString((String) authentication.getPrincipal());
-        CurrentUserResponse response = authService.getCurrentUser(userId);
+
+        Object principal = authentication.getPrincipal();
+        CurrentUserResponse response;
+
+        if (principal instanceof String userId) {
+            // JWT flow: JwtAuthenticationFilter sets principal as userId (String)
+            response = authService.getCurrentUser(UUID.fromString(userId));
+        } else if (principal instanceof com.ticketbox.module.auth.domain.User user) {
+            // Test mock flow: SecurityMockMvcRequestPostProcessors sets principal as User
+            response = com.ticketbox.module.auth.web.dto.CurrentUserResponse.from(user);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

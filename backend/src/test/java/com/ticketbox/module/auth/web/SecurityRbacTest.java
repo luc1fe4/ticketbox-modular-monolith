@@ -205,8 +205,8 @@ class SecurityRbacTest {
     }
 
     @Test
-    void mockPayment_WithoutToken_Returns200() throws Exception {
+    void mockPayment_WithoutToken_Returns401() throws Exception {
         mockMvc.perform(post("/api/mock-payments/11111111-1111-1111-1111-111111111111/success"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
     }
 }
