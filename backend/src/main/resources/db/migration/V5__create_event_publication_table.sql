@@ -1,4 +1,3 @@
--- Create event_publication table for Spring Modulith event publication registry
 CREATE TABLE IF NOT EXISTS event_publication (
     id UUID NOT NULL,
     listener_id VARCHAR(512) NOT NULL,
