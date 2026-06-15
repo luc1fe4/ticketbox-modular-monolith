@@ -4,15 +4,17 @@ import com.ticketbox.module.checkin.domain.CheckinLog;
 import com.ticketbox.module.checkin.domain.CheckinLogRepository;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse.TicketDatasetEntry;
+import com.ticketbox.module.checkin.web.dto.CheckinHistoryResponse;
 import com.ticketbox.module.checkin.web.dto.ScanTicketRequest;
 import com.ticketbox.module.checkin.web.dto.ScanTicketResponse;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse.SyncResultEntry;
-import com.ticketbox.module.ticket.domain.TicketCheckinPort;
-import com.ticketbox.module.ticket.domain.TicketView;
+import com.ticketbox.module.ticket.TicketCheckinPort;
+import com.ticketbox.module.ticket.TicketView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,35 +45,32 @@ public class CheckinService {
             return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Ticket does not belong to this concert", now);
         }
 
-        if (!"VALID".equals(ticket.status())) {
+        // Atomic UPDATE: sets status = USED only if current status = VALID.
+        // Handles concurrent scans correctly — only one will get rowsAffected = 1.
+        boolean marked = ticketCheckinPort.markAsUsedIfValid(ticket.id(), now);
+        if (!marked) {
             return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Ticket is not valid for check-in", now);
         }
 
-        try {
-            CheckinLog log = new CheckinLog(
-                    ticket.id(),
-                    ticket.concertId(),
-                    staffId,
-                    request.deviceId(),
-                    now,
-                    false,
-                    request.gate()
-            );
+        // Log after successful atomic mark — safe, no exception risk from duplicate constraint
+        CheckinLog log = new CheckinLog(
+                ticket.id(),
+                ticket.concertId(),
+                staffId,
+                request.deviceId(),
+                now,
+                false,
+                request.gate()
+        );
+        checkinLogRepository.save(log);
 
-            checkinLogRepository.saveAndFlush(log);
-
-            ticketCheckinPort.markAsUsed(ticket.id(), now);
-
-            return new ScanTicketResponse(
-                    ticket.id(),
-                    ticket.concertId(),
-                    "SUCCESS",
-                    "Check-in successful",
-                    now
-            );
-        } catch (DataIntegrityViolationException ex) {
-            return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Duplicate check-in detected", now);
-        }
+        return new ScanTicketResponse(
+                ticket.id(),
+                ticket.concertId(),
+                "SUCCESS",
+                "Check-in successful",
+                now
+        );
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +88,23 @@ public class CheckinService {
                 .toList();
 
         return new CheckinDatasetResponse(concertId, OffsetDateTime.now(), entries.size(), entries);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CheckinHistoryResponse> getCheckinHistory(UUID concertId, Pageable pageable) {
+        return checkinLogRepository.findByConcertId(concertId, pageable)
+                .map(log -> new CheckinHistoryResponse(
+                        log.getId(),
+                        log.getTicketId(),
+                        log.getConcertId(),
+                        log.getStaffId(),
+                        log.getDeviceId(),
+                        log.getCheckedAt(),
+                        log.getSyncAt(),
+                        log.isOffline(),
+                        log.getGate(),
+                        log.getNotes()
+                ));
     }
 
     @Transactional
@@ -123,6 +139,12 @@ public class CheckinService {
                     || "TRANSFERRED".equals(ticket.status())) {
                 results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Ticket is cancelled or transferred"));
                 invalid++;
+                continue;
+            }
+
+            if ("USED".equals(ticket.status())) {
+                results.add(new SyncResultEntry(entry.qrCode(), "SKIPPED", "Ticket was already used on the server"));
+                skipped++;
                 continue;
             }
 

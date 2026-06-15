@@ -122,6 +122,8 @@ CREATE TABLE order_items (
                              quantity INTEGER NOT NULL,
                              unit_price NUMERIC(12, 0) NOT NULL,
                              subtotal NUMERIC(12, 0) NOT NULL,
+                             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                              CONSTRAINT chk_order_items_quantity_positive
                                  CHECK (quantity > 0),
@@ -149,6 +151,7 @@ CREATE TABLE tickets (
                          issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                          used_at TIMESTAMPTZ,
                          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                          CONSTRAINT chk_tickets_status
                              CHECK (status IN ('VALID', 'USED', 'CANCELLED', 'TRANSFERRED'))
@@ -171,6 +174,8 @@ CREATE TABLE checkin_logs (
                               is_offline BOOLEAN NOT NULL DEFAULT FALSE,
                               gate VARCHAR(50),
                               notes TEXT,
+                              created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                               CONSTRAINT uq_checkin_logs_ticket UNIQUE (ticket_id)
 );
@@ -188,6 +193,7 @@ CREATE TABLE payment_logs (
                               raw_payload JSONB,
                               amount NUMERIC(12, 0),
                               created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                               CONSTRAINT chk_payment_logs_provider
                                   CHECK (provider IN ('VNPAY', 'MOMO', 'MOCK')),
@@ -219,6 +225,8 @@ CREATE TABLE guest_lists (
                              is_active BOOLEAN NOT NULL DEFAULT TRUE,
                              imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                              batch_file VARCHAR(255),
+                             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                              CONSTRAINT uq_guest_lists_concert_phone UNIQUE (concert_id, phone)
 );
@@ -237,6 +245,8 @@ CREATE TABLE batch_logs (
                             success_rows INTEGER NOT NULL DEFAULT 0,
                             error_rows INTEGER NOT NULL DEFAULT 0,
                             error_detail TEXT,
+                            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                             CONSTRAINT chk_batch_logs_status
                                 CHECK (status IN ('RUNNING', 'SUCCESS', 'PARTIAL', 'FAILED')),
@@ -259,6 +269,7 @@ CREATE TABLE notifications (
                                attempts INTEGER NOT NULL DEFAULT 0,
                                last_error TEXT,
                                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                               updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                                CONSTRAINT chk_notifications_channel
                                    CHECK (channel IN ('EMAIL', 'ZALO', 'SMS', 'APP')),
@@ -284,6 +295,7 @@ CREATE TABLE artist_pdf_jobs (
                                  completed_at TIMESTAMPTZ,
                                  error_message TEXT,
                                  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
                                  CONSTRAINT chk_artist_pdf_jobs_status
                                      CHECK (status IN ('PENDING', 'PROCESSING', 'DONE', 'FAILED'))

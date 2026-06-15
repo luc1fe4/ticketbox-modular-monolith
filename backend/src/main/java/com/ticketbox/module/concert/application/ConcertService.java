@@ -93,7 +93,12 @@ public class ConcertService {
             try { redisTemplate.delete(cacheKey); } catch (Exception ignored) {}
         }
 
-        Concert concert = concertRepository.findById(concertId)
+        // Only expose concerts with public-facing statuses to anonymous/public access
+        List<Concert.Status> publicStatuses = List.of(
+                Concert.Status.ON_SALE,
+                Concert.Status.SOLD_OUT
+        );
+        Concert concert = concertRepository.findByIdAndStatusIn(concertId, publicStatuses)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + concertId));
 
@@ -102,6 +107,13 @@ public class ConcertService {
             redisTemplate.opsForValue().set(cacheKey, result, RedisKeyConstants.TTL_CONCERT_DETAIL.getSeconds(), TimeUnit.SECONDS);
         } catch (Exception e) {}
         return result;
+    }
+
+    public ConcertDetailResponse getConcertForEdit(UUID concertId, UUID requesterId, boolean isAdmin) {
+        Concert concert = concertRepository.findById(concertId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found with id: " + concertId));
+        verifyOwnership(concert, requesterId, isAdmin);
+        return concertMapper.toDetailResponse(concert);
     }
 
     public ConcertSeatMapResponse getConcertSeatMap(UUID concertId) {
@@ -148,10 +160,12 @@ public class ConcertService {
     }
 
     @Transactional
-    public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request) {
+    public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + id));
+
+        verifyOwnership(concert, requesterId, isAdmin);
 
         if (concert.getStatus() == Concert.Status.COMPLETED || concert.getStatus() == Concert.Status.CANCELLED) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
@@ -163,27 +177,33 @@ public class ConcertService {
         concertMapper.updateConcertFromRequest(request, concert);
 
         Concert saved = concertRepository.save(concert);
+        evictConcertCaches(id);
         return concertMapper.toDetailResponse(saved);
     }
 
     @Transactional
-    public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus) {
+    public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + id));
+
+        verifyOwnership(concert, requesterId, isAdmin);
 
         validateStatusTransition(concert.getStatus(), newStatus);
 
         concert.setStatus(newStatus);
         Concert saved = concertRepository.save(concert);
+        evictConcertCaches(id);
         return concertMapper.toDetailResponse(saved);
     }
 
     @Transactional
-    public void deleteConcert(UUID id) {
+    public void deleteConcert(UUID id, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + id));
+
+        verifyOwnership(concert, requesterId, isAdmin);
 
         if (concert.getStatus() != Concert.Status.DRAFT) {
             throw new AppException(ErrorCode.CONCERT_NOT_DELETABLE,
@@ -191,8 +211,8 @@ public class ConcertService {
         }
 
         ticketTypeRepository.deleteByConcertId(id);
-
         concertRepository.delete(concert);
+        evictConcertCaches(id);
     }
 
     private void validateDates(OffsetDateTime eventDate, OffsetDateTime doorsOpenAt) {
@@ -212,6 +232,32 @@ public class ConcertService {
         if (allowed == null || !allowed.contains(newStatus)) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "Cannot transition concert status from " + currentStatus + " to " + newStatus);
+        }
+    }
+
+    private void verifyOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
+        if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify this concert");
+        }
+    }
+
+    /**
+     * Evicts detail cache for the given concert and all list cache keys.
+     * List cache uses page-based keys so we use a pattern delete.
+     * Called after any mutation that changes visible concert data.
+     */
+    private void evictConcertCaches(UUID concertId) {
+        try {
+            // Evict detail cache
+            redisTemplate.delete(RedisKeyConstants.CACHE_CONCERT_DETAIL + concertId);
+            // Evict all list cache pages (pattern scan)
+            String listPattern = RedisKeyConstants.CACHE_CONCERT_LIST + ":page:*";
+            var keys = redisTemplate.keys(listPattern);
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception ignored) {
+            // Cache eviction failures should not break the business operation
         }
     }
 }

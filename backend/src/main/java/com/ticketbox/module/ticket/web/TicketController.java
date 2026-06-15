@@ -2,6 +2,7 @@ package com.ticketbox.module.ticket.web;
 
 import com.ticketbox.module.ticket.web.dto.TicketResponse;
 import com.ticketbox.module.ticket.application.TicketService;
+import com.ticketbox.shared.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,26 +18,32 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping
-    public ResponseEntity<List<TicketResponse>> getMyTickets(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> getMyTickets(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(ticketService.listUserTickets(userId));
+        return ResponseEntity.ok(ApiResponse.success(ticketService.listUserTickets(userId)));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<TicketResponse>> getMyTicketsAlias(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> getMyTicketsAlias(Authentication authentication) {
         return getMyTickets(authentication);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TicketResponse> getTicketDetail(@PathVariable UUID id, Authentication authentication) {
+    public ResponseEntity<ApiResponse<TicketResponse>> getTicketDetail(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
         UUID userId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(ticketService.getTicketDetail(id, userId));
+        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketDetail(id, userId)));
     }
 
     @GetMapping("/{id}/qr")
-    public ResponseEntity<String> getTicketQrPayload(@PathVariable UUID id, Authentication authentication) {
+    public ResponseEntity<ApiResponse<String>> getTicketQrPayload(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
         UUID userId = UUID.fromString(authentication.getName());
         TicketResponse detail = ticketService.getTicketDetail(id, userId);
-        return ResponseEntity.ok(detail.qrCode());
+        return ResponseEntity.ok(ApiResponse.success(detail.qrCode()));
     }
 }

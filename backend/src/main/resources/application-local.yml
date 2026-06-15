@@ -31,4 +31,5 @@ spring:
 
 ticketbox:
   security:
-    jwt-secret-placeholder: dGVzdC1zZWNyZXQta2V5LXdpdGgtYXQtbGVhc3QtMjU2LWJpdHMtZm9yLWRldmVsb3BtZW50LW9ubHk=
+    jwt:
+      secret: dGVzdC1zZWNyZXQta2V5LXdpdGgtYXQtbGVhc3QtMjU2LWJpdHMtZm9yLWRldmVsb3BtZW50LW9ubHk=

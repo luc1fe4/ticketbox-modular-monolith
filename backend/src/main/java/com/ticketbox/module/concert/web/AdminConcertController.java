@@ -51,35 +51,48 @@ public class AdminConcertController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ConcertDetailResponse>> getConcertForEdit(
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            Authentication authentication
     ) {
-        ConcertDetailResponse detail = concertService.getConcertDetail(id);
+        ConcertDetailResponse detail = concertService.getConcertForEdit(id, getUserId(authentication), isAdmin(authentication));
         return ResponseEntity.ok(ApiResponse.success(detail));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ConcertDetailResponse>> updateConcert(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateConcertRequest request
+            @Valid @RequestBody UpdateConcertRequest request,
+            Authentication authentication
     ) {
-        ConcertDetailResponse updated = concertService.updateConcert(id, request);
+        ConcertDetailResponse updated = concertService.updateConcert(id, request, getUserId(authentication), isAdmin(authentication));
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<ConcertDetailResponse>> changeStatus(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateStatusRequest request
+            @Valid @RequestBody UpdateStatusRequest request,
+            Authentication authentication
     ) {
-        ConcertDetailResponse updated = concertService.changeStatus(id, request.status());
+        ConcertDetailResponse updated = concertService.changeStatus(id, request.status(), getUserId(authentication), isAdmin(authentication));
         return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteConcert(
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            Authentication authentication
     ) {
-        concertService.deleteConcert(id);
+        concertService.deleteConcert(id, getUserId(authentication), isAdmin(authentication));
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    private UUID getUserId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }

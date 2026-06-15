@@ -105,8 +105,8 @@ Example login response data:
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/users/me` | AUTHENTICATED | Get current user profile. |
-| PATCH | `/users/me` | AUTHENTICATED | Update current user profile. |
+| GET | `/users/me/profile` | AUTHENTICATED | Get current user profile. |
+| PATCH | `/users/me/profile` | AUTHENTICATED | Update allowed current user profile fields such as fullName and phone. |
 | PATCH | `/users/me/password` | AUTHENTICATED | Change current user password. |
 | GET | `/admin/users` | ADMIN | List users with filters. |
 | GET | `/admin/users/{userId}` | ADMIN | Get user detail. |
@@ -301,8 +301,18 @@ If duplicate webhook, return OK without double-processing.
 | GET | `/staff/concerts/{concertId}/checkin-dataset` | STAFF | Download valid ticket dataset for offline scanner. |
 | POST | `/staff/checkins/scan` | STAFF | Online scan and check-in one QR code. |
 | POST | `/staff/checkins/sync` | STAFF | Batch sync offline check-in logs from mobile scanner. |
-| GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER | List check-in logs for a concert. |
+| GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER/ADMIN | List check-in logs for a concert. |
 | GET | `/admin/concerts/{concertId}/checkin-summary` | ORGANIZER/ADMIN | Get check-in count and conflict summary. |
+
+Check-in history pagination:
+
+```text
+GET /api/staff/concerts/{concertId}/checkins?page=0&size=20
+```
+
+Results are ordered by `checkedAt` descending. Each item contains the log ID,
+ticket ID, staff ID, device ID, gate, online/offline flag, check-in time, sync
+time, and conflict notes.
 
 Example online scan request:
 
@@ -327,6 +337,7 @@ Offline conflicts are resolved during sync.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
+| GET | `/staff/guestlist?concert_id={concertId}&phone={phone}` | STAFF | Find an active VIP guest by concert and phone at the gate. |
 | POST | `/admin/concerts/{concertId}/guest-lists/import` | ORGANIZER/ADMIN | Upload CSV and import guest list. |
 | GET | `/admin/concerts/{concertId}/guest-lists` | ORGANIZER/ADMIN/STAFF | List guest entries. |
 | GET | `/admin/batch-logs` | ORGANIZER/ADMIN | List batch job runs. |
@@ -341,6 +352,23 @@ Use upsert on (concert_id, phone).
 Write batch_logs.
 Reject or mark failed if error rate exceeds configured threshold.
 ```
+
+Example staff guest lookup response data:
+
+```json
+{
+  "found": true,
+  "guestId": "uuid",
+  "concertId": "uuid",
+  "phone": "0901234567",
+  "fullName": "VIP Guest",
+  "category": "Sponsor VIP",
+  "sponsorName": "Sponsor A",
+  "notes": "Use VIP gate"
+}
+```
+
+An inactive or unknown guest returns HTTP 200 with `"found": false`.
 
 ## Notifications
 
@@ -375,14 +403,93 @@ Use mock AI response if real AI integration is out of scope for the implementati
 Still persist artist_pdf_jobs and status transitions.
 ```
 
-## Admin Dashboard And Reporting
+## Organizer Revenue Reporting
+
+Revenue reports are available only to the organizer who owns the concert and only after the
+concert status becomes `COMPLETED`. The server returns `404` when the concert does not exist
+or does not belong to the authenticated organizer, and `409` when the concert is not completed.
+Only orders with status `PAID` are included.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/admin/dashboard/summary` | ORGANIZER/ADMIN | High-level totals: concerts, revenue, paid orders, tickets sold. |
-| GET | `/admin/concerts/{concertId}/revenue` | ORGANIZER/ADMIN | Revenue summary for one concert. |
-| GET | `/admin/concerts/{concertId}/sales-by-ticket-type` | ORGANIZER/ADMIN | Sales and remaining quantity by ticket type. |
-| GET | `/admin/concerts/{concertId}/orders/export` | ORGANIZER/ADMIN | Export orders CSV if needed. |
+| GET | `/organizer/concerts` | ORGANIZER | List the authenticated organizer's completed concerts. |
+| GET | `/organizer/concerts/{concertId}/revenue-summary` | ORGANIZER | Get total revenue, sold tickets, total ticket capacity, and sold rate. |
+| GET | `/organizer/concerts/{concertId}/zone-revenue` | ORGANIZER | Get revenue and sold quantities grouped by ticket zone. |
+| GET | `/organizer/concerts/{concertId}/sales-trend?from=2026-06-01&to=2026-06-11&groupBy=day` | ORGANIZER | Get daily paid-ticket sales and revenue. |
+| GET | `/organizer/concerts/{concertId}/revenue-report/export?format=csv` | ORGANIZER | Download the revenue summary and zone report as CSV or PDF. |
+
+Completed concert list query:
+
+```text
+GET /api/organizer/concerts?page=0&size=20
+```
+
+Revenue summary response data:
+
+```json
+{
+  "concertId": "uuid",
+  "totalRevenue": 250000000,
+  "totalTicketsSold": 520,
+  "totalTicketsAvailable": 1000,
+  "soldRate": 52.0
+}
+```
+
+`totalTicketsAvailable` currently represents the total configured ticket capacity across all
+zones. The remaining quantity is `totalTicketsAvailable - totalTicketsSold`.
+
+Zone revenue response data:
+
+```json
+[
+  {
+    "zoneName": "SVIP",
+    "price": 3000000,
+    "soldQuantity": 80,
+    "availableQuantity": 20,
+    "totalQuantity": 100,
+    "revenue": 240000000,
+    "soldRate": 80.0
+  }
+]
+```
+
+Zone revenue uses the historical `order_items.subtotal` snapshot. It does not recalculate
+historical revenue using the current ticket-type price. Zones with no paid sales are returned
+with zero values.
+
+Sales trend response data:
+
+```json
+[
+  {
+    "date": "2026-06-01",
+    "ticketsSold": 30,
+    "revenue": 45000000
+  },
+  {
+    "date": "2026-06-02",
+    "ticketsSold": 0,
+    "revenue": 0
+  }
+]
+```
+
+Sales trends use `orders.paid_at`, apply the `Asia/Ho_Chi_Minh` timezone, and fill dates with
+no paid sales using zero values. The current implementation supports only `groupBy=day`.
+
+Revenue report export:
+
+```text
+GET /api/organizer/concerts/{concertId}/revenue-report/export?format=csv
+GET /api/organizer/concerts/{concertId}/revenue-report/export?format=pdf
+```
+
+The response is a file download with `Content-Disposition: attachment`. CSV files use UTF-8
+with a BOM for spreadsheet compatibility. PDF files contain the summary cards and zone table.
+Unsupported formats return `400`. Ownership and completed-concert validation are identical to
+the JSON reporting endpoints.
 
 ## Queue And Rate Limiting
 

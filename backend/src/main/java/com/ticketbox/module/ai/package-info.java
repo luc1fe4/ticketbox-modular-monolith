@@ -1,8 +1,11 @@
 /**
- * AI support module placeholder.
+ * AI support module.
  *
- * Future scope: AI-generated artist biography drafts and related moderation workflow.
- * No business logic is implemented in the environment setup stage.
+ * <p>Current scope: module boundary is defined; AI-assisted content generation
+ * is planned for the next implementation stage.
+ *
+ * <p>Future responsibilities: AI-generated artist biography drafts, content moderation
+ * suggestions, and LLM integration for organizer tooling.
  */
 @org.springframework.modulith.ApplicationModule
 package com.ticketbox.module.ai;
