@@ -206,6 +206,26 @@ Example create ticket type request:
 
 The MVP does not use a separate `reservations` table. An order with status `AWAITING_PAYMENT` and `expiresAt` is the temporary ticket hold.
 
+Seeded demo data for local testing is created by `V9__seed_demo_concerts_and_ticket_zones.sql`:
+
+```text
+Audience login: audience@ticketbox.com / password123
+Organizer login: organizer@ticketbox.com / password123
+Staff login: staff@ticketbox.com / password123
+
+Concert ID: 10000000-0000-0000-0000-000000000001
+SVIP ticket type ID: 20000000-0000-0000-0000-000000000001
+VIP ticket type ID: 20000000-0000-0000-0000-000000000002
+CAT1 ticket type ID: 20000000-0000-0000-0000-000000000003
+GA ticket type ID: 20000000-0000-0000-0000-000000000004
+```
+
+Postman collection for the happy path:
+
+```text
+docs/api/postman/TicketBox-Order-Payment-Flow.postman_collection.json
+```
+
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
@@ -270,8 +290,8 @@ Expire unpaid orders and release available_qty.
 | GET | `/payments/{orderId}/status` | AUDIENCE | Get payment/order status. |
 | POST | `/payments/webhooks/vnpay` | PUBLIC | Receive VNPAY webhook/IPN. Must verify signature. |
 | POST | `/payments/webhooks/momo` | PUBLIC | Receive MoMo webhook/IPN. Must verify signature. |
-| POST | `/mock-payments/{orderId}/success` | PUBLIC/DEV | Mock payment success for local demo. |
-| POST | `/mock-payments/{orderId}/fail` | PUBLIC/DEV | Mock payment failure for local demo. |
+| POST | `/mock-payments/{orderId}/success` | AUDIENCE/DEV | Mock payment success for local demo. Available outside the `prod` profile. |
+| POST | `/mock-payments/{orderId}/fail` | AUDIENCE/DEV | Mock payment failure for local demo. Available outside the `prod` profile. |
 
 Webhook behavior:
 
