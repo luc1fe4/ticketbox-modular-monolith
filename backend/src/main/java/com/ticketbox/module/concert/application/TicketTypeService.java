@@ -41,6 +41,12 @@ public class TicketTypeService {
                 .toList();
     }
 
+    public List<TicketTypeResponse> getTicketTypesForAdmin(UUID concertId, UUID requesterId, boolean isAdmin) {
+        Concert concert = getConcertOrThrow(concertId);
+        verifyConcertOwnership(concert, requesterId, isAdmin);
+        return getTicketTypes(concertId);
+    }
+
     public List<TicketTypeResponse> getActiveTicketTypes(UUID concertId) {
         verifyConcertExists(concertId);
         return ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId).stream()
@@ -80,8 +86,9 @@ public class TicketTypeService {
     }
 
     @Transactional
-    public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request) {
+    public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request, UUID requesterId, boolean isAdmin) {
         Concert concert = getConcertOrThrow(concertId);
+        verifyConcertOwnership(concert, requesterId, isAdmin);
         validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
 
         TicketType ticketType = ticketTypeMapper.toEntity(request);
@@ -94,9 +101,10 @@ public class TicketTypeService {
     }
 
     @Transactional
-    public TicketTypeResponse updateTicketType(UUID id, UpdateTicketTypeRequest request) {
+    public TicketTypeResponse updateTicketType(UUID id, UpdateTicketTypeRequest request, UUID requesterId, boolean isAdmin) {
         TicketType ticketType = getTicketTypeOrThrow(id);
         Concert concert = getConcertOrThrow(ticketType.getConcertId());
+        verifyConcertOwnership(concert, requesterId, isAdmin);
         
         validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
 
@@ -113,16 +121,20 @@ public class TicketTypeService {
     }
 
     @Transactional
-    public TicketTypeResponse changeStatus(UUID id, boolean isActive) {
+    public TicketTypeResponse changeStatus(UUID id, boolean isActive, UUID requesterId, boolean isAdmin) {
         TicketType ticketType = getTicketTypeOrThrow(id);
+        Concert concert = getConcertOrThrow(ticketType.getConcertId());
+        verifyConcertOwnership(concert, requesterId, isAdmin);
         ticketType.setActive(isActive);
         TicketType saved = ticketTypeRepository.save(ticketType);
         return ticketTypeMapper.toResponse(saved);
     }
 
     @Transactional
-    public void deleteTicketType(UUID id) {
+    public void deleteTicketType(UUID id, UUID requesterId, boolean isAdmin) {
         TicketType ticketType = getTicketTypeOrThrow(id);
+        Concert concert = getConcertOrThrow(ticketType.getConcertId());
+        verifyConcertOwnership(concert, requesterId, isAdmin);
         
         if (ticketType.getAvailableQty() < ticketType.getTotalQuantity()) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot delete ticket type that has active sales");
@@ -158,6 +170,12 @@ public class TicketTypeService {
             if (end.isAfter(concertDate)) {
                 throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be before or equal to concert date");
             }
+        }
+    }
+
+    private void verifyConcertOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
+        if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify ticket types for this concert");
         }
     }
 }

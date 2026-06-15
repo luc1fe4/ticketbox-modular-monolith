@@ -24,7 +24,8 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader(value = "Idempotency-Key", required = false)
+            String idempotencyKey,
             Authentication authentication
     ) {
         UUID userId = UUID.fromString(authentication.getName());

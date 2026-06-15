@@ -1,10 +1,10 @@
 package com.ticketbox.module.ticket.infrastructure;
 
-import com.ticketbox.module.ticket.domain.RevenueSummaryView;
-import com.ticketbox.module.ticket.domain.SalesTrendView;
-import com.ticketbox.module.ticket.domain.TicketSalesReportingPort;
+import com.ticketbox.module.ticket.RevenueSummaryView;
+import com.ticketbox.module.ticket.SalesTrendView;
+import com.ticketbox.module.ticket.TicketSalesReportingPort;
 import com.ticketbox.module.ticket.domain.TicketSalesReportingRepository;
-import com.ticketbox.module.ticket.domain.ZoneRevenueView;
+import com.ticketbox.module.ticket.ZoneRevenueView;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;

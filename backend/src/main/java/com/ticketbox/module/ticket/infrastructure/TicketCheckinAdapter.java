@@ -1,9 +1,9 @@
 package com.ticketbox.module.ticket.infrastructure;
 
 import com.ticketbox.module.ticket.domain.Ticket;
-import com.ticketbox.module.ticket.domain.TicketCheckinPort;
+import com.ticketbox.module.ticket.TicketCheckinPort;
 import com.ticketbox.module.ticket.domain.TicketRepository;
-import com.ticketbox.module.ticket.domain.TicketView;
+import com.ticketbox.module.ticket.TicketView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +22,7 @@ public class TicketCheckinAdapter implements TicketCheckinPort {
         return ticketRepository.findByQrCode(qrCode)
                 .map(this::toView);
     }
+
     @Override
     public List<TicketView> findByConcertIdAndStatusValid(UUID concertId) {
         return ticketRepository.findByConcertIdAndStatus(concertId, Ticket.Status.VALID)
@@ -29,6 +30,7 @@ public class TicketCheckinAdapter implements TicketCheckinPort {
                 .map(this::toView)
                 .toList();
     }
+
     @Override
     public void markAsUsed(UUID ticketId, OffsetDateTime usedAt) {
         ticketRepository.findById(ticketId).ifPresent(ticket -> {

@@ -54,6 +54,33 @@ public class Notification extends BaseEntity {
     @Column(name = "read_at")
     private OffsetDateTime readAt;
 
+    public void setMessageId(UUID messageId) {
+        this.messageId = messageId;
+    }
+
+    @Column(name = "message_id")
+    private UUID messageId;
+
+    public static Notification createAppNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body,
+            OffsetDateTime sentAt
+    ) {
+        Notification notification = new Notification();
+        notification.messageId = messageId;
+        notification.userId = userId;
+        notification.channel = Channel.APP;
+        notification.eventType = eventType;
+        notification.subject = subject;
+        notification.body = body;
+        notification.status = Status.SENT;
+        notification.sentAt = sentAt;
+        return notification;
+    }
+
     public void markAsRead(OffsetDateTime readAt) {
         if (this.readAt == null) {
             this.readAt = readAt;

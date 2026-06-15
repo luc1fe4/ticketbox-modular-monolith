@@ -1,7 +1,6 @@
 package com.ticketbox.module.auth.web;
 
 import com.ticketbox.module.auth.application.AuthService;
-import com.ticketbox.module.auth.domain.User;
 import com.ticketbox.module.auth.web.dto.AuthResponse;
 import com.ticketbox.module.auth.web.dto.CurrentUserResponse;
 import com.ticketbox.module.auth.web.dto.LoginRequest;
@@ -11,8 +10,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,14 +39,24 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<CurrentUserResponse>> me(
-            @AuthenticationPrincipal User user
-    ) {
-        // If user is null (shouldn't happen on authenticated endpoints), return 401
-        if (user == null) {
+    public ResponseEntity<ApiResponse<CurrentUserResponse>> me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        CurrentUserResponse response = CurrentUserResponse.from(user);
+
+        Object principal = authentication.getPrincipal();
+        CurrentUserResponse response;
+
+        if (principal instanceof String userId) {
+            // JWT flow: JwtAuthenticationFilter sets principal as userId (String)
+            response = authService.getCurrentUser(UUID.fromString(userId));
+        } else if (principal instanceof com.ticketbox.module.auth.domain.User user) {
+            // Test mock flow: SecurityMockMvcRequestPostProcessors sets principal as User
+            response = com.ticketbox.module.auth.web.dto.CurrentUserResponse.from(user);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

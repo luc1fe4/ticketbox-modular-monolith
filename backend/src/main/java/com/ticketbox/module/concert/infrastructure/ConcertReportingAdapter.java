@@ -1,11 +1,11 @@
 package com.ticketbox.module.concert.infrastructure;
 
+import com.ticketbox.module.concert.ConcertReportingPort;
+import com.ticketbox.module.concert.ConcertReportingView;
 import com.ticketbox.module.concert.domain.Concert;
-import com.ticketbox.module.concert.domain.ConcertReportingPort;
-import com.ticketbox.module.concert.domain.ConcertReportingView;
 import com.ticketbox.module.concert.domain.ConcertRepository;
 import com.ticketbox.module.concert.domain.TicketTypeRepository;
-import com.ticketbox.module.concert.domain.TicketTypeReportingView;
+import com.ticketbox.module.concert.TicketTypeReportingView;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
