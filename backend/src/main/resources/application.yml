@@ -34,6 +34,9 @@ management:
         enabled: true
 
 ticketbox:
+  orders:
+    expiration:
+      fixed-delay-ms: 60000
   rate-limit:
     purchase:
       capacity: 5

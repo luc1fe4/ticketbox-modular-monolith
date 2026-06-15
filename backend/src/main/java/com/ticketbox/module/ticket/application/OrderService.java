@@ -21,8 +21,11 @@ import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.DuplicateIdempotencyKeyException;
 import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class OrderService {
 
@@ -54,6 +58,7 @@ public class OrderService {
             Long.class);
 
     private static final List<Order.Status> ACTIVE_STATUSES = List.of(Order.Status.AWAITING_PAYMENT, Order.Status.PAID);
+    private static final int EXPIRED_ORDER_BATCH_SIZE = 100;
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request, UUID userId, String idempotencyKey) {
@@ -244,6 +249,37 @@ public class OrderService {
                 .toList();
 
         return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
+    @Scheduled(fixedDelayString = "${ticketbox.orders.expiration.fixed-delay-ms:60000}")
+    @Transactional
+    public void expireAwaitingPaymentOrders() {
+        List<Order> expiredOrders = orderRepository.findExpiredAwaitingPaymentOrders(
+                Order.Status.AWAITING_PAYMENT,
+                OffsetDateTime.now(),
+                PageRequest.of(0, EXPIRED_ORDER_BATCH_SIZE)
+        );
+
+        int releasedTickets = 0;
+        for (Order order : expiredOrders) {
+            List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+
+            for (OrderItem item : items) {
+                concertOrderPort.releaseInventory(item.getTicketTypeId(), item.getQuantity());
+                releasedTickets += item.getQuantity();
+            }
+
+            order.setStatus(Order.Status.EXPIRED);
+            orderRepository.save(order);
+        }
+
+        if (!expiredOrders.isEmpty()) {
+            log.info(
+                    "Expired {} awaiting-payment orders and released {} tickets back to inventory",
+                    expiredOrders.size(),
+                    releasedTickets
+            );
+        }
     }
 
     @Transactional

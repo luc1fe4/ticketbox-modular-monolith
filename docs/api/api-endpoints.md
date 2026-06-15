@@ -294,6 +294,16 @@ Create order_items as one row per ticket type.
 Expire unpaid orders and release available_qty.
 ```
 
+Order expiration behavior:
+
+```text
+Spring scheduling runs inside the backend app.
+Default interval: ticketbox.orders.expiration.fixed-delay-ms = 60000.
+Each run finds expired AWAITING_PAYMENT orders where expires_at <= now.
+The job locks those orders, releases each order_item quantity back to ticket_types.available_qty,
+then changes the order status to EXPIRED.
+```
+
 ## Payment
 
 | Method | Endpoint | Role | Description |
