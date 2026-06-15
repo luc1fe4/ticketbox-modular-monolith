@@ -54,6 +54,19 @@ public class TicketTypeService {
                 .toList();
     }
 
+    public List<TicketTypeResponse> getPublicTicketTypes(UUID concertId) {
+        List<Concert.Status> publicStatuses = List.of(
+                Concert.Status.ON_SALE,
+                Concert.Status.SOLD_OUT
+        );
+        concertRepository.findByIdAndStatusIn(concertId, publicStatuses)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found"));
+
+        return ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId).stream()
+                .map(ticketTypeMapper::toResponse)
+                .toList();
+    }
+
     public TicketTypeAvailabilityResponse getAvailability(UUID concertId) {
         String cacheKey = RedisKeyConstants.CACHE_AVAILABILITY + concertId;
         try {

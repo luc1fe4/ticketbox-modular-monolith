@@ -1,9 +1,11 @@
 package com.ticketbox.module.concert.web;
 
 import com.ticketbox.module.concert.application.ConcertService;
+import com.ticketbox.module.concert.application.TicketTypeService;
 import com.ticketbox.module.concert.web.dto.ConcertDetailResponse;
 import com.ticketbox.module.concert.web.dto.ConcertSeatMapResponse;
 import com.ticketbox.module.concert.web.dto.ConcertSummaryResponse;
+import com.ticketbox.module.concert.web.dto.TicketTypeResponse;
 import com.ticketbox.shared.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,6 +24,7 @@ import java.util.UUID;
 public class ConcertController {
 
     private final ConcertService concertService;
+    private final TicketTypeService ticketTypeService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ConcertSummaryResponse>>> listConcerts(
@@ -50,5 +54,14 @@ public class ConcertController {
         ConcertSeatMapResponse seatMap = concertService.getConcertSeatMap(concertId);
 
         return ResponseEntity.ok(ApiResponse.success(seatMap));
+    }
+
+    @GetMapping("/{concertId}/ticket-types")
+    public ResponseEntity<ApiResponse<List<TicketTypeResponse>>> getConcertTicketTypes(
+            @PathVariable UUID concertId
+    ) {
+        List<TicketTypeResponse> ticketTypes = ticketTypeService.getPublicTicketTypes(concertId);
+
+        return ResponseEntity.ok(ApiResponse.success(ticketTypes));
     }
 }

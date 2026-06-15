@@ -118,9 +118,9 @@ Example login response data:
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | GET | `/concerts` | PUBLIC | List published/upcoming concerts. Supports pagination and filters. |
-| GET | `/concerts/{concertId}` | PUBLIC | Get concert detail including ticket types and seat map SVG. |
-| GET | `/concerts/{concertId}/seat-map` | PUBLIC | Get the concert seat map SVG and active zones with prices and remaining ticket quantities. |
-| GET | `/concerts/{concertId}/ticket-types` | PUBLIC | Get ticket types/zones for a concert. |
+| GET | `/concerts/{concertId}` | PUBLIC | Get concert detail. |
+| GET | `/concerts/{concertId}/seat-map` | PUBLIC | Get only the concert seat map SVG. |
+| GET | `/concerts/{concertId}/ticket-types` | PUBLIC | Get active ticket types/zones for a public concert. |
 | GET | `/concerts/{concertId}/availability` | PUBLIC | Get near real-time available quantity by ticket type. Can be backed by Redis cache. |
 
 Example seat map response data:
@@ -128,18 +128,30 @@ Example seat map response data:
 ```json
 {
   "concertId": "uuid",
-  "seatMapSvg": "<svg>...</svg>",
-  "zones": [
-    {
-      "ticketTypeId": "uuid",
-      "name": "SVIP",
-      "zoneColor": "#E11D48",
-      "price": 3500000,
-      "totalQuantity": 200,
-      "availableQuantity": 120
-    }
-  ]
+  "seatMapSvg": "<svg>...</svg>"
 }
+```
+
+Example ticket type response data:
+
+```json
+[
+  {
+    "id": "uuid",
+    "concertId": "uuid",
+    "name": "SVIP",
+    "price": 3500000,
+    "totalQuantity": 200,
+    "availableQty": 120,
+    "maxPerAccount": 2,
+    "saleStartAt": "2026-06-01T09:00:00+07:00",
+    "saleEndAt": "2026-12-30T23:59:59+07:00",
+    "zoneColor": "#E11D48",
+    "isActive": true,
+    "createdAt": "2026-06-15T10:00:00+07:00",
+    "updatedAt": "2026-06-15T10:00:00+07:00"
+  }
+]
 ```
 
 Suggested concert list filters:

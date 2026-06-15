@@ -77,7 +77,7 @@
       "response": []
     },
     {
-      "name": "3. Check Seeded Seat Map And Zones",
+      "name": "3. Check Seeded Seat Map",
       "request": {
         "method": "GET",
         "header": [],
@@ -97,7 +97,27 @@
       "response": []
     },
     {
-      "name": "4. Create Order - SVIP x1 + VIP x2",
+      "name": "4. Check Seeded Ticket Types",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/concerts/{{concertId}}/ticket-types",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "concerts",
+            "{{concertId}}",
+            "ticket-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Create Order - SVIP x1 + VIP x2",
       "event": [
         {
           "listen": "prerequest",
@@ -174,7 +194,7 @@
       "response": []
     },
     {
-      "name": "5. Get Order Before Payment",
+      "name": "6. Get Order Before Payment",
       "request": {
         "auth": {
           "type": "bearer",
@@ -203,7 +223,7 @@
       "response": []
     },
     {
-      "name": "6. Mock Payment Success",
+      "name": "7. Mock Payment Success",
       "request": {
         "auth": {
           "type": "bearer",
@@ -233,7 +253,7 @@
       "response": []
     },
     {
-      "name": "7. Get Order After Payment",
+      "name": "8. Get Order After Payment",
       "event": [
         {
           "listen": "test",
@@ -276,7 +296,7 @@
       "response": []
     },
     {
-      "name": "8. List My Tickets",
+      "name": "9. List My Tickets",
       "request": {
         "auth": {
           "type": "bearer",
@@ -304,7 +324,7 @@
       "response": []
     },
     {
-      "name": "9. List My Notifications",
+      "name": "10. List My Notifications",
       "request": {
         "auth": {
           "type": "bearer",

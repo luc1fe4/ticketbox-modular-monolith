@@ -4,7 +4,6 @@ import com.ticketbox.module.concert.web.dto.ConcertDetailResponse;
 import com.ticketbox.module.concert.web.dto.ConcertSeatMapResponse;
 import com.ticketbox.module.concert.web.dto.ConcertSummaryResponse;
 import com.ticketbox.module.concert.web.dto.CreateConcertRequest;
-import com.ticketbox.module.concert.web.dto.SeatMapZoneResponse;
 import com.ticketbox.module.concert.web.dto.UpdateConcertRequest;
 import com.ticketbox.module.concert.application.mapper.ConcertMapper;
 import com.ticketbox.module.concert.domain.Concert;
@@ -121,20 +120,7 @@ public class ConcertService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + concertId));
 
-        List<SeatMapZoneResponse> zones = ticketTypeRepository
-                .findActiveByConcertIdOrderByPrice(concertId)
-                .stream()
-                .map(ticketType -> new SeatMapZoneResponse(
-                        ticketType.getId(),
-                        ticketType.getName(),
-                        ticketType.getZoneColor(),
-                        ticketType.getPrice(),
-                        ticketType.getTotalQuantity(),
-                        ticketType.getAvailableQty()
-                ))
-                .toList();
-
-        return new ConcertSeatMapResponse(concert.getId(), concert.getSeatMapSvg(), zones);
+        return new ConcertSeatMapResponse(concert.getId(), concert.getSeatMapSvg());
     }
 
     public Page<ConcertDetailResponse> getAllConcerts(Concert.Status status, Pageable pageable) {

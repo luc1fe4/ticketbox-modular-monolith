@@ -85,7 +85,7 @@ Content-Type: application/json
 ### 8. Admin: Delete Ticket Type
 DELETE {{baseUrl}}/api/admin/ticket-types/{{ticketTypeId}}
 
-### 9. Public: Get Concert Ticket Types (Active only)
+### 9. Public: Get Concert Ticket Types (Active only, split from seat map)
 GET {{baseUrl}}/api/concerts/{{concertId}}/ticket-types
 Accept: application/json
 
