@@ -11,6 +11,7 @@ public record OrderResponse(
     String concertTitle,
     String status,
     BigDecimal totalAmount,
+    String paymentUrl,
     OffsetDateTime expiresAt,
     OffsetDateTime createdAt,
     List<OrderItemResponse> items

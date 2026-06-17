@@ -118,9 +118,9 @@ Example login response data:
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | GET | `/concerts` | PUBLIC | List published/upcoming concerts. Supports pagination and filters. |
-| GET | `/concerts/{concertId}` | PUBLIC | Get concert detail including ticket types and seat map SVG. |
-| GET | `/concerts/{concertId}/seat-map` | PUBLIC | Get the concert seat map SVG and active zones with prices and remaining ticket quantities. |
-| GET | `/concerts/{concertId}/ticket-types` | PUBLIC | Get ticket types/zones for a concert. |
+| GET | `/concerts/{concertId}` | PUBLIC | Get concert detail. |
+| GET | `/concerts/{concertId}/seat-map` | PUBLIC | Get only the concert seat map SVG. |
+| GET | `/concerts/{concertId}/ticket-types` | PUBLIC | Get active ticket types/zones for a public concert. |
 | GET | `/concerts/{concertId}/availability` | PUBLIC | Get near real-time available quantity by ticket type. Can be backed by Redis cache. |
 
 Example seat map response data:
@@ -128,18 +128,30 @@ Example seat map response data:
 ```json
 {
   "concertId": "uuid",
-  "seatMapSvg": "<svg>...</svg>",
-  "zones": [
-    {
-      "ticketTypeId": "uuid",
-      "name": "SVIP",
-      "zoneColor": "#E11D48",
-      "price": 3500000,
-      "totalQuantity": 200,
-      "availableQuantity": 120
-    }
-  ]
+  "seatMapSvg": "<svg>...</svg>"
 }
+```
+
+Example ticket type response data:
+
+```json
+[
+  {
+    "id": "uuid",
+    "concertId": "uuid",
+    "name": "SVIP",
+    "price": 3500000,
+    "totalQuantity": 200,
+    "availableQty": 120,
+    "maxPerAccount": 2,
+    "saleStartAt": "2026-06-01T09:00:00+07:00",
+    "saleEndAt": "2026-12-30T23:59:59+07:00",
+    "zoneColor": "#E11D48",
+    "isActive": true,
+    "createdAt": "2026-06-15T10:00:00+07:00",
+    "updatedAt": "2026-06-15T10:00:00+07:00"
+  }
+]
 ```
 
 Suggested concert list filters:
@@ -206,6 +218,26 @@ Example create ticket type request:
 
 The MVP does not use a separate `reservations` table. An order with status `AWAITING_PAYMENT` and `expiresAt` is the temporary ticket hold.
 
+Seeded demo data for local testing is created by `V9__seed_demo_concerts_and_ticket_zones.sql`:
+
+```text
+Audience login: audience@ticketbox.com / password123
+Organizer login: organizer@ticketbox.com / password123
+Staff login: staff@ticketbox.com / password123
+
+Concert ID: 10000000-0000-0000-0000-000000000001
+SVIP ticket type ID: 20000000-0000-0000-0000-000000000001
+VIP ticket type ID: 20000000-0000-0000-0000-000000000002
+CAT1 ticket type ID: 20000000-0000-0000-0000-000000000003
+GA ticket type ID: 20000000-0000-0000-0000-000000000004
+```
+
+Postman collection for the happy path:
+
+```text
+docs/api/postman/TicketBox-Order-Payment-Flow.postman_collection.json
+```
+
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
@@ -248,7 +280,7 @@ Example create order response data:
   "orderId": "uuid",
   "status": "AWAITING_PAYMENT",
   "totalAmount": 8600000,
-  "paymentUrl": "http://localhost:8080/api/mock-payment/orders/uuid",
+  "paymentUrl": null,
   "expiresAt": "2026-06-04T10:05:00Z"
 }
 ```
@@ -262,21 +294,59 @@ Create order_items as one row per ticket type.
 Expire unpaid orders and release available_qty.
 ```
 
+Order expiration behavior:
+
+```text
+Spring scheduling runs inside the backend app.
+Default interval: ticketbox.orders.expiration.fixed-delay-ms = 60000.
+Each run finds expired AWAITING_PAYMENT orders where expires_at <= now.
+The job locks those orders, releases each order_item quantity back to ticket_types.available_qty,
+then changes the order status to EXPIRED.
+```
+
 ## Payment
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/payments/{orderId}/initiate` | AUDIENCE | Initiate payment if order exists and is payable. Can be merged into `POST /orders` for MVP. |
+| POST | `/payments/{orderId}/initiate` | AUDIENCE | Initiate payment if order exists and is payable. Returns a provider redirect URL for `MOCK` or `VNPAY`. |
 | GET | `/payments/{orderId}/status` | AUDIENCE | Get payment/order status. |
-| POST | `/payments/webhooks/vnpay` | PUBLIC | Receive VNPAY webhook/IPN. Must verify signature. |
+| GET | `/payments/webhooks/vnpay` | PUBLIC | Receive VNPAY IPN/webhook query parameters. Verifies `vnp_SecureHash`. |
 | POST | `/payments/webhooks/momo` | PUBLIC | Receive MoMo webhook/IPN. Must verify signature. |
-| POST | `/mock-payments/{orderId}/success` | PUBLIC/DEV | Mock payment success for local demo. |
-| POST | `/mock-payments/{orderId}/fail` | PUBLIC/DEV | Mock payment failure for local demo. |
+| POST | `/mock-payments/{orderId}/success` | AUDIENCE/DEV | Mock payment success for local demo. Available outside the `prod` profile. |
+| POST | `/mock-payments/{orderId}/fail` | AUDIENCE/DEV | Mock payment failure for local demo. Available outside the `prod` profile. |
+
+Example initiate VNPAY request:
+
+```json
+{
+  "provider": "VNPAY"
+}
+```
+
+Example initiate response data:
+
+```json
+{
+  "orderId": "uuid",
+  "provider": "VNPAY",
+  "providerRef": "uuid",
+  "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?..."
+}
+```
+
+Local VNPAY sandbox config:
+
+```text
+VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:5173/payment/result
+VNPAY_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+```
 
 Webhook behavior:
 
 ```text
 Verify provider signature.
+For VNPAY, remove vnp_SecureHash/vnp_SecureHashType, sort params, sign with HMAC-SHA512, and compare.
 Write payment_logs.
 If success and order is payable, mark order PAID.
 Generate tickets.

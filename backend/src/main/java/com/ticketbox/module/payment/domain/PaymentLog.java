@@ -2,10 +2,10 @@ package com.ticketbox.module.payment.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -39,6 +39,7 @@ public class PaymentLog extends BaseEntity {
     @Column(name = "provider_ref", length = 255)
     private String providerRef;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_payload", columnDefinition = "jsonb")
     private String rawPayload;
 

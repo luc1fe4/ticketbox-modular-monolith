@@ -4,8 +4,12 @@
 # ============================================================
 
 @baseUrl = http://localhost:8080
-@concertId = 11111111-1111-1111-1111-111111111111
-@ticketTypeId = 00000000-0000-0000-0000-000000000000
+@concertId = 10000000-0000-0000-0000-000000000001
+@ticketTypeId = 20000000-0000-0000-0000-000000000001
+@svipTicketTypeId = 20000000-0000-0000-0000-000000000001
+@vipTicketTypeId = 20000000-0000-0000-0000-000000000002
+@audienceToken = paste-login-token-here
+@orderId = paste-created-order-id-here
 
 # ============================================================
 # CONCERT ENDPOINTS (Public & Admin)
@@ -81,10 +85,77 @@ Content-Type: application/json
 ### 8. Admin: Delete Ticket Type
 DELETE {{baseUrl}}/api/admin/ticket-types/{{ticketTypeId}}
 
-### 9. Public: Get Concert Ticket Types (Active only)
+### 9. Public: Get Concert Ticket Types (Active only, split from seat map)
 GET {{baseUrl}}/api/concerts/{{concertId}}/ticket-types
 Accept: application/json
 
 ### 10. Public: Get Ticket Availability
 GET {{baseUrl}}/api/concerts/{{concertId}}/availability
+Accept: application/json
+
+
+# ============================================================
+# ORDER + MOCK PAYMENT FLOW (Seeded Data)
+# Demo password for seeded users: password123
+# Seeded audience: audience@ticketbox.com
+# ============================================================
+
+### 11. Login as Seeded Audience
+# Copy data.accessToken into @audienceToken above.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "audience@ticketbox.com",
+  "password": "password123"
+}
+
+### 12. Create Order From Seeded Concert
+# Copy data.id into @orderId above.
+POST {{baseUrl}}/api/orders
+Authorization: Bearer {{audienceToken}}
+Idempotency-Key: rest-client-order-001
+Content-Type: application/json
+
+{
+  "concertId": "{{concertId}}",
+  "items": [
+    {
+      "ticketTypeId": "{{svipTicketTypeId}}",
+      "quantity": 1
+    },
+    {
+      "ticketTypeId": "{{vipTicketTypeId}}",
+      "quantity": 2
+    }
+  ]
+}
+
+### 13. Get Order Before Payment
+GET {{baseUrl}}/api/orders/{{orderId}}
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 14. Initiate VNPAY Payment
+POST {{baseUrl}}/api/payments/{{orderId}}/initiate
+Authorization: Bearer {{audienceToken}}
+Content-Type: application/json
+
+{
+  "provider": "VNPAY"
+}
+
+### 15. Complete Mock Payment Fallback
+POST {{baseUrl}}/api/mock-payments/{{orderId}}/success
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 16. Get Order After Payment
+GET {{baseUrl}}/api/orders/{{orderId}}
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 17. List Issued Tickets
+GET {{baseUrl}}/api/tickets
+Authorization: Bearer {{audienceToken}}
 Accept: application/json
