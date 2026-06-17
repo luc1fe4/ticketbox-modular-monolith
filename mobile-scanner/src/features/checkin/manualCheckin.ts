@@ -1,0 +1,162 @@
+import {
+  scanTicketOnline,
+} from '../../api';
+import {
+  countLogsByStatus,
+  getLocalCheckinLogByQrCode,
+  getTicketByQrCode,
+  insertLocalCheckinLog,
+} from '../../database';
+import type { LogStatusCounts } from '../../database';
+
+export type ManualCheckinResult = {
+  status: 'PENDING' | 'INVALID_LOCAL' | 'DUPLICATE_LOCAL' | 'ONLINE_ACCEPTED' | 'ONLINE_FAILED';
+  message: string;
+  checkedAt?: string;
+  qrCode: string;
+};
+
+export type ManualCheckinOutcome = {
+  result: ManualCheckinResult;
+  inserted: boolean;
+};
+
+type ManualOfflineCheckinInput = {
+  concertId: string;
+  qrCode: string;
+  gate: string;
+};
+
+type OnlineCheckinInput = ManualOfflineCheckinInput & {
+  deviceId: string;
+  accessToken?: string;
+};
+
+export const EMPTY_LOG_COUNTERS: LogStatusCounts = {
+  PENDING: 0,
+  SYNCED: 0,
+  CONFLICT: 0,
+  FAILED: 0,
+};
+
+export async function performManualOfflineCheckin({
+  concertId,
+  qrCode,
+  gate,
+}: ManualOfflineCheckinInput): Promise<ManualCheckinOutcome> {
+  const selectedConcertId = concertId.trim();
+  const selectedQrCode = qrCode.trim();
+  const selectedGate = gate.trim();
+
+  if (!selectedConcertId) {
+    return invalidResult('Enter a concert ID before checking in.', selectedQrCode);
+  }
+
+  if (!selectedQrCode) {
+    return invalidResult('Enter a QR code before checking in.', selectedQrCode);
+  }
+
+  const ticket = await getTicketByQrCode(selectedConcertId, selectedQrCode);
+
+  if (!ticket) {
+    return invalidResult('QR code was not found in the local ticket dataset.', selectedQrCode);
+  }
+
+  const duplicate = await getLocalCheckinLogByQrCode(selectedConcertId, selectedQrCode);
+
+  if (duplicate) {
+    return {
+      inserted: false,
+      result: {
+        status: 'DUPLICATE_LOCAL',
+        message: `This QR code already has a local ${duplicate.status} check-in log.`,
+        checkedAt: duplicate.checkedAt,
+        qrCode: selectedQrCode,
+      },
+    };
+  }
+
+  const checkedAt = new Date().toISOString();
+  await insertLocalCheckinLog({
+    concertId: selectedConcertId,
+    qrCode: selectedQrCode,
+    checkedAt,
+    gate: selectedGate || null,
+    status: 'PENDING',
+  });
+
+  return {
+    inserted: true,
+    result: {
+      status: 'PENDING',
+      message: 'Valid local ticket. Check-in saved as pending sync.',
+      checkedAt,
+      qrCode: selectedQrCode,
+    },
+  };
+}
+
+export async function performOnlineCheckin({
+  concertId,
+  qrCode,
+  gate,
+  deviceId,
+  accessToken,
+}: OnlineCheckinInput): Promise<ManualCheckinOutcome> {
+  const selectedConcertId = concertId.trim();
+  const selectedQrCode = qrCode.trim();
+  const selectedDeviceId = deviceId.trim();
+
+  if (!selectedConcertId) {
+    return invalidResult('Enter a concert ID before checking in.', selectedQrCode);
+  }
+
+  if (!selectedQrCode) {
+    return invalidResult('Enter a QR code before checking in.', selectedQrCode);
+  }
+
+  if (!selectedDeviceId) {
+    return invalidResult('Device ID is required before checking in online.', selectedQrCode);
+  }
+
+  const response = await scanTicketOnline(
+    {
+      qrCode: selectedQrCode,
+      concertId: selectedConcertId,
+      deviceId: selectedDeviceId,
+      gate: gate.trim() || null,
+    },
+    accessToken,
+  );
+
+  return {
+    inserted: false,
+    result: {
+      status: response.status === 'SUCCESS' ? 'ONLINE_ACCEPTED' : 'ONLINE_FAILED',
+      message: response.message,
+      checkedAt: response.checkAt,
+      qrCode: selectedQrCode,
+    },
+  };
+}
+
+export function loadCheckinCounters(concertId: string) {
+  const selectedConcertId = concertId.trim();
+
+  if (!selectedConcertId) {
+    return Promise.resolve(EMPTY_LOG_COUNTERS);
+  }
+
+  return countLogsByStatus(selectedConcertId);
+}
+
+function invalidResult(message: string, qrCode: string): ManualCheckinOutcome {
+  return {
+    inserted: false,
+    result: {
+      status: 'INVALID_LOCAL',
+      message,
+      qrCode,
+    },
+  };
+}

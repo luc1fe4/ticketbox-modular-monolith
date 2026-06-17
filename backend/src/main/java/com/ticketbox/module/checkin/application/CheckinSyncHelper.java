@@ -30,6 +30,14 @@ public class CheckinSyncHelper {
         OffsetDateTime now = OffsetDateTime.now();
         UUID logId = UUID.randomUUID();
 
+        if (!ticketCheckinPort.markAsUsedIfValid(ticket.id(), entry.checkedAt())) {
+            return new SyncResultEntry(
+                    entry.qrCode(),
+                    "SKIPPED",
+                    "Ticket was already checked in on the server"
+            );
+        }
+
         int inserted = checkinLogRepository.insertOfflineIfAbsent(
                 logId,
                 ticket.id(),
@@ -47,15 +55,6 @@ public class CheckinSyncHelper {
                     entry.qrCode(),
                     "SKIPPED",
                     "Ticket was already checked in; the server record was kept"
-            );
-        }
-
-        if (!ticketCheckinPort.markAsUsedIfValid(ticket.id(), entry.checkedAt())) {
-            checkinLogRepository.deleteInsertedOfflineLog(logId);
-            return new SyncResultEntry(
-                    entry.qrCode(),
-                    "INVALID",
-                    "Ticket status changed on the server during sync"
             );
         }
 
