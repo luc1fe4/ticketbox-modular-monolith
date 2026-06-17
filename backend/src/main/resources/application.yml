@@ -33,10 +33,31 @@ management:
       probes:
         enabled: true
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      vnpay:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+
 ticketbox:
   orders:
     expiration:
       fixed-delay-ms: 60000
+  payment:
+    mock:
+      base-url: ${PAYMENT_MOCK_BASE_URL:http://localhost:8080}
+    vnpay:
+      pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      return-url: ${VNPAY_RETURN_URL:http://localhost:5173/payment/result}
+      ipn-url: ${VNPAY_IPN_URL:}
+      tmn-code: ${VNPAY_TMN_CODE:}
+      hash-secret: ${VNPAY_HASH_SECRET:}
+      locale: vn
+      order-type: other
   rate-limit:
     purchase:
       capacity: 5

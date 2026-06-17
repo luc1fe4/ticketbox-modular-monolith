@@ -280,7 +280,7 @@ Example create order response data:
   "orderId": "uuid",
   "status": "AWAITING_PAYMENT",
   "totalAmount": 8600000,
-  "paymentUrl": "http://localhost:8080/api/mock-payment/orders/uuid",
+  "paymentUrl": null,
   "expiresAt": "2026-06-04T10:05:00Z"
 }
 ```
@@ -308,17 +308,45 @@ then changes the order status to EXPIRED.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/payments/{orderId}/initiate` | AUDIENCE | Initiate payment if order exists and is payable. Can be merged into `POST /orders` for MVP. |
+| POST | `/payments/{orderId}/initiate` | AUDIENCE | Initiate payment if order exists and is payable. Returns a provider redirect URL for `MOCK` or `VNPAY`. |
 | GET | `/payments/{orderId}/status` | AUDIENCE | Get payment/order status. |
-| POST | `/payments/webhooks/vnpay` | PUBLIC | Receive VNPAY webhook/IPN. Must verify signature. |
+| GET | `/payments/webhooks/vnpay` | PUBLIC | Receive VNPAY IPN/webhook query parameters. Verifies `vnp_SecureHash`. |
 | POST | `/payments/webhooks/momo` | PUBLIC | Receive MoMo webhook/IPN. Must verify signature. |
 | POST | `/mock-payments/{orderId}/success` | AUDIENCE/DEV | Mock payment success for local demo. Available outside the `prod` profile. |
 | POST | `/mock-payments/{orderId}/fail` | AUDIENCE/DEV | Mock payment failure for local demo. Available outside the `prod` profile. |
+
+Example initiate VNPAY request:
+
+```json
+{
+  "provider": "VNPAY"
+}
+```
+
+Example initiate response data:
+
+```json
+{
+  "orderId": "uuid",
+  "provider": "VNPAY",
+  "providerRef": "uuid",
+  "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?..."
+}
+```
+
+Local VNPAY sandbox config:
+
+```text
+VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:5173/payment/result
+VNPAY_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+```
 
 Webhook behavior:
 
 ```text
 Verify provider signature.
+For VNPAY, remove vnp_SecureHash/vnp_SecureHashType, sort params, sign with HMAC-SHA512, and compare.
 Write payment_logs.
 If success and order is payable, mark order PAID.
 Generate tickets.

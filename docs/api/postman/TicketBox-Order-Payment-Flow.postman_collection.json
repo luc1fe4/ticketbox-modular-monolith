@@ -223,7 +223,70 @@
       "response": []
     },
     {
-      "name": "7. Mock Payment Success",
+      "name": "7. Initiate VNPAY Payment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Payment initiated', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "if (json.data && json.data.paymentUrl) {",
+              "  pm.collectionVariables.set('paymentUrl', json.data.paymentUrl);",
+              "  console.log('Open this VNPAY URL:', json.data.paymentUrl);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"VNPAY\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/{{orderId}}/initiate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "payments",
+            "{{orderId}}",
+            "initiate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. Mock Payment Success Fallback",
       "request": {
         "auth": {
           "type": "bearer",
@@ -253,7 +316,7 @@
       "response": []
     },
     {
-      "name": "8. Get Order After Payment",
+      "name": "9. Get Order After Payment",
       "event": [
         {
           "listen": "test",
@@ -296,7 +359,7 @@
       "response": []
     },
     {
-      "name": "9. List My Tickets",
+      "name": "10. List My Tickets",
       "request": {
         "auth": {
           "type": "bearer",
@@ -324,7 +387,7 @@
       "response": []
     },
     {
-      "name": "10. List My Notifications",
+      "name": "11. List My Notifications",
       "request": {
         "auth": {
           "type": "bearer",
@@ -370,6 +433,11 @@
     },
     {
       "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentUrl",
       "value": "",
       "type": "string"
     },

@@ -136,17 +136,26 @@ GET {{baseUrl}}/api/orders/{{orderId}}
 Authorization: Bearer {{audienceToken}}
 Accept: application/json
 
-### 14. Complete Mock Payment
+### 14. Initiate VNPAY Payment
+POST {{baseUrl}}/api/payments/{{orderId}}/initiate
+Authorization: Bearer {{audienceToken}}
+Content-Type: application/json
+
+{
+  "provider": "VNPAY"
+}
+
+### 15. Complete Mock Payment Fallback
 POST {{baseUrl}}/api/mock-payments/{{orderId}}/success
 Authorization: Bearer {{audienceToken}}
 Accept: application/json
 
-### 15. Get Order After Payment
+### 16. Get Order After Payment
 GET {{baseUrl}}/api/orders/{{orderId}}
 Authorization: Bearer {{audienceToken}}
 Accept: application/json
 
-### 16. List Issued Tickets
+### 17. List Issued Tickets
 GET {{baseUrl}}/api/tickets
 Authorization: Bearer {{audienceToken}}
 Accept: application/json
