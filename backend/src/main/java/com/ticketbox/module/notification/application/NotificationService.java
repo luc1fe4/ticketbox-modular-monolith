@@ -106,6 +106,20 @@ public class NotificationService {
     }
 
     /**
+     * Marks an EMAIL notification as SKIPPED with a reason.
+     * Used when delivery is permanently impossible (e.g. user has no email address)
+     * so the message is ACKed without retry – retrying would never succeed.
+     */
+    @Transactional
+    public void markEmailSkipped(UUID notificationId, String reason) {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
+            n.setStatus(Notification.Status.SKIPPED);
+            n.setLastError(reason);
+            notificationRepository.save(n);
+        });
+    }
+
+    /**
      * Records a failed email delivery attempt.
      * Increments the attempt counter and stores the last error message.
      * If attempts reach 3, sets status to FAILED (message will land in DLQ).

@@ -66,8 +66,12 @@ public class EmailNotificationConsumer {
                 .orElse(null);
 
         if (contact == null || contact.email() == null || contact.email().isBlank()) {
-            log.warn("EmailNotificationConsumer: no active user contact for userId={} – skipping", notification.getUserId());
-            notificationService.recordEmailAttemptFailed(notificationId, "User contact not found");
+            // The user has no resolvable email address – retrying would never help,
+            // so we mark the notification SKIPPED (audit trail preserved) and ACK the message.
+            log.warn("EmailNotificationConsumer: no active user contact for userId={} – marking SKIPPED",
+                    notification.getUserId());
+            notificationService.markEmailSkipped(notificationId,
+                    "User contact not found or email blank for userId=" + notification.getUserId());
             return;
         }
 

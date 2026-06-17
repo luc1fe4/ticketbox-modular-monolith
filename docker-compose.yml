@@ -65,8 +65,8 @@ services:
       VNPAY_IPN_URL: ${VNPAY_IPN_URL}
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
-      MAIL_HOST: ${MAIL_HOST:mailhog}
-      MAIL_PORT: ${MAIL_PORT:1025}
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
     depends_on:
       postgres:
         condition: service_healthy
