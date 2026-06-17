@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -37,15 +38,25 @@ public class NotificationService {
         return NotificationResponse.from(notification);
     }
 
+    /**
+     * Creates an APP (in-app) notification for a successful payment AND a PENDING EMAIL notification.
+     * Uses distinct messageIds to avoid unique-index conflicts on notifications.message_id.
+     *
+     * <p>APP  messageId = deterministic UUID from "PAYMENT_SUCCEEDED:APP:{eventId}"
+     * <p>EMAIL messageId = deterministic UUID from "PAYMENT_SUCCEEDED:EMAIL:{eventId}"
+     *
+     * @return the saved EMAIL Notification (to be published to the email queue), or empty if already processed
+     */
     @Transactional
-    public void createPaymentSucceededNotification(
+    public Optional<Notification> createPaymentSucceededNotification(
             CreatePaymentNotificationCommand command
     ) {
-        if (notificationRepository.existsByMessageId(
-                command.messageId()
-        )) {
-            return;
-        }
+        UUID appMessageId = UUID.nameUUIDFromBytes(
+                ("PAYMENT_SUCCEEDED:APP:" + command.messageId()).getBytes()
+        );
+        UUID emailMessageId = UUID.nameUUIDFromBytes(
+                ("PAYMENT_SUCCEEDED:EMAIL:" + command.messageId()).getBytes()
+        );
 
         String body = "Payment for order "
                 + command.orderId()
@@ -53,16 +64,83 @@ public class NotificationService {
                 + command.amount().toPlainString()
                 + " VND.";
 
-        Notification notification =
-                Notification.createAppNotification(
-                        command.messageId(),
-                        command.userId(),
-                        "PAYMENT_SUCCEEDED",
-                        "Payment successful",
-                        body,
-                        OffsetDateTime.now()
-                );
+        // APP notification (idempotent)
+        if (!notificationRepository.existsByMessageId(appMessageId)) {
+            Notification appNotification = Notification.createAppNotification(
+                    appMessageId,
+                    command.userId(),
+                    "PAYMENT_SUCCEEDED",
+                    "Payment successful",
+                    body,
+                    OffsetDateTime.now()
+            );
+            notificationRepository.save(appNotification);
+        }
 
-        notificationRepository.save(notification);
+        // EMAIL notification (idempotent) – return the saved entity so caller can enqueue it
+        if (notificationRepository.existsByMessageId(emailMessageId)) {
+            return Optional.empty();
+        }
+
+        Notification emailNotification = Notification.createEmailNotification(
+                emailMessageId,
+                command.userId(),
+                "PAYMENT_SUCCEEDED",
+                "Payment successful – TicketBox",
+                body
+        );
+        notificationRepository.save(emailNotification);
+        return Optional.of(emailNotification);
+    }
+
+    /**
+     * Marks an EMAIL notification as successfully sent.
+     */
+    @Transactional
+    public void markEmailSent(UUID notificationId) {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
+            n.setStatus(Notification.Status.SENT);
+            n.setSentAt(OffsetDateTime.now());
+            notificationRepository.save(n);
+        });
+    }
+
+    /**
+     * Marks an EMAIL notification as SKIPPED with a reason.
+     * Used when delivery is permanently impossible (e.g. user has no email address)
+     * so the message is ACKed without retry – retrying would never succeed.
+     */
+    @Transactional
+    public void markEmailSkipped(UUID notificationId, String reason) {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
+            n.setStatus(Notification.Status.SKIPPED);
+            n.setLastError(reason);
+            notificationRepository.save(n);
+        });
+    }
+
+    /**
+     * Records a failed email delivery attempt.
+     * Increments the attempt counter and stores the last error message.
+     * If attempts reach 3, sets status to FAILED (message will land in DLQ).
+     */
+    @Transactional
+    public void recordEmailAttemptFailed(UUID notificationId, String error) {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
+            int newAttempts = n.getAttempts() + 1;
+            n.setAttempts(newAttempts);
+            n.setLastError(error);
+            if (newAttempts >= 3) {
+                n.setStatus(Notification.Status.FAILED);
+            }
+            notificationRepository.save(n);
+        });
+    }
+
+    /**
+     * Finds a notification by ID for email consumer processing.
+     */
+    public Optional<Notification> findNotificationById(UUID notificationId) {
+        return notificationRepository.findById(notificationId);
     }
 }

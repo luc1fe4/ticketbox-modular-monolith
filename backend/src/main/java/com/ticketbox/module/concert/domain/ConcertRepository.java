@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,9 @@ public interface ConcertRepository extends JpaRepository<Concert, UUID> {
             Pageable pageable);
 
     Optional<Concert> findByIdAndStatusIn(UUID id, List<Concert.Status> statuses);
+
+    List<Concert> findByEventDateBetweenAndStatusIn(
+            OffsetDateTime from,
+            OffsetDateTime to,
+            List<Concert.Status> statuses);
 }

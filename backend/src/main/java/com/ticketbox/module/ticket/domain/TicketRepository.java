@@ -19,4 +19,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     @Modifying
     @Query("UPDATE Ticket t SET t.status = 'USED', t.usedAt = :usedAt WHERE t.id = :id AND t.status = 'VALID'")
     int markAsUsedIfValid(@Param("id") UUID id, @Param("usedAt") OffsetDateTime usedAt);
+
+    @Query("SELECT DISTINCT t.userId FROM Ticket t WHERE t.concertId = :concertId AND t.status = 'VALID'")
+    List<UUID> findDistinctUserIdsByConcertId(@Param("concertId") UUID concertId);
 }

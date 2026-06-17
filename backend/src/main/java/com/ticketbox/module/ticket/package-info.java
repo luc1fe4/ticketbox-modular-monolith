@@ -11,6 +11,8 @@
  *   <li>{@link com.ticketbox.module.ticket.RevenueSummaryView} – consumed by admin module</li>
  *   <li>{@link com.ticketbox.module.ticket.SalesTrendView} – consumed by admin module</li>
  *   <li>{@link com.ticketbox.module.ticket.ZoneRevenueView} – consumed by admin module</li>
+ *   <li>{@link com.ticketbox.module.ticket.TicketReminderRecipientPort} – consumed by notification module
+ *       to find VALID ticket holders for 24-hour concert reminders.</li>
  * </ul>
  *
  * <p>Upstream dependencies:

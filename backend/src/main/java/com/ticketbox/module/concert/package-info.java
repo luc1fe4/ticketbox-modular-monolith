@@ -11,6 +11,9 @@
  *       for organizer revenue reporting.</li>
  *   <li>{@link com.ticketbox.module.concert.ConcertReportingView} – reporting read model.</li>
  *   <li>{@link com.ticketbox.module.concert.TicketTypeReportingView} – reporting read model.</li>
+ *   <li>{@link com.ticketbox.module.concert.ConcertReminderPort} – consumed by notification module
+ *       to find concerts starting within the next 24 hours.</li>
+ *   <li>{@link com.ticketbox.module.concert.ConcertReminderView} – read model for reminder data.</li>
  * </ul>
  *
  * <p>Responsibilities: concert lifecycle (DRAFT → ON_SALE → COMPLETED/CANCELLED),
