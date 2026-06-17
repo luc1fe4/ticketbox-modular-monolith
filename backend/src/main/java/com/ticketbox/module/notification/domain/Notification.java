@@ -81,6 +81,24 @@ public class Notification extends BaseEntity {
         return notification;
     }
 
+    public static Notification createEmailNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body
+    ) {
+        Notification notification = new Notification();
+        notification.messageId = messageId;
+        notification.userId = userId;
+        notification.channel = Channel.EMAIL;
+        notification.eventType = eventType;
+        notification.subject = subject;
+        notification.body = body;
+        notification.status = Status.PENDING;
+        return notification;
+    }
+
     public void markAsRead(OffsetDateTime readAt) {
         if (this.readAt == null) {
             this.readAt = readAt;

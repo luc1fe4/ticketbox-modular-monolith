@@ -86,4 +86,46 @@ public class RabbitMqConfig {
     ) {
         return new Jackson2JsonMessageConverter(objectMapper);
     }
+
+    @Bean
+    Queue notificationEmailQueue() {
+        return QueueBuilder
+                .durable(RabbitMqNames.NOTIFICATION_EMAIL_QUEUE)
+                .deadLetterExchange(
+                        RabbitMqNames.DEAD_LETTER_EXCHANGE
+                )
+                .deadLetterRoutingKey(
+                        RabbitMqNames.NOTIFICATION_EMAIL_DLQ_ROUTING_KEY
+                )
+                .build();
+    }
+
+    @Bean
+    Queue notificationEmailDeadLetterQueue() {
+        return QueueBuilder
+                .durable(RabbitMqNames.NOTIFICATION_EMAIL_DLQ)
+                .build();
+    }
+
+    @Bean
+    Binding notificationEmailBinding(
+            Queue notificationEmailQueue,
+            TopicExchange ticketboxEventsExchange
+    ) {
+        return BindingBuilder
+                .bind(notificationEmailQueue)
+                .to(ticketboxEventsExchange)
+                .with(RabbitMqNames.NOTIFICATION_EMAIL_ROUTING_KEY);
+    }
+
+    @Bean
+    Binding notificationEmailDeadLetterBinding(
+            Queue notificationEmailDeadLetterQueue,
+            DirectExchange ticketboxDeadLetterExchange
+    ) {
+        return BindingBuilder
+                .bind(notificationEmailDeadLetterQueue)
+                .to(ticketboxDeadLetterExchange)
+                .with(RabbitMqNames.NOTIFICATION_EMAIL_DLQ_ROUTING_KEY);
+    }
 }

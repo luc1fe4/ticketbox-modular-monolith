@@ -65,6 +65,8 @@ services:
       VNPAY_IPN_URL: ${VNPAY_IPN_URL}
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
+      MAIL_HOST: ${MAIL_HOST:mailhog}
+      MAIL_PORT: ${MAIL_PORT:1025}
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +74,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     ports:
       - "8080:8080"
 
@@ -85,6 +89,13 @@ services:
       - backend
     ports:
       - "5173:5173"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ticketbox-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   postgres_data:

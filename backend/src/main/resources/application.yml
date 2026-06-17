@@ -67,4 +67,13 @@ ticketbox:
       capacity: 3
       refill-tokens: 1
       refill-period: 5s
+  notifications:
+    reminder:
+      fixed-delay-ms: 300000
 
+spring:
+  mail:
+    host: ${MAIL_HOST:mailhog}
+    port: ${MAIL_PORT:1025}
+    protocol: smtp
+    default-encoding: UTF-8
