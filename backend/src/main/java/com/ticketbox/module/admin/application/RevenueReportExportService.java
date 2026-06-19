@@ -4,10 +4,10 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -18,6 +18,7 @@ import com.ticketbox.shared.exception.ErrorCode;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -31,6 +32,7 @@ public class RevenueReportExportService {
 
     private static final String CSV_CONTENT_TYPE = "text/csv;charset=UTF-8";
     private static final String PDF_CONTENT_TYPE = "application/pdf";
+    private static final String PDF_FONT_PATH = "fonts/NotoSans-Regular.ttf";
     private static final ZoneId REPORTING_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter EXPORTED_AT_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss XXX");
@@ -42,20 +44,23 @@ public class RevenueReportExportService {
     }
 
     public RevenueReportExport export(UUID concertId, UUID organizerId, String format) {
+        String concertName =
+                organizerRevenueService.getCompletedConcertName(concertId, organizerId);
         RevenueSummaryResponse summary =
                 organizerRevenueService.getRevenueSummary(concertId, organizerId);
         List<ZoneRevenueResponse> zones =
                 organizerRevenueService.getZoneRevenue(concertId, organizerId);
+        String filenamePrefix = filenameValue(concertName);
 
         return switch (normalizeFormat(format)) {
             case "csv" -> new RevenueReportExport(
-                    createCsv(summary, zones),
+                    createCsv(concertName, summary, zones),
                     CSV_CONTENT_TYPE,
-                    "concert-" + concertId + "-revenue-report.csv");
+                    filenamePrefix + "-revenue-report.csv");
             case "pdf" -> new RevenueReportExport(
-                    createPdf(summary, zones),
+                    createPdf(concertName, summary, zones),
                     PDF_CONTENT_TYPE,
-                    "concert-" + concertId + "-revenue-report.pdf");
+                    filenamePrefix + "-revenue-report.pdf");
             default -> throw new AppException(
                     ErrorCode.INVALID_REQUEST,
                     "Unsupported export format. Supported formats: csv, pdf");
@@ -63,12 +68,13 @@ public class RevenueReportExportService {
     }
 
     private byte[] createCsv(
+            String concertName,
             RevenueSummaryResponse summary,
             List<ZoneRevenueResponse> zones) {
         StringBuilder csv = new StringBuilder();
         csv.append('\uFEFF');
-        csv.append("Concert ID,Total Revenue,Total Tickets Sold,Total Ticket Capacity,Sold Rate (%)\r\n");
-        csv.append(csvValue(summary.concertId().toString())).append(',')
+        csv.append("Concert Name,Total Revenue,Total Tickets Sold,Total Ticket Capacity,Sold Rate (%)\r\n");
+        csv.append(csvValue(concertName)).append(',')
                 .append(decimalValue(summary.totalRevenue())).append(',')
                 .append(summary.totalTicketsSold()).append(',')
                 .append(summary.totalTicketsAvailable()).append(',')
@@ -89,6 +95,7 @@ public class RevenueReportExportService {
     }
 
     private byte[] createPdf(
+            String concertName,
             RevenueSummaryResponse summary,
             List<ZoneRevenueResponse> zones) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
@@ -96,14 +103,18 @@ public class RevenueReportExportService {
             PdfWriter.getInstance(document, output);
             document.open();
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Font headingFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
-            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+            BaseFont unicodeFont = BaseFont.createFont(
+                    PDF_FONT_PATH,
+                    BaseFont.IDENTITY_H,
+                    BaseFont.EMBEDDED);
+            Font titleFont = new Font(unicodeFont, 18, Font.BOLD);
+            Font headingFont = new Font(unicodeFont, 10, Font.BOLD);
+            Font bodyFont = new Font(unicodeFont, 9);
 
             Paragraph title = new Paragraph("TicketBox Revenue Report", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
-            document.add(new Paragraph("Concert ID: " + summary.concertId(), bodyFont));
+            document.add(new Paragraph("Concert Name: " + concertName, bodyFont));
             document.add(new Paragraph(
                     "Exported at: " + OffsetDateTime.now(REPORTING_ZONE)
                             .format(EXPORTED_AT_FORMAT),
@@ -180,5 +191,14 @@ public class RevenueReportExportService {
             return "";
         }
         return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+
+    private String filenameValue(String concertName) {
+        String normalized = Normalizer.normalize(concertName, Normalizer.Form.NFC)
+                .trim()
+                .replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-{2,}", "-");
+        return normalized.isBlank() ? "concert" : normalized;
     }
 }
