@@ -7,5 +7,5 @@
  * <p>Future responsibilities: AI-generated artist biography drafts, content moderation
  * suggestions, and LLM integration for organizer tooling.
  */
-@org.springframework.modulith.ApplicationModule
+@org.springframework.modulith.ApplicationModule(allowedDependencies = {"concert", "shared"})
 package com.ticketbox.module.ai;

@@ -461,16 +461,29 @@ Failures should increment attempts and eventually go to DLQ or FAILED status.
 
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/admin/concerts/{concertId}/artist-bio-jobs` | ORGANIZER/ADMIN | Upload PDF or provide file URL to start AI artist bio job. |
+| POST | `/admin/concerts/{concertId}/artist-bio-jobs` | ORGANIZER/ADMIN | Upload a text-based PDF and start an asynchronous artist bio job. |
 | GET | `/admin/artist-bio-jobs/{jobId}` | ORGANIZER/ADMIN | Get AI job status and result. |
-| POST | `/admin/artist-bio-jobs/{jobId}/apply` | ORGANIZER/ADMIN | Apply generated bio to concert.artist_bio. |
+| POST | `/admin/artist-bio-jobs/{jobId}/apply?overwrite=false` | ORGANIZER/ADMIN | Apply a completed result to `concert.artist_bio`. Existing content requires `overwrite=true`. |
 | POST | `/admin/artist-bio-jobs/{jobId}/retry` | ORGANIZER/ADMIN | Retry failed AI job. |
 
-MVP option:
+Upload format:
 
 ```text
-Use mock AI response if real AI integration is out of scope for the implementation deadline.
-Still persist artist_pdf_jobs and status transitions.
+Content-Type: multipart/form-data
+Part name: file
+Maximum size: 10 MB by default
+Maximum pages: 50 by default
+Only PDFs with extractable text are supported; image-only/scanned PDFs require OCR and are rejected.
+```
+
+Job behavior:
+
+```text
+PENDING -> PROCESSING -> DONE or FAILED.
+Clients poll GET /api/admin/artist-bio-jobs/{jobId}.
+The generated biography is a draft until an organizer explicitly applies it.
+In local/dev, provider=auto uses a deterministic mock when no API key is configured.
+When a real provider is configured, provider failures mark the job FAILED and never silently fall back to mock.
 ```
 
 ## Organizer Revenue Reporting
