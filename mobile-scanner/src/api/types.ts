@@ -12,6 +12,17 @@ export type ApiResponse<T> = {
   errors?: ApiFieldError[] | null;
 };
 
+export type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+};
+
 // Auth
 export type StaffUser = {
   id: string;
@@ -84,4 +95,51 @@ export type ScanTicketResponse = {
   status: string;
   message: string;
   checkAt: string;
+};
+
+export type StaffConcert = {
+  id: string;
+  title: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: string;
+  doorsOpenAt: string | null;
+  status: 'ON_SALE' | 'SOLD_OUT' | 'COMPLETED' | 'CANCELLED';
+  posterUrl: string | null;
+};
+
+export type StaffConcertOverview = {
+  concert: StaffConcert;
+  totalTickets: number;
+  validTickets: number;
+  usedTickets: number;
+  cancelledTickets: number;
+  transferredTickets: number;
+  totalCheckins: number;
+  datasetUpdatedAt: string | null;
+};
+
+export type StaffTicket = {
+  ticketId: string;
+  ticketTypeId: string;
+  userId: string;
+  qrCode: string;
+  status: 'VALID' | 'USED' | 'CANCELLED' | 'TRANSFERRED';
+  issuedAt: string;
+  usedAt: string | null;
+};
+
+export type ServerCheckinHistory = {
+  id: string;
+  ticketId: string;
+  concertId: string;
+  staffId: string;
+  deviceId: string | null;
+  checkedAt: string;
+  syncAt: string | null;
+  offline: boolean;
+  gate: string | null;
+  notes: string | null;
+  qrCode: string | null;
+  ticketStatus: string | null;
 };

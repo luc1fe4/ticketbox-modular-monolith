@@ -1,4 +1,5 @@
 import type { CheckinDatasetResponse } from '../api/types';
+import type { StaffConcert } from '../api/types';
 
 export type LocalCheckinStatus = 'PENDING' | 'SYNCED' | 'CONFLICT' | 'FAILED';
 
@@ -43,3 +44,17 @@ export type UpdateSyncResultInput = {
 export type LogStatusCounts = Record<LocalCheckinStatus, number>;
 
 export type SaveDatasetInput = CheckinDatasetResponse;
+
+export type LocalConcert = StaffConcert & {
+  cachedAt: string;
+};
+
+export type DatasetInfo = {
+  downloadedAt: string | null;
+  totalCount: number;
+};
+
+export type LocalTicketListItem = TicketSnapshot & {
+  checkinStatus: LocalCheckinStatus | null;
+  checkedAt: string | null;
+};

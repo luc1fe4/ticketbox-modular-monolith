@@ -2,11 +2,14 @@ import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 import type {
   InsertLocalCheckinLogInput,
+  DatasetInfo,
+  LocalConcert,
   LocalCheckinLog,
   LocalCheckinStatus,
   LogStatusCounts,
   SaveDatasetInput,
   TicketSnapshot,
+  LocalTicketListItem,
   UpdateSyncResultInput,
 } from './types';
 
@@ -56,9 +59,73 @@ export async function initDatabase() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS local_concerts (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      venue_name TEXT NOT NULL,
+      venue_address TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      doors_open_at TEXT,
+      status TEXT NOT NULL,
+      poster_url TEXT,
+      cached_at TEXT NOT NULL
+    );
   `);
 
   return db;
+}
+
+export async function cacheStaffConcerts(concerts: Omit<LocalConcert, 'cachedAt'>[]) {
+  const db = await initDatabase();
+  const cachedAt = nowIso();
+
+  await db.withTransactionAsync(async () => {
+    for (const concert of concerts) {
+      await db.runAsync(
+        `INSERT INTO local_concerts (
+          id, title, venue_name, venue_address, event_date, doors_open_at,
+          status, poster_url, cached_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          title = excluded.title,
+          venue_name = excluded.venue_name,
+          venue_address = excluded.venue_address,
+          event_date = excluded.event_date,
+          doors_open_at = excluded.doors_open_at,
+          status = excluded.status,
+          poster_url = excluded.poster_url,
+          cached_at = excluded.cached_at`,
+        concert.id,
+        concert.title,
+        concert.venueName,
+        concert.venueAddress,
+        concert.eventDate,
+        concert.doorsOpenAt,
+        concert.status,
+        concert.posterUrl,
+        cachedAt,
+      );
+    }
+  });
+}
+
+export async function listCachedConcerts() {
+  const db = await initDatabase();
+  return db.getAllAsync<LocalConcertRow>(
+    `SELECT
+      id,
+      title,
+      venue_name AS venueName,
+      venue_address AS venueAddress,
+      event_date AS eventDate,
+      doors_open_at AS doorsOpenAt,
+      status,
+      poster_url AS posterUrl,
+      cached_at AS cachedAt
+    FROM local_concerts
+    ORDER BY event_date ASC`,
+  );
 }
 
 export async function saveCheckinDataset(dataset: SaveDatasetInput, downloadedAt = nowIso()) {
@@ -110,6 +177,35 @@ export async function getTicketByQrCode(concertId: string, qrCode: string) {
     LIMIT 1`,
     concertId,
     qrCode,
+  );
+}
+
+export async function listLocalTickets(concertId: string) {
+  const db = await initDatabase();
+  return db.getAllAsync<LocalTicketListItemRow>(
+    `SELECT
+      ticket.concert_id AS concertId,
+      ticket.ticket_id AS ticketId,
+      ticket.qr_code AS qrCode,
+      ticket.qr_secret AS qrSecret,
+      ticket.ticket_type_id AS ticketTypeId,
+      ticket.user_id AS userId,
+      ticket.downloaded_at AS downloadedAt,
+      log.status AS checkinStatus,
+      log.checked_at AS checkedAt
+    FROM ticket_snapshots ticket
+    LEFT JOIN local_checkin_logs log
+      ON log.local_id = (
+        SELECT latest.local_id
+        FROM local_checkin_logs latest
+        WHERE latest.concert_id = ticket.concert_id
+          AND latest.qr_code = ticket.qr_code
+        ORDER BY latest.checked_at DESC
+        LIMIT 1
+      )
+    WHERE ticket.concert_id = ?
+    ORDER BY ticket.ticket_id ASC`,
+    concertId,
   );
 }
 
@@ -199,6 +295,40 @@ export async function listPendingLogs(concertId: string, limit = 500) {
     concertId,
     limit,
   );
+}
+
+export async function listLocalCheckinLogs(concertId: string, limit = 200) {
+  const db = await initDatabase();
+  return db.getAllAsync<LocalCheckinLogRow>(
+    `SELECT
+      local_id AS localId,
+      concert_id AS concertId,
+      qr_code AS qrCode,
+      checked_at AS checkedAt,
+      gate,
+      notes,
+      status,
+      sync_result AS syncResult,
+      sync_reason AS syncReason
+    FROM local_checkin_logs
+    WHERE concert_id = ?
+    ORDER BY checked_at DESC
+    LIMIT ?`,
+    concertId,
+    limit,
+  );
+}
+
+export async function getDatasetInfo(concertId: string): Promise<DatasetInfo> {
+  const [downloadedAt, rawTotalCount] = await Promise.all([
+    getMetadata(`dataset:${concertId}:downloadedAt`),
+    getMetadata(`dataset:${concertId}:totalCount`),
+  ]);
+
+  return {
+    downloadedAt,
+    totalCount: Number(rawTotalCount ?? 0),
+  };
 }
 
 export async function updateSyncResult(input: UpdateSyncResultInput) {
@@ -292,6 +422,8 @@ function isLocalCheckinStatus(status: string): status is LocalCheckinStatus {
 
 type TicketSnapshotRow = TicketSnapshot;
 type LocalCheckinLogRow = LocalCheckinLog;
+type LocalConcertRow = LocalConcert;
+type LocalTicketListItemRow = LocalTicketListItem;
 
 type StatusCountRow = {
   status: string;

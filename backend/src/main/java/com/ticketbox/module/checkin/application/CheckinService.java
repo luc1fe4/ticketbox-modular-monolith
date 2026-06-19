@@ -1,5 +1,7 @@
 package com.ticketbox.module.checkin.application;
 
+import com.ticketbox.module.concert.CheckinConcertView;
+import com.ticketbox.module.concert.ConcertCheckinPort;
 import com.ticketbox.module.checkin.domain.CheckinLog;
 import com.ticketbox.module.checkin.domain.CheckinLogRepository;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse;
@@ -7,11 +9,17 @@ import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse.TicketDataset
 import com.ticketbox.module.checkin.web.dto.CheckinHistoryResponse;
 import com.ticketbox.module.checkin.web.dto.ScanTicketRequest;
 import com.ticketbox.module.checkin.web.dto.ScanTicketResponse;
+import com.ticketbox.module.checkin.web.dto.StaffConcertOverviewResponse;
+import com.ticketbox.module.checkin.web.dto.StaffConcertResponse;
+import com.ticketbox.module.checkin.web.dto.StaffTicketResponse;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinRequest;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse;
 import com.ticketbox.module.checkin.web.dto.SyncCheckinResponse.SyncResultEntry;
+import com.ticketbox.module.ticket.TicketCheckinStats;
 import com.ticketbox.module.ticket.TicketCheckinPort;
 import com.ticketbox.module.ticket.TicketView;
+import com.ticketbox.shared.exception.AppException;
+import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +40,50 @@ public class CheckinService {
     private final CheckinLogRepository checkinLogRepository;
     private final QrJwtService qrJwtService;
     private final CheckinSyncHelper checkinSyncHelper;
+    private final ConcertCheckinPort concertCheckinPort;
+
+    @Transactional(readOnly = true)
+    public Page<StaffConcertResponse> getStaffConcerts(String status, Pageable pageable) {
+        return concertCheckinPort.findByStatus(status, pageable)
+                .map(this::toStaffConcertResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public StaffConcertOverviewResponse getStaffConcertOverview(UUID concertId) {
+        CheckinConcertView concert = getConcert(concertId);
+        TicketCheckinStats stats = ticketCheckinPort.getStats(concertId);
+
+        return new StaffConcertOverviewResponse(
+                toStaffConcertResponse(concert),
+                stats.total(),
+                stats.valid(),
+                stats.used(),
+                stats.cancelled(),
+                stats.transferred(),
+                checkinLogRepository.countByConcertId(concertId),
+                stats.datasetUpdatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StaffTicketResponse> getStaffTickets(
+            UUID concertId,
+            String query,
+            String status,
+            Pageable pageable
+    ) {
+        getConcert(concertId);
+        return ticketCheckinPort.findByConcertId(concertId, query, status, pageable)
+                .map(ticket -> new StaffTicketResponse(
+                        ticket.id(),
+                        ticket.ticketTypeId(),
+                        ticket.userId(),
+                        ticket.qrCode(),
+                        ticket.status(),
+                        ticket.issuedAt(),
+                        ticket.usedAt()
+                ));
+    }
 
     @Transactional
     public ScanTicketResponse scan(ScanTicketRequest request, UUID staffId) {
@@ -92,8 +145,14 @@ public class CheckinService {
 
     @Transactional(readOnly = true)
     public Page<CheckinHistoryResponse> getCheckinHistory(UUID concertId, Pageable pageable) {
-        return checkinLogRepository.findByConcertId(concertId, pageable)
-                .map(log -> new CheckinHistoryResponse(
+        Page<CheckinLog> logs = checkinLogRepository.findByConcertId(concertId, pageable);
+        Map<UUID, TicketView> ticketsById = ticketCheckinPort.findByIds(
+                logs.getContent().stream().map(CheckinLog::getTicketId).toList()
+        );
+
+        return logs.map(log -> {
+            TicketView ticket = ticketsById.get(log.getTicketId());
+            return new CheckinHistoryResponse(
                         log.getId(),
                         log.getTicketId(),
                         log.getConcertId(),
@@ -103,8 +162,11 @@ public class CheckinService {
                         log.getSyncAt(),
                         log.isOffline(),
                         log.getGate(),
-                        log.getNotes()
-                ));
+                        log.getNotes(),
+                        ticket == null ? null : ticket.qrCode(),
+                        ticket == null ? null : ticket.status()
+                );
+        });
     }
 
     @Transactional
@@ -160,5 +222,26 @@ public class CheckinService {
         }
 
         return new SyncCheckinResponse(request.logs().size(), accepted, skipped, invalid, results);
+    }
+
+    private CheckinConcertView getConcert(UUID concertId) {
+        return concertCheckinPort.findById(concertId)
+                .orElseThrow(() -> new AppException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "Concert not found with id: " + concertId
+                ));
+    }
+
+    private StaffConcertResponse toStaffConcertResponse(CheckinConcertView concert) {
+        return new StaffConcertResponse(
+                concert.id(),
+                concert.title(),
+                concert.venueName(),
+                concert.venueAddress(),
+                concert.eventDate(),
+                concert.doorsOpenAt(),
+                concert.status(),
+                concert.posterUrl()
+        );
     }
 }
