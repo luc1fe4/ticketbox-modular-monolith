@@ -24,6 +24,8 @@ public interface ConcertRepository extends JpaRepository<Concert, UUID> {
             Concert.Status status,
             Pageable pageable);
 
+    List<Concert> findByCreatedBy(UUID createdBy);
+
     Optional<Concert> findByIdAndStatusIn(UUID id, List<Concert.Status> statuses);
 
     List<Concert> findByEventDateBetweenAndStatusIn(

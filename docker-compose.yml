@@ -67,6 +67,10 @@ services:
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
       MAIL_HOST: ${MAIL_HOST:-mailhog}
       MAIL_PORT: ${MAIL_PORT:-1025}
+      GUEST_LIST_ROOT_DIR: /data/guest-list
+      GUEST_LIST_IMPORT_CRON: ${GUEST_LIST_IMPORT_CRON:-0 */5 * * * *}
+    volumes:
+      - guest_list_data:/data/guest-list
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,3 +103,4 @@ services:
 
 volumes:
   postgres_data:
+  guest_list_data:
