@@ -1,123 +1,37 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthLayout } from './LoginPage';
 
 export function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    window.setTimeout(() => navigate('/'), 500);
+  }
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#0b1020] text-on-surface font-body">
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
-
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(108,99,255,0.15)_0%,transparent_40%),radial-gradient(circle_at_80%_70%,rgba(108,99,255,0.1)_0%,transparent_40%)]" />
-
-      <header className="relative z-20 flex items-center justify-between p-6 lg:px-10">
-        <div
-          onClick={() => nav('/')}
-          className="font-display text-3xl font-bold tracking-tighter cursor-pointer"
-        >
-          <span className="text-primary">Nova</span>
-          <span className="text-white">Stage</span>
+    <AuthLayout quote="The crowd was loud. The memory is louder." credit="TicketBox Selects · Hanoi">
+      <div className="auth-card">
+        <div className="auth-heading">
+          <p className="eyebrow"><span /> Join the crowd</p>
+          <h1>Make room for <em>more memories.</em></h1>
+          <p>Create an account to save events and keep every ticket close.</p>
         </div>
-      </header>
-
-      <section className="relative z-10 flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-lg rounded-3xl border border-border/70 bg-card/95 p-10 shadow-2xl backdrop-blur lg:p-14">
-          <h1 className="mb-10 text-center font-display text-3xl font-semibold text-white">
-            Đăng ký
-          </h1>
-
-          <form className="space-y-6">
-            <div className="relative">
-              <span className="absolute inset-y-0 left-4 flex items-center text-outline">✉</span>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Nhập địa chỉ email"
-                className="w-full rounded-xl border border-border bg-bg py-3.5 pl-12 pr-4 text-white placeholder:text-outline outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            <div className="relative">
-              <span className="absolute inset-y-0 left-4 flex items-center text-outline">🔒</span>
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Nhập mật khẩu"
-                className="w-full rounded-xl border border-border bg-bg py-3.5 pl-12 pr-12 text-white placeholder:text-outline outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((value) => !value)}
-                className="absolute inset-y-0 right-4 flex items-center text-outline hover:text-white"
-              >
-                👁
-              </button>
-            </div>
-
-            <div className="relative">
-              <span className="absolute inset-y-0 left-4 flex items-center text-outline">🛡</span>
-              <input
-                id="confirm-password"
-                name="confirm-password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Nhập lại mật khẩu"
-                className="w-full rounded-xl border border-border bg-bg py-3.5 pl-12 pr-12 text-white placeholder:text-outline outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((value) => !value)}
-                className="absolute inset-y-0 right-4 flex items-center text-outline hover:text-white"
-              >
-                👁
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-primary px-4 py-4 text-lg font-semibold text-white shadow-lg cursor-pointer shadow-primary/20 transition hover:bg-primary-container"
-            >
-              Đăng ký
-            </button>
-
-            <div className="relative pt-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-4 text-outline">Hoặc đăng ký với</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                className="flex w-full max-w-sm items-center justify-center gap-3 rounded-lg border cursor-pointer border-gray-200 bg-white px-5 py-3 font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 12-4.52z" fill="#EA4335" />
-                </svg>
-                <span className="text-sm font-semibold tracking-wide">Tiếp tục với Google</span>
-              </button>
-            </div>
-
-            <p className="pt-4 text-center text-sm font-medium text-white">
-              Bạn đã có tài khoản?{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-primary hover:text-primary-container">
-                Đăng nhập ngay
-              </Link>
-            </p>
-          </form>
-        </div>
-      </section>
-    </main>
+        <form className="auth-form" onSubmit={submit}>
+          <div className="form-grid form-grid-two">
+            <label className="field"><span>First name</span><input name="givenName" autoComplete="given-name" placeholder="Minh…" required /></label>
+            <label className="field"><span>Last name</span><input name="familyName" autoComplete="family-name" placeholder="Quân…" required /></label>
+          </div>
+          <label className="field"><span>Email address</span><input type="email" name="email" autoComplete="email" spellCheck={false} placeholder="you@example.com…" required /></label>
+          <label className="field"><span>Password</span><input type="password" name="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters…" required /></label>
+          <label className="terms-check"><input type="checkbox" required /><span>I agree to the <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</span></label>
+          <button className="button button-primary button-block" type="submit" disabled={submitting}>{submitting ? 'Creating account…' : 'Create account'}</button>
+        </form>
+        <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
+      </div>
+    </AuthLayout>
   );
 }

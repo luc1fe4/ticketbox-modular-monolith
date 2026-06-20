@@ -1,204 +1,106 @@
-import { useLocation, useNavigate } from "react-router-dom";
-
-const timeline = [
-  { label: 'Gate Open', time: '17:00', icon: '✓' },
-  { label: 'Opening Act', time: '19:00 — Special Guest', icon: '♬' },
-  { label: 'Main Performance', time: '20:30 — Coldplay', icon: '☆', active: true },
-];
-
-const recommendations = [
-  ['Concert', 'The Eras Tour: Taylor Swift', 'Sân vận động Mỹ Đình, Hà Nội', 'Từ 2.000.000 VND'],
-  ['Concert', 'After Hours: The Weeknd', 'SECC, TP.HCM', 'Từ 1.800.000 VND'],
-  ['K-Pop', 'Born Pink: BLACKPINK', 'SVĐ Quân Khu 7, TP.HCM', 'Từ 3.500.000 VND'],
-  ['Concert', 'Justice Tour: Justin Bieber', 'Phú Thọ Indoor Stadium, TP.HCM', 'Từ 1.500.000 VND'],
-];
+import { Link, useParams } from 'react-router-dom';
+import { EventCard } from '../../components/EventCard';
+import { currency, eventDate, events, getEvent } from '../../data/mockData';
 
 export function ConcertDetailPage() {
-  const nav = useNavigate();
-  const location = useLocation();
+  const { id } = useParams();
+  const event = getEvent(id);
+  const isSoldOut = event.status === 'sold-out';
 
   return (
     <>
-      <section className="bg-gradient-to-br from-card via-bg to-[#171326] px-5 py-14 md:px-16">
-        <div className="mx-auto grid max-w-[1440px] gap-10 md:grid-cols-[400px_1fr]">
-          <div className="aspect-[3/4] rounded-2xl border border-border bg-card shadow-2xl" />
-
-          <div className="flex flex-col justify-center">
-            <span className="mb-4 w-fit rounded-md bg-green-500/20 px-3 py-1 text-xs font-bold uppercase text-green-400">
-              Đang mở bán
-            </span>
-
-            <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight md:text-6xl">
-              Music of the Spheres: Coldplay — World Tour 2026
-            </h1>
-
-            <div className="mt-8 space-y-5">
-              <Info icon="📅" title="11 tháng 7, 2026" desc="Từ 19:00" />
-              <Info
-                icon="📍"
-                title="Indoor_Nhà Thi đấu Phú Thọ - 1 Lữ Gia, Phường Phú Thọ, TP.HCM"
-                desc="Phu Tho Indoor Stadium – 1 Lu Gia Street, Phu Tho Ward, Ho Chi Minh City"
-              />
-              <Info
-                icon="💳"
-                title="Giá vé"
-                desc="Từ 1.500.000 VND đến 15.000.000 VND"
-              />
-            </div>
-
-            <div className="mt-8 flex gap-4">
-              <button
-                onClick={() => nav(`${location.pathname}/seats`)}
-                className="rounded-xl bg-primary px-12 py-4 font-display text-xl font-bold text-white shadow-lg shadow-primary/20">
-                Mua vé ngay
-              </button>
-              <button className="rounded-xl border border-border bg-card px-5">f</button>
-              <button className="rounded-xl border border-border bg-card px-5">🔗</button>
-            </div>
+      <section className="detail-hero">
+        <img src={event.image} alt="" width="1800" height="1000" fetchPriority="high" />
+        <div className="detail-overlay" />
+        <div className="detail-hero-content page-width">
+          <Link className="back-link" to="/">← All events</Link>
+          <div className="detail-title">
+            <p className="eyebrow"><span /> {event.category} · {event.city}</p>
+            <h1>{event.title}</h1>
+            <p className="artist-line">{event.artist}</p>
+          </div>
+          <div className="detail-facts">
+            <Fact label="Date" value={eventDate.format(new Date(event.date))} />
+            <Fact label="Doors open" value={event.time} />
+            <Fact label="Venue" value={event.venue} />
           </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1440px] space-y-20 px-5 py-12 md:px-16">
-        <SectionTitle title="Lịch sự kiện và sơ đồ chỗ ngồi" />
+      <section className="detail-body page-width">
+        <article className="detail-story">
+          <p className="eyebrow"><span /> About the night</p>
+          <h2>A live experience shaped around <em>sound, light, and connection.</em></h2>
+          <p>
+            Step into a one-night world built for music lovers. A sweeping visual production,
+            intimate storytelling, and the electric feeling of thousands of voices meeting in
+            the same room.
+          </p>
+          <p>
+            Every detail—from the opening atmosphere to the final encore—has been designed to
+            make this more than a concert. Come early, stay curious, and let the night unfold.
+          </p>
+          <div className="feature-row">
+            <Feature number="01" title="Immersive production" copy="A cinematic stage and spatial sound." />
+            <Feature number="02" title="Curated hospitality" copy="Food, drinks, and thoughtful amenities." />
+            <Feature number="03" title="Easy entry" copy="Mobile tickets and dedicated support." />
+          </div>
+        </article>
 
-        <section className="grid gap-12 lg:grid-cols-2">
+        <aside className="booking-card">
+          <p className="booking-label">Tickets from</p>
+          <p className="booking-price">{currency.format(event.price)}</p>
+          <div className="booking-divider" />
+          <div className="booking-detail"><span>Date</span><strong>{eventDate.format(new Date(event.date))}</strong></div>
+          <div className="booking-detail"><span>Location</span><strong>{event.city}</strong></div>
+          <div className="booking-detail"><span>Admission</span><strong>Mobile ticket</strong></div>
+          {isSoldOut ? (
+            <button className="button button-disabled" type="button" disabled>Sold out</button>
+          ) : (
+            <Link className="button button-primary button-block" to={`/concerts/${event.id}/seats`}>
+              Choose tickets <span aria-hidden="true">→</span>
+            </Link>
+          )}
+          <p className="secure-note">Secure checkout · Official ticket partner</p>
+        </aside>
+      </section>
+
+      <section className="venue-section">
+        <div className="page-width venue-grid">
           <div>
-            <h3 className="mb-6 font-display text-xl font-semibold text-textMuted">Dòng thời gian</h3>
-            <div className="space-y-4">
-              {timeline.map((item) => (
-                <div
-                  key={item.label}
-                  className={`flex items-center justify-between rounded-xl border p-6 ${item.active ? 'border-primary bg-card' : 'border-border bg-panel'
-                    }`}
-                >
-                  <div>
-                    <p className="mb-1 text-xs font-bold uppercase text-textMuted">{item.label}</p>
-                    <p className="text-xl font-bold">{item.time}</p>
-                  </div>
-                  <span className="text-2xl text-primary">{item.icon}</span>
-                </div>
-              ))}
-            </div>
+            <p className="eyebrow"><span /> The venue</p>
+            <h2>{event.venue}</h2>
+            <p>{event.city}, Vietnam</p>
+            <a className="text-link" href="#map">View directions ↗</a>
           </div>
-
-          <div>
-            <div className="mb-6 flex justify-between">
-              <h3 className="font-display text-xl font-semibold text-textMuted">Sơ đồ chỗ ngồi</h3>
-              <button className="text-sm font-bold text-primary">⌕ Phóng to</button>
-            </div>
-
-            <div className="flex aspect-video items-center justify-center rounded-2xl border border-border bg-card">
-              <div className="text-center">
-                <div className="mb-3 text-6xl text-primary/40">🏟</div>
-                <p className="font-display text-lg font-bold">Bản đồ tương tác</p>
-                <p className="text-sm text-textMuted">
-                  Nhấp để mở chế độ xem thời gian thực và chọn vị trí ghế.
-                </p>
-              </div>
-            </div>
+          <div className="map-art" id="map" aria-label={`Stylized map of ${event.venue}`}>
+            <span className="map-pin">T</span>
+            <i className="road road-one" />
+            <i className="road road-two" />
+            <i className="road road-three" />
           </div>
-        </section>
-
-        <SectionTitle title="Về sự kiện" />
-
-        <section className="grid gap-10 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <h3 className="mb-4 font-display text-2xl font-bold">Mô tả sự kiện</h3>
-            <p className="leading-7 text-textMuted">
-              Sau thành công rực rỡ của tour diễn vòng quanh thế giới, Coldplay chính thức mang
-              “Music of the Spheres” đến Việt Nam vào năm 2026. Đây hứa hẹn sẽ là một trong những
-              sự kiện âm nhạc bùng nổ nhất lịch sử.
-            </p>
-            <p className="mt-4 leading-7 text-textMuted">
-              Khán giả sẽ được đắm chìm trong không gian vũ trụ huyền ảo, cùng Chris Martin và các
-              thành viên ban nhạc trình diễn những bản hit bất hủ.
-            </p>
-
-            <div className="mt-8 grid gap-6 sm:grid-cols-2">
-              <Feature icon="♻" title="Sự kiện Xanh" />
-              <Feature icon="♿" title="Hỗ trợ đặc biệt" />
-            </div>
-          </div>
-
-          <div className="h-fit rounded-2xl border border-border bg-panel p-6">
-            <h3 className="mb-3 font-display text-xl font-bold">Nghệ sĩ: Coldplay</h3>
-            <p className="text-sm leading-6 text-textMuted">
-              Ban nhạc rock huyền thoại đến từ London, thành lập năm 1996. Coldplay đã bán được hơn
-              100 triệu album trên toàn thế giới.
-            </p>
-            <button className="mt-4 text-sm font-bold text-primary">Xem đầy đủ tiểu sử →</button>
-          </div>
-        </section>
-
-        <SectionTitle title="Nhà tổ chức" />
-
-        <section className="flex flex-col items-center gap-8 rounded-2xl border border-border bg-card p-8 md:flex-row">
-          <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white font-display text-2xl font-black text-bg">
-            NOVA<br />PRO
-          </div>
-          <div>
-            <h3 className="font-display text-2xl font-bold">Nova Entertainment & Promotions</h3>
-            <p className="mt-3 max-w-3xl text-textMuted">
-              Đơn vị dẫn đầu trong lĩnh vực tổ chức các sự kiện giải trí và concert quốc tế tại Việt
-              Nam.
-            </p>
-          </div>
-        </section>
-
-        <div className="flex items-end justify-between">
-          <SectionTitle title="Có thể bạn sẽ thích" />
-          <button className="font-bold text-primary">Xem tất cả</button>
         </div>
+      </section>
 
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {recommendations.map(([tag, title, place, price]) => (
-            <article key={title} className="overflow-hidden rounded-xl border border-border bg-panel">
-              <div className="aspect-[3/4] bg-card p-3">
-                <span className="rounded bg-bg/80 px-2 py-1 text-[10px] font-bold uppercase">
-                  {tag}
-                </span>
-              </div>
-              <div className="p-4">
-                <h4 className="font-bold">{title}</h4>
-                <p className="mt-1 text-xs text-textMuted">{place}</p>
-                <p className="mt-2 font-bold text-primary">{price}</p>
-              </div>
-            </article>
+      <section className="more-events page-width">
+        <div className="section-heading">
+          <div><p className="eyebrow"><span /> Keep exploring</p><h2>You may also <em>love.</em></h2></div>
+          <Link className="text-link" to="/">See all events →</Link>
+        </div>
+        <div className="event-grid event-grid-three">
+          {events.filter((item) => item.id !== event.id).slice(0, 3).map((item) => (
+            <EventCard event={item} key={item.id} />
           ))}
-        </section>
-      </div>
+        </div>
+      </section>
     </>
   );
 }
 
-function Info({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-card text-primary">{icon}</div>
-      <div>
-        <p className="font-bold">{title}</p>
-        <p className="text-sm text-textMuted">{desc}</p>
-      </div>
-    </div>
-  );
+function Fact({ label, value }: { label: string; value: string }) {
+  return <div><span>{label}</span><strong>{value}</strong></div>;
 }
 
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <h2 className="border-l-4 border-primary pl-6 font-display text-3xl font-bold">{title}</h2>
-  );
+function Feature({ number, title, copy }: { number: string; title: string; copy: string }) {
+  return <div className="detail-feature"><span>{number}</span><h3>{title}</h3><p>{copy}</p></div>;
 }
-
-function Feature({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-6">
-      <div className="mb-4 text-3xl text-primary">{icon}</div>
-      <h4 className="mb-2 font-bold">{title}</h4>
-      <p className="text-sm text-textMuted">
-        Khu vực và dịch vụ hỗ trợ được thiết kế để nâng cao trải nghiệm người dùng.
-      </p>
-    </div>
-  );
-}
-
