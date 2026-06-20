@@ -238,6 +238,12 @@ Postman collection for the happy path:
 docs/api/postman/TicketBox-Order-Payment-Flow.postman_collection.json
 ```
 
+Order, payment, oversell, `max_per_account`, curl, database, and evidence guide:
+
+```text
+docs/api/order-payment-concurrency-test-guide.md
+```
+
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
