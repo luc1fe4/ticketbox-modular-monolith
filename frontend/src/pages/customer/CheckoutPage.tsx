@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { RemoteImage } from '../../components/RemoteImage';
+import { api } from '../../api/client';
 import { currency, events, type Zone, zones } from '../../data/mockData';
 import type { CheckoutSelection } from './SeatSelectionPage';
 
@@ -36,14 +37,27 @@ export function CheckoutPage() {
   const [payment, setPayment] = useState('card');
   const [processing, setProcessing] = useState(false);
   const [promoOpen, setPromoOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submitOrder(formEvent: React.FormEvent<HTMLFormElement>) {
+  async function submitOrder(formEvent: React.FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    setError(null);
     setProcessing(true);
-    window.setTimeout(
-      () => navigate('/booking-confirmation', { state: { event, selection } }),
-      700,
-    );
+    try {
+      const idempotencyKey = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+      await api.post(
+        '/api/orders',
+        {
+          concertId: event.id,
+          items: selection.map((item) => ({ ticketTypeId: item.id, quantity: item.quantity })),
+        },
+        { headers: { 'Idempotency-Key': idempotencyKey } },
+      );
+      navigate('/booking-confirmation', { state: { event, selection } });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Your order could not be completed.');
+      setProcessing(false);
+    }
   }
 
   return (
@@ -61,6 +75,7 @@ export function CheckoutPage() {
         <h1>Complete your order.</h1>
         <p>Your tickets are reserved for <strong>09:42</strong>.</p>
       </div>
+      {error ? <div className="state-panel" role="alert"><p>{error}</p></div> : null}
 
       <form className="checkout-layout" onSubmit={submitOrder}>
         <div className="checkout-form">

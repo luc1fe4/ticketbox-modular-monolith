@@ -2,7 +2,6 @@ package com.ticketbox.module.admin.domain;
 
 import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -16,7 +15,11 @@ import java.util.UUID;
 public class BatchLog extends BaseEntity {
 
     public enum Status {
-        RUNNING, SUCCESS, PARTIAL, FAILED
+        RUNNING, SUCCESS, PARTIAL, FAILED, SKIPPED
+    }
+
+    public enum Source {
+        UPLOAD, SCHEDULED
     }
 
     @Column(name = "job_name", nullable = false, length = 100)
@@ -24,6 +27,22 @@ public class BatchLog extends BaseEntity {
 
     @Column(name = "file_name", length = 255)
     private String fileName;
+
+    @Column(name = "concert_id")
+    private UUID concertId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private Source source;
+
+    @Column(name = "checksum", length = 64)
+    private String checksum;
+
+    @Column(name = "file_path", length = 1000)
+    private String filePath;
+
+    @Column(name = "error_report_path", length = 1000)
+    private String errorReportPath;
 
     @Column(name = "started_at", nullable = false)
     private OffsetDateTime startedAt;
@@ -53,6 +72,26 @@ public class BatchLog extends BaseEntity {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public void setConcertId(UUID concertId) {
+        this.concertId = concertId;
+    }
+
+    public void setSource(Source source) {
+        this.source = source;
+    }
+
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public void setErrorReportPath(String errorReportPath) {
+        this.errorReportPath = errorReportPath;
     }
 
     public void setStartedAt(OffsetDateTime startedAt) {

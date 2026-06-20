@@ -1,17 +1,31 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from '../../components/layout/PublicLayout';
 import { events } from '../../data/mockData';
+import { useAuth } from '../../features/auth/AuthContext';
 
 export function LoginPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    setError(null);
     setSubmitting(true);
-    window.setTimeout(() => navigate('/'), 500);
+    try {
+      await login(String(data.get('email')), String(data.get('password')));
+      const destination = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
+      navigate(destination, { replace: true });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Email or password is incorrect.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -20,8 +34,9 @@ export function LoginPage() {
         <div className="auth-heading">
           <p className="eyebrow"><span /> Welcome back</p>
           <h1>Your next night out <em>starts here.</em></h1>
-          <p>Sign in to access your tickets and saved events.</p>
+          <p>Sign in to access your tickets, orders, and saved profile.</p>
         </div>
+        {error ? <div className="state-panel" role="alert"><p>{error}</p></div> : null}
         <form className="auth-form" onSubmit={submit}>
           <label className="field"><span>Email address</span><input type="email" name="email" autoComplete="email" spellCheck={false} placeholder="you@example.com…" required /></label>
           <label className="field"><span>Password</span><span className="password-field"><input type={showPassword ? 'text' : 'password'} name="password" autoComplete="current-password" placeholder="Your password…" required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? 'Hide' : 'Show'}</button></span></label>

@@ -49,17 +49,17 @@ export async function performManualOfflineCheckin({
   const selectedGate = gate.trim();
 
   if (!selectedConcertId) {
-    return invalidResult('Enter a concert ID before checking in.', selectedQrCode);
+    return invalidResult('Chọn concert trước khi check-in.', selectedQrCode);
   }
 
   if (!selectedQrCode) {
-    return invalidResult('Enter a QR code before checking in.', selectedQrCode);
+    return invalidResult('Nhập hoặc quét mã QR trước khi check-in.', selectedQrCode);
   }
 
   const ticket = await getTicketByQrCode(selectedConcertId, selectedQrCode);
 
   if (!ticket) {
-    return invalidResult('QR code was not found in the local ticket dataset.', selectedQrCode);
+    return invalidResult('Không tìm thấy mã QR trong dataset local.', selectedQrCode);
   }
 
   const duplicate = await getLocalCheckinLogByQrCode(selectedConcertId, selectedQrCode);
@@ -69,7 +69,7 @@ export async function performManualOfflineCheckin({
       inserted: false,
       result: {
         status: 'DUPLICATE_LOCAL',
-        message: `This QR code already has a local ${duplicate.status} check-in log.`,
+        message: `Mã QR này đã có lượt check-in local với trạng thái ${duplicate.status}.`,
         checkedAt: duplicate.checkedAt,
         qrCode: selectedQrCode,
       },
@@ -89,7 +89,7 @@ export async function performManualOfflineCheckin({
     inserted: true,
     result: {
       status: 'PENDING',
-      message: 'Valid local ticket. Check-in saved as pending sync.',
+      message: 'Vé hợp lệ. Lượt check-in đã được lưu và chờ đồng bộ.',
       checkedAt,
       qrCode: selectedQrCode,
     },
@@ -108,15 +108,15 @@ export async function performOnlineCheckin({
   const selectedDeviceId = deviceId.trim();
 
   if (!selectedConcertId) {
-    return invalidResult('Enter a concert ID before checking in.', selectedQrCode);
+    return invalidResult('Chọn concert trước khi check-in.', selectedQrCode);
   }
 
   if (!selectedQrCode) {
-    return invalidResult('Enter a QR code before checking in.', selectedQrCode);
+    return invalidResult('Nhập hoặc quét mã QR trước khi check-in.', selectedQrCode);
   }
 
   if (!selectedDeviceId) {
-    return invalidResult('Device ID is required before checking in online.', selectedQrCode);
+    return invalidResult('Thiết bị chưa có mã định danh để check-in online.', selectedQrCode);
   }
 
   const response = await scanTicketOnline(

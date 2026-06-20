@@ -10,6 +10,10 @@ public interface ConcertReportingPort {
 
     Optional<ConcertReportingView> findOwnedConcert(UUID concertId, UUID organizerId);
 
+    Optional<ConcertReportingView> findConcert(UUID concertId);
+
+    List<UUID> findConcertIdsOwnedBy(UUID organizerId);
+
     Page<ConcertReportingView> findCompletedConcerts(UUID organizerId, Pageable pageable);
 
     List<TicketTypeReportingView> findTicketTypes(UUID concertId);

@@ -15,6 +15,8 @@ public interface CheckinLogRepository extends JpaRepository<CheckinLog, UUID> {
 	  boolean existsByTicketId(UUID ticketId);
 
     Page<CheckinLog> findByConcertId(UUID concertId, Pageable pageable);
+
+    long countByConcertId(UUID concertId);
 	
     @Modifying
     @Query(value = """

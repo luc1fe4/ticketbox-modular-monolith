@@ -1,10 +1,15 @@
 export {
   countLogsByStatus,
+  cacheStaffConcerts,
+  getDatasetInfo,
   getLocalCheckinLogByQrCode,
   getMetadata,
   getTicketByQrCode,
   initDatabase,
   insertLocalCheckinLog,
+  listCachedConcerts,
+  listLocalCheckinLogs,
+  listLocalTickets,
   listPendingLogs,
   saveCheckinDataset,
   setMetadata,
@@ -12,10 +17,13 @@ export {
 } from './database';
 export type {
   InsertLocalCheckinLogInput,
+  DatasetInfo,
+  LocalConcert,
   LocalCheckinLog,
   LocalCheckinStatus,
   LogStatusCounts,
   SaveDatasetInput,
   TicketSnapshot,
+  LocalTicketListItem,
   UpdateSyncResultInput,
 } from './types';

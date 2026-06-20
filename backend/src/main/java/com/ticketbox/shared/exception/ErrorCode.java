@@ -17,6 +17,9 @@ public enum ErrorCode {
     TICKET_SOLD_OUT(HttpStatus.CONFLICT, "Tickets are sold out"),
     TICKET_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "Ticket purchase limit exceeded"),
     PAYMENT_GATEWAY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Payment gateway temporarily unavailable"),
+    AI_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI provider temporarily unavailable"),
+    ARTIST_BIO_JOB_NOT_READY(HttpStatus.CONFLICT, "Artist bio job is not ready"),
+    ARTIST_BIO_ALREADY_EXISTS(HttpStatus.CONFLICT, "Concert already has an artist bio"),
     
     INVALID_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "Invalid status transition"),
     CONCERT_NOT_DELETABLE(HttpStatus.CONFLICT, "Concert can only be deleted in DRAFT status"),

@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 
+import { colors, radius } from '../ui/theme';
+
 type StaffLoginScreenProps = {
   email: string;
   password: string;
@@ -38,8 +40,8 @@ export function StaffLoginScreen({
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.kicker}>TicketBox Scanner</Text>
-            <Text style={styles.title}>Staff sign in</Text>
-            <Text style={styles.copy}>Use a STAFF account before loading offline gate data.</Text>
+            <Text style={styles.title}>Đăng nhập nhân viên</Text>
+            <Text style={styles.copy}>Dùng tài khoản STAFF để chọn concert và chuẩn bị dữ liệu tại cổng.</Text>
           </View>
 
           <View style={styles.form}>
@@ -60,12 +62,12 @@ export function StaffLoginScreen({
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>Mật khẩu</Text>
               <TextInput
                 autoCapitalize="none"
                 editable={!isSubmitting}
                 onChangeText={onChangePassword}
-                placeholder="Password"
+                placeholder="Mật khẩu"
                 placeholderTextColor="#7a8991"
                 secureTextEntry
                 style={styles.input}
@@ -86,7 +88,7 @@ export function StaffLoginScreen({
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Sign in</Text>
+                <Text style={styles.primaryButtonText}>Đăng nhập</Text>
               )}
             </Pressable>
           </View>
@@ -99,7 +101,7 @@ export function StaffLoginScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#eef4f2',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -114,49 +116,49 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   kicker: {
-    color: '#287565',
+    color: colors.accent,
     fontSize: 13,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   title: {
-    color: '#162126',
+    color: colors.text,
     fontSize: 30,
     fontWeight: '800',
   },
   copy: {
-    color: '#52636b',
+    color: colors.textMuted,
     fontSize: 16,
     lineHeight: 23,
   },
   form: {
     gap: 16,
     padding: 18,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    borderColor: '#d7e3df',
+    borderRadius: radius.card,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
   },
   field: {
     gap: 8,
   },
   label: {
-    color: '#26343a',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '700',
   },
   input: {
     minHeight: 50,
-    borderRadius: 8,
-    borderColor: '#b9c8c3',
+    borderRadius: radius.input,
+    borderColor: colors.border,
     borderWidth: 1,
-    color: '#162126',
+    color: colors.text,
     fontSize: 16,
     paddingHorizontal: 14,
-    backgroundColor: '#f9fbfa',
+    backgroundColor: colors.surface,
   },
   errorText: {
-    color: '#b42318',
+    color: colors.danger,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -164,8 +166,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
-    borderRadius: 8,
-    backgroundColor: '#287565',
+    borderRadius: radius.button,
+    backgroundColor: colors.accent,
   },
   primaryButtonPressed: {
     opacity: 0.78,

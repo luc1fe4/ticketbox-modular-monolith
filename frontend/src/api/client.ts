@@ -1,6 +1,8 @@
+import axios, { AxiosError } from 'axios';
+
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
-type ApiResponse<T> = {
+type ApiEnvelope<T> = {
   code: number;
   message: string;
   data: T;
@@ -10,24 +12,51 @@ export class ApiClientError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiClientError';
   }
 }
 
+export const api = axios.create({
+  baseURL: apiBaseUrl,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => {
+    const body = response.data;
+    if (body && typeof body === 'object' && 'code' in body && 'data' in body) {
+      return (body as ApiEnvelope<unknown>).data;
+    }
+    return body;
+  },
+  (error: AxiosError<{ message?: string; details?: unknown }>) => {
+    const status = error.response?.status ?? 500;
+    if (status === 401) {
+      localStorage.removeItem('token');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.assign('/login');
+      }
+    }
+    throw new ApiClientError(
+      error.response?.data?.message ??
+        (error.response ? 'Đã có lỗi xảy ra, vui lòng thử lại.' : 'Không thể kết nối tới máy chủ.'),
+      status,
+      error.response?.data?.details,
+    );
+  },
+);
+
 export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: { Accept: 'application/json' },
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new ApiClientError(`Request failed with status ${response.status}`, response.status);
-  }
-
-  const body = (await response.json()) as ApiResponse<T>;
-  return body.data;
+  return api.get<unknown, T>(path, { signal });
 }
 
 export async function apiHealthCheck() {

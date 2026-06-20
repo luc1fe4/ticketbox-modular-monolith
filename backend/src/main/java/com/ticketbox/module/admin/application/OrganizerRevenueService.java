@@ -73,6 +73,10 @@ public class OrganizerRevenueService {
                 calculateSoldRate(sales.totalTicketsSold(), totalCapacity));
     }
 
+    public String getCompletedConcertName(UUID concertId, UUID organizerId) {
+        return requireCompletedOwnedConcert(concertId, organizerId).title();
+    }
+
     public List<ZoneRevenueResponse> getZoneRevenue(UUID concertId, UUID organizerId) {
         requireCompletedOwnedConcert(concertId, organizerId);
 

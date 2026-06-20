@@ -6,6 +6,10 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: ${GUEST_LIST_MAX_FILE_SIZE:10MB}
+      max-request-size: ${GUEST_LIST_MAX_REQUEST_SIZE:11MB}
   modulith:
     detection-strategy: explicitly-annotated
   mail:
@@ -47,6 +51,12 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
         permitted-number-of-calls-in-half-open-state: 2
+      artistBioAi:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
 
 ticketbox:
   orders:
@@ -75,3 +85,18 @@ ticketbox:
   notifications:
     reminder:
       fixed-delay-ms: 300000
+  guest-list:
+    root-dir: ${GUEST_LIST_ROOT_DIR:./data/guest-list}
+    cron: ${GUEST_LIST_IMPORT_CRON:0 */5 * * * *}
+    max-file-size: ${GUEST_LIST_MAX_FILE_SIZE:10MB}
+    stable-age: ${GUEST_LIST_STABLE_AGE:30s}
+  ai:
+    provider: ${ARTIST_BIO_AI_PROVIDER:auto}
+    base-url: ${ARTIST_BIO_AI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${ARTIST_BIO_AI_API_KEY:}
+    model: ${ARTIST_BIO_AI_MODEL:gpt-4o-mini}
+    timeout: ${ARTIST_BIO_AI_TIMEOUT:30s}
+    max-input-characters: ${ARTIST_BIO_MAX_INPUT_CHARACTERS:30000}
+    max-file-size: ${ARTIST_BIO_MAX_FILE_SIZE:10MB}
+    max-pages: ${ARTIST_BIO_MAX_PAGES:50}
+    storage-root: ${ARTIST_BIO_STORAGE_ROOT:./data/artist-bio}

@@ -3,6 +3,7 @@ package com.ticketbox.module.admin.application;
 import com.ticketbox.module.admin.domain.GuestList;
 import com.ticketbox.module.admin.domain.GuestListRepository;
 import com.ticketbox.module.admin.web.dto.GuestLookupResponse;
+import com.ticketbox.shared.util.PhoneNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,15 +15,24 @@ import java.util.UUID;
 public class GuestListService {
 
     private final GuestListRepository guestListRepository;
+    private final PhoneNormalizer phoneNormalizer;
 
     @Transactional(readOnly = true)
     public GuestLookupResponse findActiveGuest(UUID concertId, String phone) {
-        String normalizedPhone = phone.trim();
+        String normalizedPhone = phoneNormalizer.normalize(phone);
+        if (normalizedPhone == null) {
+            return GuestLookupResponse.notFound();
+        }
 
         return guestListRepository
                 .findByConcertIdAndPhoneAndIsActiveTrue(concertId, normalizedPhone)
                 .map(this::toResponse)
                 .orElseGet(GuestLookupResponse::notFound);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<GuestList> getGuestListByConcertId(UUID concertId) {
+        return guestListRepository.findAllByConcertId(concertId);
     }
 
     private GuestLookupResponse toResponse(GuestList guest) {

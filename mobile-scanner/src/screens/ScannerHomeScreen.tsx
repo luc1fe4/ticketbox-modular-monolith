@@ -1,13 +1,8 @@
-import {
-  CameraView,
-  useCameraPermissions,
-  type BarcodeScanningResult,
-} from 'expo-camera';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,630 +10,210 @@ import {
   View,
 } from 'react-native';
 
-import type { StaffUser } from '../api';
+import type { StaffConcert } from '../api';
 import type { LogStatusCounts } from '../database';
 import type { ManualCheckinResult } from '../features/checkin';
-import type { DatasetDownloadSummary, PendingSyncSummary } from '../features/sync';
+import { BottomNav, Header, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../ui/components';
+import { colors, radius, spacing } from '../ui/theme';
 
-type ScannerHomeScreenProps = {
-  user: StaffUser;
-  concertId: string;
+type Props = {
+  concert: StaffConcert;
   gate: string;
   qrCode: string;
   counters: LogStatusCounts;
-  downloadSummary: DatasetDownloadSummary | null;
-  errorMessage: string | null;
-  manualCheckinResult: ManualCheckinResult | null;
-  syncErrorMessage: string | null;
-  syncSummary: PendingSyncSummary | null;
-  isDownloading: boolean;
-  isCheckingIn: boolean;
-  isSyncing: boolean;
   isOnline: boolean;
-  onChangeConcertId: (concertId: string) => void;
-  onChangeGate: (gate: string) => void;
-  onChangeQrCode: (qrCode: string) => void;
-  onDownloadDataset: () => void;
-  onManualCheckin: () => void;
-  onCameraQrScanned: (qrCode: string) => void;
-  onSyncPendingLogs: () => void;
-  onLogout: () => void;
+  hasDataset: boolean;
+  isCheckingIn: boolean;
+  result: ManualCheckinResult | null;
+  onChangeQrCode: (value: string) => void;
+  onCheckin: () => void;
+  onCameraQrScanned: (value: string) => void;
+  onNavigate: (screen: 'overview' | 'scanner' | 'data') => void;
 };
 
 export function ScannerHomeScreen({
-  user,
-  concertId,
+  concert,
   gate,
   qrCode,
   counters,
-  downloadSummary,
-  errorMessage,
-  manualCheckinResult,
-  syncErrorMessage,
-  syncSummary,
-  isDownloading,
-  isCheckingIn,
-  isSyncing,
   isOnline,
-  onChangeConcertId,
-  onChangeGate,
+  hasDataset,
+  isCheckingIn,
+  result,
   onChangeQrCode,
-  onDownloadDataset,
-  onManualCheckin,
+  onCheckin,
   onCameraQrScanned,
-  onSyncPendingLogs,
-  onLogout,
-}: ScannerHomeScreenProps) {
+  onNavigate,
+}: Props) {
   const [permission, requestPermission] = useCameraPermissions();
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const lastScanRef = useRef<{ qrCode: string; scannedAt: number } | null>(null);
-  const isBusy = isDownloading || isCheckingIn || isSyncing;
-  const hasCameraPermission = permission?.granted === true;
+  const [cameraActive, setCameraActive] = useState(true);
+  const lastScanRef = useRef<{ value: string; at: number } | null>(null);
+  const canScan = isOnline || hasDataset;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <Screen footer={<BottomNav active="scanner" onChange={onNavigate} />}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.kicker}>TicketBox Scanner</Text>
-          <Text style={styles.title}>Check-in dataset</Text>
-          <Text style={styles.copy}>Signed in as {user.fullName}</Text>
-          <View style={[styles.networkBadge, isOnline ? styles.onlineBadge : styles.offlineBadge]}>
-            <Text style={styles.networkBadgeText}>{isOnline ? 'Online' : 'Offline'}</Text>
-          </View>
+        <View style={styles.headerRow}>
+          <Header
+            eyebrow={gate ? `Cổng ${gate}` : 'Chưa chọn cổng'}
+            title="Quét vé"
+            subtitle={concert.title}
+          />
+          <StatusBadge label={isOnline ? 'Online' : 'Offline'} tone={isOnline ? 'success' : 'warning'} />
         </View>
 
-        <View style={styles.panel}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Concert ID</Text>
-            <TextInput
-              autoCapitalize="none"
-              editable={!isBusy}
-              onChangeText={onChangeConcertId}
-              placeholder="Paste concert UUID"
-              placeholderTextColor="#7a8991"
-              style={styles.input}
-              value={concertId}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Gate</Text>
-            <TextInput
-              autoCapitalize="characters"
-              editable={!isBusy}
-              onChangeText={onChangeGate}
-              placeholder="A, B, VIP..."
-              placeholderTextColor="#7a8991"
-              style={styles.input}
-              value={gate}
-            />
-          </View>
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-          <Pressable
-            disabled={isDownloading}
-            onPress={onDownloadDataset}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isDownloading) && styles.primaryButtonPressed,
-            ]}
-          >
-            {isDownloading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Download Dataset</Text>
-            )}
-          </Pressable>
-        </View>
-
-        {downloadSummary ? (
-          <View style={styles.summaryPanel}>
-            <Text style={styles.summaryTitle}>Dataset saved locally</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Concert</Text>
-              <Text style={styles.summaryValue}>{downloadSummary.concertId}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Gate</Text>
-              <Text style={styles.summaryValue}>{downloadSummary.gate || 'Not set'}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tickets</Text>
-              <Text style={styles.summaryValue}>{downloadSummary.totalCount}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Generated</Text>
-              <Text style={styles.summaryValue}>{formatDateTime(downloadSummary.generatedAt)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Downloaded</Text>
-              <Text style={styles.summaryValue}>{formatDateTime(downloadSummary.downloadedAt)}</Text>
-            </View>
+        {!canScan ? (
+          <View style={styles.blocked}>
+            <Text style={styles.blockedTitle}>Chưa thể quét offline</Text>
+            <Text style={styles.helper}>Hãy quay lại Tổng quan và tải dataset khi có mạng.</Text>
           </View>
         ) : null}
 
-        <View style={styles.panel}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>QR check-in</Text>
-            <Pressable
-              disabled={isBusy}
-              onPress={() => setIsCameraActive((current) => !current)}
-              style={({ pressed }) => [
-                styles.modeButton,
-                isCameraActive && styles.modeButtonActive,
-                (pressed || isBusy) && styles.primaryButtonPressed,
-              ]}
-            >
-              <Text style={[styles.modeButtonText, isCameraActive && styles.modeButtonTextActive]}>
-                {isCameraActive ? 'Manual' : 'Camera'}
-              </Text>
-            </Pressable>
+        {cameraActive ? (
+          <View style={styles.cameraPanel}>
+            {!permission ? (
+              <View style={styles.cameraFallback}>
+                <ActivityIndicator color={colors.accent} />
+                <Text style={styles.helper}>Đang kiểm tra quyền camera...</Text>
+              </View>
+            ) : null}
+            {permission && !permission.granted ? (
+              <View style={styles.cameraFallback}>
+                <Text style={styles.helper}>Cần quyền camera để đọc mã QR.</Text>
+                <SecondaryButton label="Cho phép camera" onPress={requestPermission} />
+              </View>
+            ) : null}
+            {permission?.granted ? (
+              <CameraView
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={isCheckingIn || !canScan ? undefined : handleBarcodeScanned}
+                style={styles.camera}
+              >
+                <View style={styles.scanFrame} />
+              </CameraView>
+            ) : null}
           </View>
-          <Text style={styles.helperText}>
-            {isOnline
-              ? 'Online mode: QR submissions are checked by the server immediately.'
-              : 'Offline mode: QR submissions are validated locally and saved as pending sync.'}
+        ) : null}
+
+        <View style={styles.modeRow}>
+          <Text style={styles.helper}>
+            {isOnline ? 'Server xác nhận ngay.' : 'Kiểm tra local và lưu chờ đồng bộ.'}
           </Text>
-
-          {isCameraActive ? (
-            <View style={styles.cameraPanel}>
-              {!permission ? (
-                <View style={styles.cameraFallback}>
-                  <ActivityIndicator color="#287565" />
-                  <Text style={styles.helperText}>Checking camera permission...</Text>
-                </View>
-              ) : null}
-
-              {permission && !hasCameraPermission ? (
-                <View style={styles.cameraFallback}>
-                  <Text style={styles.helperText}>Camera permission is required to scan QR codes.</Text>
-                  <Pressable
-                    disabled={isBusy}
-                    onPress={requestPermission}
-                    style={({ pressed }) => [
-                      styles.secondaryButton,
-                      (pressed || isBusy) && styles.primaryButtonPressed,
-                    ]}
-                  >
-                    <Text style={styles.secondaryButtonText}>Allow Camera</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-
-              {hasCameraPermission ? (
-                <CameraView
-                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                  onBarcodeScanned={isBusy ? undefined : handleBarcodeScanned}
-                  style={styles.cameraView}
-                >
-                  <View style={styles.scanFrame} />
-                </CameraView>
-              ) : null}
-            </View>
-          ) : null}
-
-          <View style={styles.field}>
-            <Text style={styles.label}>QR code</Text>
-            <TextInput
-              autoCapitalize="none"
-              editable={!isBusy}
-              multiline
-              onChangeText={onChangeQrCode}
-              placeholder="Paste QR payload"
-              placeholderTextColor="#7a8991"
-              style={[styles.input, styles.qrInput]}
-              value={qrCode}
-            />
-          </View>
-
-          <Pressable
-            disabled={isBusy}
-            onPress={onManualCheckin}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isBusy) && styles.primaryButtonPressed,
-            ]}
-          >
-            {isCheckingIn ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {isOnline ? 'Check In Online' : 'Check In Offline'}
-              </Text>
-            )}
-          </Pressable>
-
-          {manualCheckinResult ? (
-            <View style={[styles.resultBox, getResultStyle(manualCheckinResult.status)]}>
-              <Text style={styles.resultStatus}>{manualCheckinResult.status}</Text>
-              <Text style={styles.resultText}>{manualCheckinResult.message}</Text>
-              {manualCheckinResult.checkedAt ? (
-                <Text style={styles.resultText}>
-                  Checked at {formatDateTime(manualCheckinResult.checkedAt)}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
+          <SecondaryButton
+            label={cameraActive ? 'Nhập tay' : 'Mở camera'}
+            onPress={() => setCameraActive((value) => !value)}
+          />
         </View>
 
-        <View style={styles.counterPanel}>
-          <View style={styles.counterItem}>
-            <Text style={styles.counterValue}>{counters.PENDING}</Text>
-            <Text style={styles.counterLabel}>Pending</Text>
-          </View>
-          <View style={styles.counterItem}>
-            <Text style={styles.counterValue}>{counters.SYNCED}</Text>
-            <Text style={styles.counterLabel}>Synced</Text>
-          </View>
-          <View style={styles.counterItem}>
-            <Text style={styles.counterValue}>{counters.FAILED + counters.CONFLICT}</Text>
-            <Text style={styles.counterLabel}>Failed/Conflict</Text>
-          </View>
+        <View style={styles.manualPanel}>
+          <TextInput
+            autoCapitalize="none"
+            editable={!isCheckingIn && canScan}
+            multiline
+            onChangeText={onChangeQrCode}
+            placeholder="Dán nội dung QR"
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+            value={qrCode}
+          />
+          <PrimaryButton
+            disabled={!canScan || !qrCode.trim()}
+            label={isOnline ? 'Check-in online' : 'Lưu check-in offline'}
+            loading={isCheckingIn}
+            onPress={onCheckin}
+          />
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Batch sync</Text>
-          <Pressable
-            disabled={isBusy}
-            onPress={onSyncPendingLogs}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isBusy) && styles.primaryButtonPressed,
-            ]}
-          >
-            {isSyncing ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Sync Now</Text>
-            )}
-          </Pressable>
+        {result ? (
+          <View style={[styles.result, resultTone(result.status)]}>
+            <Text style={styles.resultTitle}>{resultLabel(result.status)}</Text>
+            <Text style={styles.resultMessage}>{result.message}</Text>
+            {result.checkedAt ? <Text style={styles.resultMeta}>{formatDateTime(result.checkedAt)}</Text> : null}
+          </View>
+        ) : null}
 
-          {syncErrorMessage ? <Text style={styles.errorText}>{syncErrorMessage}</Text> : null}
-
-          {syncSummary ? (
-            <View style={styles.syncSummaryGrid}>
-              <View style={styles.syncSummaryItem}>
-                <Text style={styles.syncSummaryValue}>{syncSummary.accepted}</Text>
-                <Text style={styles.syncSummaryLabel}>Accepted</Text>
-              </View>
-              <View style={styles.syncSummaryItem}>
-                <Text style={styles.syncSummaryValue}>{syncSummary.skipped}</Text>
-                <Text style={styles.syncSummaryLabel}>Skipped</Text>
-              </View>
-              <View style={styles.syncSummaryItem}>
-                <Text style={styles.syncSummaryValue}>{syncSummary.invalid}</Text>
-                <Text style={styles.syncSummaryLabel}>Invalid</Text>
-              </View>
-            </View>
-          ) : null}
+        <View style={styles.counters}>
+          <Counter value={counters.PENDING} label="Chờ sync" />
+          <Counter value={counters.SYNCED} label="Đã sync" />
+          <Counter value={counters.CONFLICT + counters.FAILED} label="Lỗi" />
         </View>
-
-        <Pressable style={styles.secondaryButton} onPress={onLogout}>
-          <Text style={styles.secondaryButtonText}>Sign out</Text>
-        </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 
-  function handleBarcodeScanned(result: BarcodeScanningResult) {
-    const scannedQrCode = result.data.trim();
+  function handleBarcodeScanned(scan: BarcodeScanningResult) {
+    const value = scan.data.trim();
     const now = Date.now();
-    const previousScan = lastScanRef.current;
-
-    if (!scannedQrCode) {
-      return;
-    }
-
-    if (previousScan?.qrCode === scannedQrCode && now - previousScan.scannedAt < 3000) {
-      return;
-    }
-
-    lastScanRef.current = {
-      qrCode: scannedQrCode,
-      scannedAt: now,
-    };
-    onChangeQrCode(scannedQrCode);
-    onCameraQrScanned(scannedQrCode);
+    if (!value) return;
+    if (lastScanRef.current?.value === value && now - lastScanRef.current.at < 3000) return;
+    lastScanRef.current = { value, at: now };
+    onChangeQrCode(value);
+    onCameraQrScanned(value);
   }
 }
 
-function getResultStyle(status: ManualCheckinResult['status']) {
-  if (status === 'PENDING') {
-    return styles.resultSuccess;
-  }
+function Counter({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.counter}>
+      <Text style={styles.counterValue}>{value}</Text>
+      <Text style={styles.counterLabel}>{label}</Text>
+    </View>
+  );
+}
 
-  if (status === 'DUPLICATE_LOCAL') {
-    return styles.resultWarning;
-  }
+function resultTone(status: ManualCheckinResult['status']) {
+  if (status === 'PENDING' || status === 'ONLINE_ACCEPTED') return styles.resultSuccess;
+  if (status === 'DUPLICATE_LOCAL') return styles.resultWarning;
+  return styles.resultDanger;
+}
 
-  return styles.resultError;
+function resultLabel(status: ManualCheckinResult['status']) {
+  const labels: Record<ManualCheckinResult['status'], string> = {
+    PENDING: 'Đã lưu offline',
+    ONLINE_ACCEPTED: 'Check-in thành công',
+    DUPLICATE_LOCAL: 'Vé đã được quét',
+    INVALID_LOCAL: 'Vé không hợp lệ',
+    ONLINE_FAILED: 'Server từ chối',
+  };
+  return labels[status];
 }
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
+  return new Date(value).toLocaleString('vi-VN');
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#eef4f2',
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    gap: 18,
-    padding: 20,
-  },
-  header: {
-    gap: 8,
-  },
-  kicker: {
-    color: '#287565',
-    fontSize: 13,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: '#162126',
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  copy: {
-    color: '#52636b',
-    fontSize: 16,
-    lineHeight: 23,
-  },
-  networkBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  onlineBadge: {
-    backgroundColor: '#dff5ed',
-  },
-  offlineBadge: {
-    backgroundColor: '#fff0dc',
-  },
-  networkBadgeText: {
-    color: '#162126',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  panel: {
-    gap: 16,
-    padding: 18,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    borderColor: '#d7e3df',
-    borderWidth: 1,
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    color: '#26343a',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  content: { padding: spacing.screen, gap: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  blocked: { padding: 14, gap: 5, borderRadius: radius.card, backgroundColor: colors.warningSoft },
+  blockedTitle: { color: colors.warning, fontSize: 16, fontWeight: '800' },
+  helper: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  cameraPanel: { minHeight: 330, overflow: 'hidden', borderRadius: radius.card, backgroundColor: colors.camera },
+  camera: { minHeight: 330, alignItems: 'center', justifyContent: 'center' },
+  scanFrame: { width: 220, height: 220, borderWidth: 3, borderColor: '#FFFFFF', borderRadius: radius.card },
+  cameraFallback: { minHeight: 330, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 20, backgroundColor: colors.surface },
+  modeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  manualPanel: { gap: 10 },
   input: {
-    minHeight: 50,
-    borderRadius: 8,
-    borderColor: '#b9c8c3',
-    borderWidth: 1,
-    color: '#162126',
-    fontSize: 16,
+    minHeight: 76,
     paddingHorizontal: 14,
-    backgroundColor: '#f9fbfa',
-  },
-  errorText: {
-    color: '#b42318',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  primaryButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
-    borderRadius: 8,
-    backgroundColor: '#287565',
-  },
-  primaryButtonPressed: {
-    opacity: 0.78,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  sectionTitle: {
-    color: '#162126',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  modeButton: {
-    minHeight: 36,
-    justifyContent: 'center',
-    borderRadius: 8,
-    borderColor: '#287565',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-  },
-  modeButtonActive: {
-    backgroundColor: '#287565',
-  },
-  modeButtonText: {
-    color: '#287565',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  modeButtonTextActive: {
-    color: '#ffffff',
-  },
-  helperText: {
-    color: '#52636b',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  cameraPanel: {
-    minHeight: 260,
-    overflow: 'hidden',
-    borderRadius: 8,
-    backgroundColor: '#162126',
-  },
-  cameraView: {
-    minHeight: 260,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraFallback: {
-    minHeight: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#f9fbfa',
-  },
-  scanFrame: {
-    width: 190,
-    height: 190,
-    borderRadius: 8,
-    borderColor: '#ffffff',
-    borderWidth: 3,
-    backgroundColor: 'transparent',
-  },
-  qrInput: {
-    minHeight: 84,
     paddingTop: 12,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.input,
+    backgroundColor: colors.surface,
     textAlignVertical: 'top',
   },
-  resultBox: {
-    gap: 4,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  resultSuccess: {
-    backgroundColor: '#edf8f4',
-    borderColor: '#86c8b7',
-  },
-  resultWarning: {
-    backgroundColor: '#fff8e8',
-    borderColor: '#e8c66d',
-  },
-  resultError: {
-    backgroundColor: '#fff1f0',
-    borderColor: '#eba19a',
-  },
-  resultStatus: {
-    color: '#162126',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  resultText: {
-    color: '#52636b',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  counterPanel: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  counterItem: {
-    flex: 1,
-    gap: 4,
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    borderColor: '#d7e3df',
-    borderWidth: 1,
-  },
-  counterValue: {
-    color: '#162126',
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  counterLabel: {
-    color: '#52636b',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  syncSummaryGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  syncSummaryItem: {
-    flex: 1,
-    gap: 4,
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f9fbfa',
-    borderColor: '#d7e3df',
-    borderWidth: 1,
-  },
-  syncSummaryValue: {
-    color: '#162126',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  syncSummaryLabel: {
-    color: '#52636b',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  summaryPanel: {
-    gap: 10,
-    padding: 18,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    borderColor: '#d7e3df',
-    borderWidth: 1,
-  },
-  summaryTitle: {
-    color: '#287565',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  summaryRow: {
-    gap: 3,
-  },
-  summaryLabel: {
-    color: '#52636b',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  summaryValue: {
-    color: '#162126',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  secondaryButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    borderRadius: 8,
-    borderColor: '#287565',
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    color: '#287565',
-    fontSize: 16,
-    fontWeight: '800',
-  },
+  result: { padding: 18, gap: 5, borderRadius: radius.card, borderWidth: 1 },
+  resultSuccess: { backgroundColor: colors.successSoft, borderColor: colors.success },
+  resultWarning: { backgroundColor: colors.warningSoft, borderColor: colors.warning },
+  resultDanger: { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+  resultTitle: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  resultMessage: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  resultMeta: { color: colors.textMuted, fontSize: 12 },
+  counters: { flexDirection: 'row', gap: 10 },
+  counter: { flex: 1, paddingVertical: 12, alignItems: 'center', borderTopWidth: 2, borderTopColor: colors.border },
+  counterValue: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  counterLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
 });
