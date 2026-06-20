@@ -11,5 +11,5 @@
  *   <li>{@link com.ticketbox.module.ticket.TicketView} – read model used during scan.</li>
  * </ul>
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = {"ticket", "shared"})
+@org.springframework.modulith.ApplicationModule(allowedDependencies = {"concert", "ticket", "shared"})
 package com.ticketbox.module.checkin;

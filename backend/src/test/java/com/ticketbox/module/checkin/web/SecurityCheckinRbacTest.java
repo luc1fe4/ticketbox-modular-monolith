@@ -70,6 +70,15 @@ class SecurityCheckinRbacTest {
         mockMvc.perform(get("/api/staff/concerts/" + concertId + "/checkin-dataset"))
                 .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(get("/api/staff/concerts"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/overview"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/tickets"))
+                .andExpect(status().isUnauthorized());
+
         mockMvc.perform(get("/api/staff/concerts/" + concertId + "/checkins"))
                 .andExpect(status().isUnauthorized());
 
@@ -94,6 +103,18 @@ class SecurityCheckinRbacTest {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/staff/concerts/" + concertId + "/checkin-dataset")
+                        .with(authentication(audience)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/staff/concerts")
+                        .with(authentication(audience)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/overview")
+                        .with(authentication(audience)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/tickets")
                         .with(authentication(audience)))
                 .andExpect(status().isForbidden());
 
@@ -144,6 +165,18 @@ class SecurityCheckinRbacTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/staff/concerts/" + concertId + "/checkin-dataset")
+                        .with(authentication(staff)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/staff/concerts")
+                        .with(authentication(staff)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/overview")
+                        .with(authentication(staff)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/staff/concerts/" + concertId + "/tickets")
                         .with(authentication(staff)))
                 .andExpect(status().isOk());
 

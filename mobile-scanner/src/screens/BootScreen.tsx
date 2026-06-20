@@ -1,11 +1,12 @@
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../ui/theme';
 
 export function BootScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.centerPanel}>
-        <ActivityIndicator color="#287565" />
-        <Text style={styles.mutedText}>Preparing scanner session...</Text>
+        <ActivityIndicator color={colors.accent} />
+        <Text style={styles.mutedText}>Đang chuẩn bị phiên làm việc...</Text>
       </View>
     </SafeAreaView>
   );
@@ -14,7 +15,7 @@ export function BootScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#eef4f2',
+    backgroundColor: colors.background,
   },
   centerPanel: {
     flex: 1,
@@ -24,7 +25,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   mutedText: {
-    color: '#52636b',
+    color: colors.textMuted,
     fontSize: 15,
   },
 });

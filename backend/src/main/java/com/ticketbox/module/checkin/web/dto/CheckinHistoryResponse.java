@@ -13,6 +13,8 @@ public record CheckinHistoryResponse(
         OffsetDateTime syncAt,
         boolean offline,
         String gate,
-        String notes
+        String notes,
+        String qrCode,
+        String ticketStatus
 ) {
 }
