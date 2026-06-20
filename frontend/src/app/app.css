@@ -119,6 +119,7 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .event-card-copy > p { margin-bottom: 14px; color: var(--muted); font-size: 12px; }
 .event-price { display: flex; align-items: baseline; gap: 6px; font-size: 11px; color: var(--muted); }
 .event-price strong { color: var(--cream); font-size: 13px; }
+.concert-count { margin: 0; color: var(--muted); font-size: 12px; }
 .event-skeleton div { aspect-ratio: .82; background: linear-gradient(100deg,#151519 20%,#222228 40%,#151519 60%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
 .event-skeleton span { display: block; height: 12px; margin-top: 16px; background: #1c1c21; }
 .event-skeleton span:last-child { width: 65%; }
@@ -153,6 +154,15 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .detail-feature > span { color: var(--coral); font-size: 10px; }
 .detail-feature h3 { margin: 22px 0 8px; font: 700 15px/1.3 "Manrope"; }
 .detail-feature p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.artist-section { max-width: 760px; margin-top: 56px; padding-top: 48px; border-top: 1px solid var(--line); }
+.artist-section h2 { margin-bottom: 24px; font-size: clamp(32px,4vw,48px); }
+.artist-biography { color: var(--muted); font-size: 16px; line-height: 1.85; white-space: pre-line; }
+.detail-error, .selection-error { min-height: 620px; margin-block: 48px; }
+.detail-skeleton-hero { min-height: 610px; background: linear-gradient(100deg,#111115 20%,#202027 40%,#111115 60%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+.detail-skeleton-copy { display: grid; gap: 18px; padding-block: 70px; }
+.detail-skeleton-copy span { display: block; width: 70%; height: 22px; background: #1c1c21; }
+.detail-skeleton-copy span:first-child { width: 40%; height: 56px; }
+.detail-skeleton-copy span:last-child { width: 55%; }
 .booking-card { position: sticky; top: 105px; align-self: start; padding: 30px; border: 1px solid var(--line); background: var(--surface); }
 .booking-label { margin-bottom: 5px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; }
 .booking-price { margin-bottom: 24px; font: 800 28px/1.2 "Manrope"; }
@@ -199,6 +209,20 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .map-legend i:nth-of-type(2) { margin-left: 8px; background: var(--coral); }
 .map-legend i:nth-of-type(3) { margin-left: 8px; background: #222228; }
 .stage-map { position: relative; min-height: 570px; overflow: hidden; background: radial-gradient(circle at 50% 35%,rgba(143,122,255,.1),transparent 35%),linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size: auto,24px 24px,24px 24px; }
+.concert-seat-map { min-height: 570px; display: grid; place-items: center; padding: 20px; overflow: hidden; background: radial-gradient(circle at 50% 35%,rgba(143,122,255,.1),transparent 36%),linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size: auto,24px 24px,24px 24px; }
+.concert-seat-map svg { width: 100%; height: auto; max-height: 560px; }
+.concert-seat-map [data-ticket-type-id] { cursor: pointer; transform-box: fill-box; transform-origin: center; transition: opacity .2s ease, filter .2s ease, transform .2s ease; }
+.concert-seat-map [data-ticket-type-id]:hover,
+.concert-seat-map [data-ticket-type-id]:focus-visible,
+.concert-seat-map [data-ticket-type-id].is-selected { filter: brightness(1.35) drop-shadow(0 0 10px rgba(255,255,255,.2)); transform: scale(1.015); outline: none; }
+.concert-seat-map [data-ticket-type-id].is-selected path { stroke: var(--cream); stroke-width: 4; }
+.concert-seat-map [data-ticket-type-id].is-disabled { cursor: not-allowed; filter: grayscale(1); opacity: .28; }
+.seat-map-fallback { min-height: 570px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: var(--surface); }
+.seat-map-fallback > span { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 50%; color: var(--coral); }
+.seat-map-fallback h3 { margin-bottom: 8px; font: 700 22px/1.2 "Manrope"; }
+.seat-map-fallback p { color: var(--muted); font-size: 12px; }
+.selection-loading { min-height: 680px; display: grid; place-items: center; padding-block: 80px; }
+.selection-loading .event-skeleton { width: min(100%,680px); }
 .stage { position: absolute; z-index: 3; top: 26px; left: 50%; width: 45%; height: 70px; transform: translateX(-50%); display: grid; place-items: center; border: 1px solid var(--coral); border-radius: 50% 50% 8px 8px; background: linear-gradient(180deg,rgba(255,118,95,.24),rgba(255,118,95,.04)); color: var(--coral-light); letter-spacing: .25em; font-size: 10px; }
 .stage small { font-size: 7px; color: var(--muted); }
 .catwalk { position: absolute; z-index: 2; top: 95px; left: 50%; width: 40px; height: 125px; transform: translateX(-50%); background: linear-gradient(180deg,rgba(255,118,95,.25),rgba(255,118,95,.03)); border-inline: 1px solid rgba(255,118,95,.35); }

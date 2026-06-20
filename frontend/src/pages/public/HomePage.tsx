@@ -1,43 +1,65 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { getConcerts, type ConcertSummary } from '../../api/concerts';
 import { EventCard } from '../../components/EventCard';
-import { events } from '../../data/mockData';
+import { RemoteImage, fallbackConcertImage } from '../../components/RemoteImage';
 
-const categories = ['All', 'Live Music', 'Festival', 'Electronic', 'Indie', 'Acoustic', 'Pop'];
+const statusFilters = ['All', 'On sale', 'Sold out'] as const;
 
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [city, setCity] = useState('All cities');
-  const category = searchParams.get('category') ?? 'All';
-  const previewState = searchParams.get('state');
-  const filteredEvents = useMemo(
-    () =>
-      events.filter(
-        (event) =>
-          (category === 'All' || event.category === category) &&
-          (city === 'All cities' || event.city === city),
-      ),
-    [category, city],
-  );
+  const [concerts, setConcerts] = useState<ConcertSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const selectedStatus = searchParams.get('status') ?? 'All';
 
-  function chooseCategory(nextCategory: string) {
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    getConcerts(0, 12, controller.signal)
+      .then((page) => setConcerts(page.content))
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
+          setError('We could not load concerts. Check that the backend is running and try again.');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [reloadKey]);
+
+  const filteredConcerts = useMemo(
+    () =>
+      concerts.filter((concert) => {
+        if (selectedStatus === 'On sale') return concert.status === 'ON_SALE';
+        if (selectedStatus === 'Sold out') return concert.status === 'SOLD_OUT';
+        return true;
+      }),
+    [concerts, selectedStatus],
+  );
+  const featuredConcert = concerts[0];
+
+  function chooseStatus(status: (typeof statusFilters)[number]) {
     const next = new URLSearchParams(searchParams);
-    if (nextCategory === 'All') next.delete('category');
-    else next.set('category', nextCategory);
-    next.delete('state');
+    if (status === 'All') next.delete('status');
+    else next.set('status', status);
     setSearchParams(next);
   }
 
   return (
     <>
       <section className="hero">
-        <img
+        <RemoteImage
           className="hero-image"
-          src={events[0].image}
+          src={featuredConcert?.posterUrl ?? fallbackConcertImage}
           alt=""
           width="1800"
           height="1000"
-          fetchPriority="high"
         />
         <div className="hero-scrim" />
         <div className="hero-content page-width">
@@ -48,76 +70,76 @@ export function HomePage() {
             across Vietnam.
           </p>
           <div className="hero-actions">
-            <Link className="button button-primary" to="/concerts/1">
-              Explore the headline show <span aria-hidden="true">↗</span>
-            </Link>
+            {featuredConcert ? (
+              <Link className="button button-primary" to={`/concerts/${featuredConcert.id}`}>
+                Explore the headline show <span aria-hidden="true">↗</span>
+              </Link>
+            ) : null}
             <a className="text-link" href="#events">
               Browse all events <span aria-hidden="true">↓</span>
             </a>
           </div>
-        </div>
-        <div className="hero-meta page-width">
-          <span>01</span>
-          <div><i /><i /><i /></div>
-          <span>03</span>
         </div>
       </section>
 
       <section className="event-section page-width" id="events">
         <div className="section-heading">
           <div>
-            <p className="eyebrow"><span /> Curated for you</p>
+            <p className="eyebrow"><span /> Live from the API</p>
             <h2>Find your next <em>live moment.</em></h2>
           </div>
-          <label className="city-select">
-            <span>Location</span>
-            <select value={city} onChange={(event) => setCity(event.target.value)}>
-              <option>All cities</option>
-              <option>Ho Chi Minh City</option>
-              <option>Hanoi</option>
-              <option>Da Nang</option>
-            </select>
-          </label>
+          <p className="concert-count">{concerts.length} upcoming events</p>
         </div>
 
-        <div className="category-row" aria-label="Event categories">
-          {categories.map((item) => (
+        <div className="category-row" aria-label="Concert status">
+          {statusFilters.map((status) => (
             <button
-              key={item}
+              key={status}
               type="button"
-              className={category === item ? 'active' : ''}
-              aria-pressed={category === item}
-              onClick={() => chooseCategory(item)}
+              className={selectedStatus === status ? 'active' : ''}
+              aria-pressed={selectedStatus === status}
+              onClick={() => chooseStatus(status)}
             >
-              {item}
+              {status}
             </button>
           ))}
         </div>
 
-        {previewState === 'loading' ? <LoadingGrid /> : null}
-        {previewState === 'error' ? (
+        {loading ? <LoadingGrid /> : null}
+        {error ? (
           <StatePanel
             icon="!"
             title="The stage lights flickered."
-            copy="We could not load events. Check your connection and try again."
+            copy={error}
             action="Try again"
-            onAction={() => setSearchParams({})}
+            onAction={() => setReloadKey((value) => value + 1)}
           />
         ) : null}
-        {previewState !== 'loading' && previewState !== 'error' && filteredEvents.length > 0 ? (
+        {!loading && !error && filteredConcerts.length > 0 ? (
           <div className="event-grid">
-            {filteredEvents.map((event, index) => (
-              <EventCard key={event.id} event={event} priority={index < 2} />
+            {filteredConcerts.map((concert, index) => (
+              <EventCard
+                key={concert.id}
+                priority={index < 2}
+                event={{
+                  id: concert.id,
+                  title: concert.title,
+                  venue: concert.venueName,
+                  eventDate: concert.eventDate,
+                  status: concert.status,
+                  image: concert.posterUrl,
+                }}
+              />
             ))}
           </div>
         ) : null}
-        {previewState !== 'loading' && previewState !== 'error' && filteredEvents.length === 0 ? (
+        {!loading && !error && filteredConcerts.length === 0 ? (
           <StatePanel
             icon="⌕"
-            title="No events here—yet."
-            copy="Try another city or explore all upcoming events."
-            action="Show all events"
-            onAction={() => setCity('All cities')}
+            title="No concerts here—yet."
+            copy="Try another sale status or check back for newly announced events."
+            action="Show all concerts"
+            onAction={() => chooseStatus('All')}
           />
         ) : null}
       </section>
@@ -127,8 +149,8 @@ export function HomePage() {
           <p>TicketBox Selects</p>
           <blockquote>“The best memories begin before the first note.”</blockquote>
           <div className="manifesto-stat">
-            <strong>180+</strong>
-            <span>original events<br />every season</span>
+            <strong>{concerts.length || '—'}</strong>
+            <span>live events<br />now available</span>
           </div>
         </div>
       </section>
@@ -138,13 +160,9 @@ export function HomePage() {
 
 function LoadingGrid() {
   return (
-    <div className="event-grid" aria-label="Loading events" aria-live="polite">
+    <div className="event-grid" aria-label="Loading concerts" aria-live="polite">
       {[1, 2, 3].map((item) => (
-        <div className="event-skeleton" key={item}>
-          <div />
-          <span />
-          <span />
-        </div>
+        <div className="event-skeleton" key={item}><div /><span /><span /></div>
       ))}
     </div>
   );
@@ -164,7 +182,7 @@ function StatePanel({
   onAction: () => void;
 }) {
   return (
-    <div className="state-panel">
+    <div className="state-panel" role="status">
       <span className="state-icon" aria-hidden="true">{icon}</span>
       <h3>{title}</h3>
       <p>{copy}</p>

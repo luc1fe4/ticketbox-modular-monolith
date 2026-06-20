@@ -39,7 +39,7 @@ export function AuthLayout({ children, quote, credit }: { children: React.ReactN
   return (
     <main className="auth-layout">
       <section className="auth-visual">
-        <img src={events[2].image} alt="" width="1200" height="1500" fetchPriority="high" />
+        <img src={events[2].image} alt="" width="1200" height="1500" />
         <div className="auth-visual-overlay" />
         <div className="auth-logo"><Logo /></div>
         <blockquote>“{quote}”<cite>{credit}</cite></blockquote>

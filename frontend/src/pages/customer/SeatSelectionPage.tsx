@@ -1,107 +1,175 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { currency, eventDate, getEvent, zones } from '../../data/mockData';
+import {
+  getConcert,
+  getConcertTicketTypes,
+  type ConcertDetail,
+  type TicketType,
+} from '../../api/concerts';
+import { ConcertSeatMap } from '../../components/ConcertSeatMap';
+import { currency, eventDate } from '../../data/mockData';
+
+export type CheckoutSelection = TicketType & { quantity: number };
 
 export function SeatSelectionPage() {
   const { id } = useParams();
-  const event = getEvent(id);
   const navigate = useNavigate();
-  const [selectedZone, setSelectedZone] = useState(zones[1].id);
-  const [quantities, setQuantities] = useState<Record<string, number>>({ platinum: 1 });
+  const [concert, setConcert] = useState<ConcertDetail | null>(null);
+  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const selection = useMemo(
+  useEffect(() => {
+    if (!id) return;
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    Promise.all([
+      getConcert(id, controller.signal),
+      getConcertTicketTypes(id, controller.signal),
+    ])
+      .then(([detail, types]) => {
+        const activeTypes = types.filter((item) => item.isActive);
+        setConcert(detail);
+        setTicketTypes(activeTypes);
+        setSelectedZone(activeTypes.find((item) => item.availableQty > 0)?.id ?? null);
+      })
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
+          setError('The seat map and ticket inventory could not be loaded.');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [id, reloadKey]);
+
+  const selection = useMemo<CheckoutSelection[]>(
     () =>
-      zones
-        .filter((zone) => (quantities[zone.id] ?? 0) > 0)
-        .map((zone) => ({ ...zone, quantity: quantities[zone.id] })),
-    [quantities],
+      ticketTypes
+        .filter((ticketType) => (quantities[ticketType.id] ?? 0) > 0)
+        .map((ticketType) => ({ ...ticketType, quantity: quantities[ticketType.id] })),
+    [quantities, ticketTypes],
+  );
+  const soldOutTicketTypeIds = useMemo(
+    () => new Set(ticketTypes.filter((item) => item.availableQty === 0).map((item) => item.id)),
+    [ticketTypes],
   );
   const ticketCount = selection.reduce((total, item) => total + item.quantity, 0);
   const subtotal = selection.reduce((total, item) => total + item.price * item.quantity, 0);
 
-  function updateQuantity(zoneId: string, delta: number) {
+  function updateQuantity(ticketType: TicketType, delta: number) {
     setQuantities((current) => {
-      const next = Math.max(0, Math.min(4, (current[zoneId] ?? 0) + delta));
-      return { ...current, [zoneId]: next };
+      const currentQuantity = current[ticketType.id] ?? 0;
+      const maximum = Math.min(ticketType.maxPerAccount, ticketType.availableQty);
+      return {
+        ...current,
+        [ticketType.id]: Math.max(0, Math.min(maximum, currentQuantity + delta)),
+      };
     });
   }
 
+  if (loading) {
+    return <div className="selection-loading page-width"><div className="event-skeleton"><div /><span /><span /></div></div>;
+  }
+
+  if (error || !concert) {
+    return (
+      <div className="selection-error page-width state-panel">
+        <span className="state-icon">!</span>
+        <h1>Seat map unavailable</h1>
+        <p>{error ?? 'Concert information was not found.'}</p>
+        <button className="button button-primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Try again</button>
+        <Link className="text-link" to="/">Return to concerts</Link>
+      </div>
+    );
+  }
+
+  const currentConcert = concert;
+
   function continueToCheckout() {
-    navigate('/checkout', { state: { eventId: event.id, selection } });
+    navigate('/checkout', {
+      state: {
+        event: {
+          id: currentConcert.id,
+          title: currentConcert.title,
+          venue: currentConcert.venueName,
+          date: currentConcert.eventDate,
+          image: currentConcert.posterUrl,
+        },
+        selection,
+      },
+    });
   }
 
   return (
     <div className="selection-page page-width">
       <div className="flow-topbar">
-        <Link className="back-link" to={`/concerts/${event.id}`}>← Event details</Link>
+        <Link className="back-link" to={`/concerts/${currentConcert.id}`}>← Event details</Link>
         <div className="flow-steps" aria-label="Booking progress">
           <span className="active">1 <i>Tickets</i></span><b /><span>2 <i>Checkout</i></span><b /><span>3 <i>Done</i></span>
         </div>
-        <div className="timer"><span aria-hidden="true">◷</span> 09:42</div>
+        <div className="timer"><span aria-hidden="true">◷</span> Live inventory</div>
       </div>
 
       <header className="selection-header">
         <div>
           <p className="eyebrow"><span /> Choose your experience</p>
-          <h1>{event.title}</h1>
-          <p>{eventDate.format(new Date(event.date))} · {event.time} · {event.venue}</p>
+          <h1>{currentConcert.title}</h1>
+          <p>{eventDate.format(new Date(currentConcert.eventDate))} · {currentConcert.venueName}</p>
         </div>
       </header>
 
       <div className="selection-layout">
         <section className="zone-map-panel" aria-labelledby="zone-map-title">
           <div className="panel-heading">
-            <div><span>Interactive map</span><h2 id="zone-map-title">Select a zone</h2></div>
+            <div><span>Interactive SVG</span><h2 id="zone-map-title">Select a zone</h2></div>
             <div className="map-legend"><i /> Available <i /> Selected <i /> Sold out</div>
           </div>
-          <div className="stage-map">
-            <div className="stage"><span>STAGE</span><small>THE DREAMER</small></div>
-            <div className="catwalk" />
-            {zones.map((zone, index) => (
-              <button
-                key={zone.id}
-                type="button"
-                disabled={zone.remaining === 0}
-                aria-label={`${zone.name}, ${zone.remaining === 0 ? 'sold out' : currency.format(zone.price)}`}
-                aria-pressed={selectedZone === zone.id}
-                className={`map-zone zone-${index + 1} ${selectedZone === zone.id ? 'selected' : ''}`}
-                style={{ '--zone-color': zone.color } as React.CSSProperties}
-                onClick={() => setSelectedZone(zone.id)}
-              >
-                <strong>{zone.name}</strong>
-                <span>{zone.remaining === 0 ? 'Sold out' : currency.format(zone.price)}</span>
-              </button>
-            ))}
-            <div className="map-console">FOH</div>
-          </div>
-          <p className="map-note">Map is indicative. Exact viewing experience may vary.</p>
+          <ConcertSeatMap
+            svg={currentConcert.seatMapSvg}
+            selectedTicketTypeId={selectedZone}
+            disabledTicketTypeIds={soldOutTicketTypeIds}
+            onZoneSelect={setSelectedZone}
+          />
+          <p className="map-note">Select a zone on the map or from the ticket list.</p>
         </section>
 
         <aside className="ticket-picker">
-          <div className="panel-heading"><div><span>Admission</span><h2>Choose tickets</h2></div></div>
+          <div className="panel-heading"><div><span>Live availability</span><h2>Choose tickets</h2></div></div>
           <div className="zone-list">
-            {zones.map((zone) => {
-              const quantity = quantities[zone.id] ?? 0;
+            {ticketTypes.map((ticketType) => {
+              const quantity = quantities[ticketType.id] ?? 0;
+              const soldOut = ticketType.availableQty === 0;
               return (
-                <div className={`zone-item ${selectedZone === zone.id ? 'focused' : ''}`} key={zone.id}>
+                <div className={`zone-item ${selectedZone === ticketType.id ? 'focused' : ''}`} key={ticketType.id}>
                   <button
                     className="zone-focus"
                     type="button"
-                    onClick={() => setSelectedZone(zone.id)}
-                    disabled={zone.remaining === 0}
+                    onClick={() => setSelectedZone(ticketType.id)}
+                    disabled={soldOut}
                   >
-                    <i style={{ background: zone.color }} />
-                    <span><strong>{zone.name}</strong><small>{zone.note}</small></span>
+                    <i style={{ background: ticketType.zoneColor }} />
+                    <span>
+                      <strong>{ticketType.name}</strong>
+                      <small>Maximum {ticketType.maxPerAccount} per account</small>
+                    </span>
                   </button>
                   <div className="zone-price">
-                    <strong>{currency.format(zone.price)}</strong>
-                    {zone.remaining > 0 && zone.remaining < 10 ? <small>Only {zone.remaining} left</small> : null}
-                    {zone.remaining === 0 ? <small>Sold out</small> : null}
+                    <strong>{currency.format(ticketType.price)}</strong>
+                    {!soldOut && ticketType.availableQty < 20 ? <small>Only {ticketType.availableQty} left</small> : null}
+                    {soldOut ? <small>Sold out</small> : <small>{ticketType.availableQty} available</small>}
                   </div>
                   <div className="quantity-control">
-                    <button type="button" aria-label={`Remove one ${zone.name} ticket`} disabled={quantity === 0} onClick={() => updateQuantity(zone.id, -1)}>−</button>
+                    <button type="button" aria-label={`Remove one ${ticketType.name} ticket`} disabled={quantity === 0} onClick={() => updateQuantity(ticketType, -1)}>−</button>
                     <span aria-live="polite">{quantity}</span>
-                    <button type="button" aria-label={`Add one ${zone.name} ticket`} disabled={zone.remaining === 0 || quantity === 4} onClick={() => updateQuantity(zone.id, 1)}>+</button>
+                    <button type="button" aria-label={`Add one ${ticketType.name} ticket`} disabled={soldOut || quantity >= Math.min(ticketType.maxPerAccount, ticketType.availableQty)} onClick={() => updateQuantity(ticketType, 1)}>+</button>
                   </div>
                 </div>
               );
@@ -109,7 +177,7 @@ export function SeatSelectionPage() {
           </div>
           <div className="selection-summary">
             <div><span>{ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}</span><strong>{currency.format(subtotal)}</strong></div>
-            <p>Fees are shown at checkout.</p>
+            <p>Availability is loaded from the TicketBox API. Fees are shown at checkout.</p>
             <button className="button button-primary button-block" type="button" disabled={ticketCount === 0} onClick={continueToCheckout}>
               Continue to checkout <span aria-hidden="true">→</span>
             </button>

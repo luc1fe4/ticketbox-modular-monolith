@@ -1,14 +1,35 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { RemoteImage } from '../../components/RemoteImage';
 import { currency, events, type Zone, zones } from '../../data/mockData';
+import type { CheckoutSelection } from './SeatSelectionPage';
 
-type CheckoutState = { eventId?: number; selection?: Array<Zone & { quantity: number }> };
+export type CheckoutEvent = {
+  id: string | number;
+  title: string;
+  venue: string;
+  date: string;
+  image: string | null;
+};
+
+type CheckoutState = {
+  event?: CheckoutEvent;
+  eventId?: number;
+  selection?: CheckoutSelection[] | Array<Zone & { quantity: number }>;
+};
 
 export function CheckoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state ?? {}) as CheckoutState;
-  const event = events.find((item) => item.id === state.eventId) ?? events[0];
+  const mockEvent = events.find((item) => item.id === state.eventId) ?? events[0];
+  const event: CheckoutEvent = state.event ?? {
+    id: mockEvent.id,
+    title: mockEvent.title,
+    venue: mockEvent.venue,
+    date: mockEvent.date,
+    image: mockEvent.image,
+  };
   const selection = state.selection ?? [{ ...zones[1], quantity: 1 }];
   const subtotal = selection.reduce((total, item) => total + item.price * item.quantity, 0);
   const fees = 75000;
@@ -19,7 +40,10 @@ export function CheckoutPage() {
   function submitOrder(formEvent: React.FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     setProcessing(true);
-    window.setTimeout(() => navigate('/booking-confirmation', { state: { eventId: event.id, selection } }), 700);
+    window.setTimeout(
+      () => navigate('/booking-confirmation', { state: { event, selection } }),
+      700,
+    );
   }
 
   return (
@@ -76,7 +100,7 @@ export function CheckoutPage() {
 
         <aside className="order-summary">
           <div className="order-event">
-            <img src={event.image} alt="" width="240" height="180" />
+            <RemoteImage src={event.image ?? undefined} alt="" width="240" height="180" />
             <div><span>Your event</span><h2>{event.title}</h2><p>{event.venue}</p></div>
           </div>
           <div className="summary-lines">
@@ -99,7 +123,7 @@ export function CheckoutPage() {
           <button className="button button-primary button-block" type="submit" disabled={processing}>
             {processing ? 'Processing…' : `Pay ${currency.format(subtotal + fees)}`}
           </button>
-          <button className="failure-preview" type="button" onClick={() => navigate('/booking-confirmation?status=failed', { state: { eventId: event.id } })}>
+          <button className="failure-preview" type="button" onClick={() => navigate('/booking-confirmation?status=failed', { state: { event } })}>
             Preview payment failure
           </button>
           <p className="secure-note">By paying, you agree to TicketBox’s terms and refund policy.</p>
