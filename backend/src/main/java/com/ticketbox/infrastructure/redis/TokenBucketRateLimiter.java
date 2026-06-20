@@ -3,7 +3,7 @@ package com.ticketbox.infrastructure.redis;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataAccessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TokenBucketRateLimiter {
     private static final RedisScript<Long> TOKEN_BUCKET_SCRIPT = RedisScript.of(
             """
@@ -34,21 +35,16 @@ public class TokenBucketRateLimiter {
             local tokens = tonumber(values[1])
             local last_refill_ms = tonumber(values[2])
 
-            if tokens == nil then
+            if tokens == nil or last_refill_ms == nil then
                 tokens = capacity
                 last_refill_ms = now_ms
-            end
-
-            local elapsed_ms = math.max(0, now_ms - last_refill_ms)
-            local periods = math.floor(elapsed_ms / refill_period_ms)
-
-            if periods > 0 then
-                tokens = math.min(
-                        capacity,
-                        tokens + periods * refill_tokens
-                )
-                last_refill_ms =
-                        last_refill_ms + periods * refill_period_ms
+            else
+                local elapsed_ms = math.max(0, now_ms - last_refill_ms)
+                local refilled_tokens = elapsed_ms * (refill_tokens / refill_period_ms)
+                if refilled_tokens > 0 then
+                    tokens = math.min(capacity, tokens + refilled_tokens)
+                    last_refill_ms = now_ms
+                end
             end
 
             local allowed = 0
@@ -94,11 +90,10 @@ public class TokenBucketRateLimiter {
             );
 
             return Long.valueOf(1L).equals(result);
-        } catch (DataAccessException ex) {
-            throw new AppException(
-                    ErrorCode.REDIS_UNAVAILABLE,
-                    "Rate limit service is temporarily unavailable"
-            );
+        } catch (Exception ex) {
+            log.warn("Redis rate limiter failed for key: {}. Error: {}. Failing open.", redisKey, ex.getMessage());
+            return true; // Fail-open to ensure stable operation under heavy load/redis outage
         }
     }
 }
+

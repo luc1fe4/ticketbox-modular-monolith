@@ -25,6 +25,11 @@ public class GuestListService {
                 .orElseGet(GuestLookupResponse::notFound);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<GuestList> getGuestListByConcertId(UUID concertId) {
+        return guestListRepository.findAllByConcertId(concertId);
+    }
+
     private GuestLookupResponse toResponse(GuestList guest) {
         return new GuestLookupResponse(
                 true,
