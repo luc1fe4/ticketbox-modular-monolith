@@ -30,6 +30,18 @@ public class ConcertReportingAdapter implements ConcertReportingPort {
     }
 
     @Override
+    public Optional<ConcertReportingView> findConcert(UUID concertId) {
+        return concertRepository.findById(concertId).map(this::toConcertView);
+    }
+
+    @Override
+    public List<UUID> findConcertIdsOwnedBy(UUID organizerId) {
+        return concertRepository.findByCreatedBy(organizerId).stream()
+                .map(Concert::getId)
+                .toList();
+    }
+
+    @Override
     public Page<ConcertReportingView> findCompletedConcerts(
             UUID organizerId,
             Pageable pageable) {

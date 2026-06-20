@@ -1,10 +1,16 @@
 package com.ticketbox.module.admin.domain;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
+import java.util.Collection;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-@Repository
-public interface BatchLogRepository extends JpaRepository<BatchLog, UUID> {
+public interface BatchLogRepository
+        extends JpaRepository<BatchLog, UUID>, JpaSpecificationExecutor<BatchLog> {
+
+    Optional<BatchLog> findFirstByConcertIdAndChecksumAndStatusInOrderByCompletedAtDesc(
+            UUID concertId,
+            String checksum,
+            Collection<BatchLog.Status> statuses);
 }

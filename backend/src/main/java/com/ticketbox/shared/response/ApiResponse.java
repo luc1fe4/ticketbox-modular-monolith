@@ -25,4 +25,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> created(T data) {
         return new ApiResponse<>(HttpStatus.CREATED.value(), "Created", data);
     }
+    public static <T> ApiResponse<T> accepted(T data) {
+        return new ApiResponse<>(HttpStatus.ACCEPTED.value(), "Accepted", data);
+    }
 }
