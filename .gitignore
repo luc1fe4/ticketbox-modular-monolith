@@ -31,3 +31,5 @@ Thumbs.db
 
 # Agent skills
 .skills/
+.agents/
+.npm-cache/
