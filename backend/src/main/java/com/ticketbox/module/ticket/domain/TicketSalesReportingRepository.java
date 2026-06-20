@@ -38,7 +38,7 @@ public interface TicketSalesReportingRepository extends Repository<Order, UUID> 
     @Query(value = """
             SELECT
                 TO_CHAR(
-                    o.paid_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                    DATE(o.paid_at AT TIME ZONE 'Asia/Ho_Chi_Minh'),
                     'YYYY-MM-DD'
                 ) AS date,
                 COALESCE(SUM(oi.quantity), 0) AS ticketsSold,
