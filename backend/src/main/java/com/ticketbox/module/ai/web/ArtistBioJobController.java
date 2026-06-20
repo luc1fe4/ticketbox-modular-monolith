@@ -1,0 +1,94 @@
+package com.ticketbox.module.ai.web;
+
+import com.ticketbox.module.ai.application.ArtistBioJobService;
+import com.ticketbox.module.ai.domain.ArtistPdfJob;
+import com.ticketbox.module.ai.web.dto.ArtistBioJobResponse;
+import com.ticketbox.module.ai.web.dto.ArtistBioJobSubmissionResponse;
+import com.ticketbox.shared.response.ApiResponse;
+import java.util.UUID;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@RequestMapping("/api/admin")
+public class ArtistBioJobController {
+
+    private final ArtistBioJobService jobService;
+
+    public ArtistBioJobController(ArtistBioJobService jobService) {
+        this.jobService = jobService;
+    }
+
+    @PostMapping(
+            path = "/concerts/{concertId}/artist-bio-jobs",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ArtistBioJobSubmissionResponse>> submit(
+            @PathVariable UUID concertId,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication) {
+        ArtistPdfJob job = jobService.submit(
+                concertId,
+                file,
+                userId(authentication),
+                isAdmin(authentication));
+        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job)));
+    }
+
+    @GetMapping("/artist-bio-jobs/{jobId}")
+    public ApiResponse<ArtistBioJobResponse> get(
+            @PathVariable UUID jobId,
+            Authentication authentication) {
+        return ApiResponse.success(jobService.get(
+                jobId,
+                userId(authentication),
+                isAdmin(authentication)));
+    }
+
+    @PostMapping("/artist-bio-jobs/{jobId}/retry")
+    public ResponseEntity<ApiResponse<ArtistBioJobSubmissionResponse>> retry(
+            @PathVariable UUID jobId,
+            Authentication authentication) {
+        ArtistPdfJob job = jobService.retry(
+                jobId,
+                userId(authentication),
+                isAdmin(authentication));
+        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job)));
+    }
+
+    @PostMapping("/artist-bio-jobs/{jobId}/apply")
+    public ApiResponse<ArtistBioJobResponse> apply(
+            @PathVariable UUID jobId,
+            @RequestParam(defaultValue = "false") boolean overwrite,
+            Authentication authentication) {
+        return ApiResponse.success(jobService.apply(
+                jobId,
+                userId(authentication),
+                isAdmin(authentication),
+                overwrite));
+    }
+
+    private ArtistBioJobSubmissionResponse submission(ArtistPdfJob job) {
+        return new ArtistBioJobSubmissionResponse(
+                job.getId(),
+                job.getStatus().name(),
+                "/api/admin/artist-bio-jobs/" + job.getId());
+    }
+
+    private UUID userId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+}
