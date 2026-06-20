@@ -1,27 +1,38 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { api } from '../../api/client';
 
-const initialTickets = [
-  { id: 'hq1', name: 'Hội Quán 1', price: 1600000, soldOut: true },
-  { id: 'hq2', name: 'Hội Quán 2', price: 1600000, soldOut: true },
-  { id: 'ph1', name: 'Phố Hội 1', price: 2500000, soldOut: false },
-  { id: 'ph2', name: 'Phố Hội 2', price: 2500000, soldOut: false },
-  { id: 'dl1', name: 'Đèn Lồng 1', price: 3000000, soldOut: false },
-  { id: 'dl2', name: 'Đèn Lồng 2', price: 3000000, soldOut: false },
-  { id: 'nn1', name: 'Nghệ Nhân 1', price: 1200000, soldOut: false },
-  { id: 'ds', name: 'Di Sản', price: 1000000, soldOut: false },
-  { id: 'nn2', name: 'Nghệ Nhân 2', price: 1200000, soldOut: false },
-];
+interface ConcertDetail {
+  id: string;
+  title: string;
+  eventDate: string;
+}
+
+interface TicketType {
+  id: string;
+  name: string;
+  price: number;
+  available: number;
+}
 
 export function SeatSelectionPage() {
+  const { id } = useParams<{ id: string }>();
+  const [concert, setConcert] = useState<ConcertDetail | null>(null);
+  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [timeLeft, setTimeLeft] = useState(599);
   const [scale, setScale] = useState(1);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [highlightedZone, setHighlightedZone] = useState<string | null>(null);
 
-  const ticketRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const nav = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
+  const ticketRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const navigate = useNavigate();
+
+  // Timer countdown
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((value) => Math.max(value - 1, 0));
@@ -30,6 +41,30 @@ export function SeatSelectionPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch ticket types and concert info
+  useEffect(() => {
+    if (id) {
+      fetchConcertAndTickets();
+    }
+  }, [id]);
+
+  const fetchConcertAndTickets = async () => {
+    try {
+      setLoading(true);
+      const [concertData, ticketTypesData] = await Promise.all([
+        api.get<any, ConcertDetail>(`/api/concerts/${id}`),
+        api.get<any, TicketType[]>(`/api/concerts/${id}/ticket-types`),
+      ]);
+      setConcert(concertData);
+      setTicketTypes(ticketTypesData || []);
+    } catch (err: any) {
+      console.error(err);
+      setError('Không thể tải thông tin phòng vé. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
@@ -37,30 +72,74 @@ export function SeatSelectionPage() {
     setScale((value) => Math.max(0.5, Math.min(value * factor, 2)));
   }
 
+  // Map zone clicked on the SVG seat map to a ticket type name or vice-versa
+  const mapZoneIdToTicketTypeId = (zoneId: string): string | undefined => {
+    // Find ticket type matching substring
+    const match = ticketTypes.find(t => {
+      const name = t.name.toLowerCase();
+      if (zoneId === 'dl1' || zoneId === 'dl2') return name.includes('đèn lồng');
+      if (zoneId === 'ph1' || zoneId === 'ph2') return name.includes('phố hội');
+      if (zoneId === 'hq1' || zoneId === 'hq2') return name.includes('hội quán');
+      if (zoneId === 'nn1' || zoneId === 'nn2') return name.includes('nghệ nhân');
+      if (zoneId === 'ds') return name.includes('di sản');
+      return false;
+    });
+    return match?.id;
+  };
+
+  const mapTicketTypeIdToZoneId = (typeId: string): string => {
+    const ticket = ticketTypes.find(t => t.id === typeId);
+    if (!ticket) return '';
+    const name = ticket.name.toLowerCase();
+    if (name.includes('đèn lồng')) return 'dl1';
+    if (name.includes('phố hội')) return 'ph1';
+    if (name.includes('hội quán')) return 'hq1';
+    if (name.includes('nghệ nhân')) return 'nn1';
+    if (name.includes('di sản')) return 'ds';
+    return 'ds';
+  };
+
   const handleZoneClick = (zoneId: string) => {
-    setHighlightedZone(zoneId);
-    if (ticketRefs.current[zoneId]) {
-      ticketRefs.current[zoneId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const typeId = mapZoneIdToTicketTypeId(zoneId);
+    if (typeId) {
+      setHighlightedZone(zoneId);
+      if (ticketRefs.current[typeId]) {
+        ticketRefs.current[typeId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   };
 
-  const updateQuantity = (id: string, delta: number) => {
+  const updateQuantity = (typeId: string, delta: number) => {
+    const ticket = ticketTypes.find(t => t.id === typeId);
+    if (!ticket) return;
+
     setQuantities(prev => {
-      const current = prev[id] || 0;
+      const current = prev[typeId] || 0;
       const next = Math.max(0, current + delta);
+      
+      // Enforce ticket type limit
+      if (next > ticket.available) {
+        return prev;
+      }
+      
       if (next === 0) {
         const copy = { ...prev };
-        delete copy[id];
+        delete copy[typeId];
         return copy;
       }
-      return { ...prev, [id]: next };
+      return { ...prev, [typeId]: next };
     });
+
+    const zoneId = mapTicketTypeIdToZoneId(typeId);
+    if (zoneId) {
+      setHighlightedZone(zoneId);
+    }
   };
 
-  const removeTicket = (id: string) => {
+  const removeTicket = (typeId: string) => {
     setQuantities(prev => {
       const copy = { ...prev };
-      delete copy[id];
+      delete copy[typeId];
       return copy;
     });
   };
@@ -69,22 +148,72 @@ export function SeatSelectionPage() {
     setQuantities({});
   };
 
-  const selectedTickets = Object.entries(quantities).map(([id, qty]) => {
-    const ticket = initialTickets.find(t => t.id === id)!;
+  const handleCheckout = async () => {
+    if (selectedTickets.length === 0 || submitting) return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      // Generate a unique client-side UUID for idempotency
+      const idempotencyKey = window.crypto && window.crypto.randomUUID 
+        ? window.crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + Date.now();
+
+      await api.post(
+        '/api/orders',
+        {
+          concertId: id,
+          items: selectedTickets.map(t => ({
+            ticketTypeId: t.id,
+            quantity: t.qty,
+          })),
+        },
+        {
+          headers: {
+            'Idempotency-Key': idempotencyKey,
+          },
+        }
+      );
+
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Thanh toán thất bại. Hạng vé đã chọn có thể đã hết vé.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedTickets = Object.entries(quantities).map(([typeId, qty]) => {
+    const ticket = ticketTypes.find(t => t.id === typeId)!;
     return { ...ticket, qty };
   });
 
   const totalAmount = selectedTickets.reduce((sum, ticket) => sum + ticket.price * ticket.qty, 0);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0b1020] py-12 px-4 flex justify-center items-center">
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="flex h-screen flex-col bg-bg text-on-surface font-body">
-      {/* Non-sticky Header */}
+    <main className="flex h-screen flex-col bg-bg text-on-surface font-body text-white">
       <header className="border-b border-border/50 bg-bg">
         <nav className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-4 md:px-16">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => nav(-1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-white bg-panel hover:bg-white/10 transition"
+              onClick={() => navigate(-1)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-white bg-panel hover:bg-white/10 transition cursor-pointer"
             >
               ←
             </button>
@@ -100,6 +229,22 @@ export function SeatSelectionPage() {
         </nav>
       </header>
 
+      {error && (
+        <div className="mx-auto mt-4 max-w-4xl w-full px-5">
+          <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm text-red-400">
+            {error}
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="mx-auto mt-4 max-w-4xl w-full px-5">
+          <div className="p-4 rounded-xl border border-green-500/30 bg-green-500/10 text-sm text-green-400">
+            Đặt vé thành công! Đang chuyển hướng về lịch sử đơn hàng...
+          </div>
+        </div>
+      )}
+
       <section className="flex flex-1 flex-col overflow-hidden md:flex-row">
         {/* Seat Map Area */}
         <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#080d1d] p-10">
@@ -113,13 +258,13 @@ export function SeatSelectionPage() {
           <div className="absolute bottom-10 left-10 flex flex-col gap-2">
             <button
               onClick={() => zoom(1.2)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/70 backdrop-blur hover:bg-surface-bright"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/70 backdrop-blur hover:bg-surface-bright text-white cursor-pointer"
             >
               +
             </button>
             <button
               onClick={() => zoom(0.8)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/70 backdrop-blur hover:bg-surface-bright"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/70 backdrop-blur hover:bg-surface-bright text-white cursor-pointer"
             >
               -
             </button>
@@ -130,51 +275,56 @@ export function SeatSelectionPage() {
 
         {/* Sidebar */}
         <aside className="flex w-full overflow-hidden border-l border-border bg-panel shadow-2xl md:w-[850px]">
-          {/* Ticket List */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="border-b border-border bg-card/20 p-6">
               <h1 className="mb-1 font-display text-2xl font-bold text-white">
-                D&apos;Hoi - Hoiana Summer Fest
+                {concert?.title}
               </h1>
-              <p className="text-sm text-textMuted">Thứ Sáu, 26/06/2026 • 17:30</p>
+              <p className="text-sm text-textMuted">
+                {concert?.eventDate && new Date(concert.eventDate).toLocaleDateString('vi-VN')} • {concert?.eventDate && new Date(concert.eventDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              </p>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto p-6 scroll-smooth">
-              {initialTickets.map((ticket) => {
+              {ticketTypes.map((ticket) => {
                 const qty = quantities[ticket.id] || 0;
-                const isHighlighted = highlightedZone === ticket.id;
+                const isHighlighted = highlightedZone === mapTicketTypeIdToZoneId(ticket.id);
 
                 return (
                   <div
                     key={ticket.id}
                     ref={el => ticketRefs.current[ticket.id] = el}
-                    className={`space-y-4 rounded-xl border p-4 transition-all duration-500 ${isHighlighted ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(108,99,255,0.2)]' : 'border-border/50 bg-transparent'
-                      }`}
+                    className={`space-y-4 rounded-xl border p-4 transition-all duration-500 ${
+                      isHighlighted ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(108,99,255,0.2)]' : 'border-border/50 bg-transparent'
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-bold text-white">{ticket.name}</h4>
-                        <p className="font-bold text-textMuted">
+                        <h4 className="font-bold text-white text-base">{ticket.name}</h4>
+                        <p className="font-bold text-primary mt-1 text-sm">
                           {ticket.price.toLocaleString('vi-VN')} VND
+                        </p>
+                        <p className="text-xs text-textMuted mt-1">
+                          Còn lại: {ticket.available} vé
                         </p>
                       </div>
 
-                      {ticket.soldOut ? (
-                        <span className="rounded bg-surface-bright px-4 py-1 text-xs font-bold text-textMuted">
+                      {ticket.available <= 0 ? (
+                        <span className="rounded bg-white/5 border border-border px-4 py-1 text-xs font-bold text-textMuted">
                           Hết vé
                         </span>
                       ) : (
                         <div className="flex items-center gap-4 rounded-lg bg-bg p-1">
                           <button
                             onClick={() => updateQuantity(ticket.id, -1)}
-                            className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-bright hover:bg-white/10"
+                            className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white cursor-pointer"
                           >
                             -
                           </button>
                           <span className="w-4 text-center font-bold text-white">{qty}</span>
                           <button
                             onClick={() => updateQuantity(ticket.id, 1)}
-                            className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary hover:text-white transition"
+                            className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/20 text-primary hover:bg-primary hover:text-white transition cursor-pointer"
                           >
                             +
                           </button>
@@ -191,7 +341,7 @@ export function SeatSelectionPage() {
           <div className="hidden w-[300px] flex-col border-l border-border bg-bg md:flex">
             <div className="flex items-center justify-between border-b border-border p-6">
               <span className="text-sm font-bold text-white">Vé đã chọn</span>
-              <button onClick={removeAll} className="text-xs font-medium text-red-400 hover:text-red-300">
+              <button onClick={removeAll} className="text-xs font-medium text-red-400 hover:text-red-300 cursor-pointer">
                 Xoá tất cả
               </button>
             </div>
@@ -204,7 +354,7 @@ export function SeatSelectionPage() {
                   <div key={ticket.id} className="relative rounded-xl border border-border bg-panel p-4">
                     <button
                       onClick={() => removeTicket(ticket.id)}
-                      className="absolute right-4 top-4 text-textMuted hover:text-red-400"
+                      className="absolute right-4 top-4 text-textMuted hover:text-red-400 cursor-pointer"
                     >
                       🗑
                     </button>
@@ -224,10 +374,11 @@ export function SeatSelectionPage() {
                 {totalAmount.toLocaleString('vi-VN')} VND
               </p>
               <button
-                disabled={selectedTickets.length === 0}
-                className="w-full rounded-xl bg-primary px-6 py-4 font-bold text-white shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100 transition"
+                onClick={handleCheckout}
+                disabled={selectedTickets.length === 0 || submitting || success}
+                className="w-full rounded-xl bg-primary px-6 py-4 font-bold text-white shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100 transition cursor-pointer"
               >
-                Xác nhận
+                {submitting ? 'Đang xử lý...' : 'Xác nhận'}
               </button>
             </div>
           </div>

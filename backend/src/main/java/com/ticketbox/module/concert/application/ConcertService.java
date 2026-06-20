@@ -201,6 +201,16 @@ public class ConcertService {
         evictConcertCaches(id);
     }
 
+    @Transactional
+    public void updateArtistBio(UUID concertId, String artistBio) {
+        Concert concert = concertRepository.findById(concertId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Concert not found with id: " + concertId));
+        concert.setArtistBio(artistBio);
+        concertRepository.save(concert);
+        evictConcertCaches(concertId);
+    }
+
     private void validateDates(OffsetDateTime eventDate, OffsetDateTime doorsOpenAt) {
         if (eventDate.isBefore(OffsetDateTime.now())) {
             throw new AppException(ErrorCode.INVALID_DATE, "Event date must be in the future");

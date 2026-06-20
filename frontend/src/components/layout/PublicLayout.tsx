@@ -1,4 +1,6 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../features/auth/AuthContext';
+import { useState } from 'react';
 
 export function PublicLayout() {
   return (
@@ -13,12 +15,22 @@ export function PublicLayout() {
 }
 
 function Header() {
-  // Using a mock state to simulate not being logged in
-  const isLoggedIn = false;
+  const { user, logout } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate();
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-bg/95 px-4 backdrop-blur-md">
-      <Link to="/" className="font-display text-2xl font-bold">NovaStage</Link>
+      <Link to="/" className="font-display text-2xl font-bold text-white">NovaStage</Link>
 
       <div className="hidden h-12 w-[660px] items-center rounded-full border border-border bg-white/5 md:flex">
         <button className="h-full w-32 border-r border-border text-sm text-textMuted hover:text-white transition">
@@ -31,14 +43,50 @@ function Header() {
         <button className="px-6 text-xl text-textMuted hover:text-white transition">⌕</button>
       </div>
 
-      <div className="flex items-center gap-4">
-        {isLoggedIn ? (
-          <div className="hidden items-center gap-3 rounded-full border border-border bg-white/5 px-3 py-2 md:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold">
-              QT
-            </div>
-            <span className="text-sm font-semibold">Quân Trần Trọng</span>
-            <span className="text-xl text-textMuted cursor-pointer hover:text-white transition">≡</span>
+      <div className="flex items-center gap-4 relative">
+        {user ? (
+          <div className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center gap-3 rounded-full border border-border bg-white/5 px-3 py-2 cursor-pointer hover:bg-white/10 transition"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                {getInitials(user.fullName)}
+              </div>
+              <span className="text-sm font-semibold text-white hidden md:inline">{user.fullName}</span>
+              <span className="text-xs text-textMuted">▼</span>
+            </button>
+
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-panel p-2 shadow-xl z-50">
+                <Link
+                  to="/profile"
+                  onClick={() => setShowDropdown(false)}
+                  className="block rounded-lg px-4 py-2 text-sm text-white hover:bg-white/5 transition"
+                >
+                  Thông tin cá nhân
+                </Link>
+                {(user.role === 'ADMIN' || user.role === 'ORGANIZER' || user.role === 'STAFF') && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setShowDropdown(false)}
+                    className="block rounded-lg px-4 py-2 text-sm text-primary hover:bg-white/5 transition font-semibold"
+                  >
+                    Quản trị hệ thống
+                  </Link>
+                )}
+                <button
+                  onClick={() => {
+                    setShowDropdown(false);
+                    logout();
+                    navigate('/');
+                  }}
+                  className="w-full text-left block rounded-lg px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition cursor-pointer"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-4">
