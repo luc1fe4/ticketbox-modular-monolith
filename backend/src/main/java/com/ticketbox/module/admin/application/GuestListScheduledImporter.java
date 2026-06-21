@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class GuestListScheduledImporter {
 
-    private final GuestListJobLauncherService jobLauncherService;
+    private final GuestListImportService importService;
 
     @Value("${ticketbox.batch.guest-list-dir:data/guest-lists}")
     private String baseDirectoryPath;
@@ -48,7 +48,7 @@ public class GuestListScheduledImporter {
                      if (file.isFile() && file.canRead()) {
                          UUID concertId = extractConcertIdFromFilename(file.getName());
                          log.info("Found CSV file to import: {}. Extracted Concert ID: {}", file.getName(), concertId);
-                         jobLauncherService.runImportJob(file, concertId);
+                         importService.submitScheduled(concertId, file.toPath(), file.getName());
                      }
                  });
         } catch (IOException e) {

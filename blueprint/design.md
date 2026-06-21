@@ -76,8 +76,8 @@ sequenceDiagram
     User->>API: POST /api/orders (Idempotency-Key)
     API->>Redis: Check Idempotency Key
     alt Idempotency Key exists
-        Redis-->>API: Return cached order response
-        API-->>User: Return response
+        Redis-->>API: Throw DuplicateIdempotencyKeyException
+        API-->>User: HTTP 409 Conflict
     end
     API->>Redis: Consume Rate Limit Token (Token Bucket)
     alt Rate limit exceeded
@@ -85,12 +85,12 @@ sequenceDiagram
     end
     
     API->>DB: Begin Transaction
-    API->>DB: Check ticket availability & max_per_account limit (Pessimistic Write Lock)
+    API->>DB: Check ticket limit per account & Concert status
     alt Limit exceeded or sold out
         DB-->>API: Throw Conflict Exception
         API-->>User: HTTP 409 Conflict
     end
-    API->>DB: Decrement available_qty (ticket_types)
+    API->>DB: Atomic Update (UPDATE ... WHERE available_qty >= qty)
     API->>DB: Create Order (status=AWAITING_PAYMENT)
     API->>DB: Commit Transaction
     
@@ -193,7 +193,7 @@ We enforce Role-Based Access Control at the API and UI layers.
 
 ### D. Caching & Availability Checking
 *   **Strategy:** Cache-aside pattern using Redis for public concert list (`GET /api/concerts`) and details view.
-*   **Real-time Availability:** The client queries `/api/concerts/{id}/availability` using **polling every 3 to 5 seconds** during ticket sale rushes. This endpoint fetches active values from the Redis database (updated atomically during orders) to balance real-time accuracy and database load.
+*   **Real-time Availability:** The client queries `/api/concerts/{id}/ticket-types` using **polling every 3 to 5 seconds** during ticket sale rushes. This endpoint fetches active values from the database (updated atomically during orders) to balance real-time accuracy and caching.
 
 ---
 
