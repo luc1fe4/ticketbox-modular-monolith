@@ -13,6 +13,7 @@ import com.ticketbox.module.ticket.web.dto.CreateOrderRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -143,6 +144,7 @@ public class OrderConcurrencyTest {
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
+                TransactionSynchronizationManager.initSynchronization();
                 try {
                     startLatch.await();
                     CreateOrderRequest request = new CreateOrderRequest(
@@ -160,6 +162,7 @@ public class OrderConcurrencyTest {
                 } catch (Exception e) {
                     System.out.println("Unexpected System Error: " + e.getMessage());
                 } finally {
+                    TransactionSynchronizationManager.clear();
                     doneLatch.countDown();
                 }
             });
@@ -199,11 +202,6 @@ public class OrderConcurrencyTest {
         when(valOps.setIfAbsent(eq("lock:user:" + singleUserId), anyString(), any(Duration.class)))
                 .thenAnswer(invocation -> activeLocks.compareAndSet(0, 1));
 
-        // When releasing the lock, reset activeLocks
-        when(redisTemplate.execute(any(), anyList(), any())).thenAnswer(invocation -> {
-            activeLocks.set(0);
-            return 1L;
-        });
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch startLatch = new CountDownLatch(1);
@@ -214,6 +212,7 @@ public class OrderConcurrencyTest {
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
+                TransactionSynchronizationManager.initSynchronization();
                 try {
                     startLatch.await();
                     CreateOrderRequest request = new CreateOrderRequest(
@@ -229,6 +228,7 @@ public class OrderConcurrencyTest {
                 } catch (Exception e) {
                     // Ignore or log other exceptions
                 } finally {
+                    TransactionSynchronizationManager.clear();
                     doneLatch.countDown();
                 }
             });

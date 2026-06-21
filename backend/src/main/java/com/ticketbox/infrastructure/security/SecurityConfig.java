@@ -1,7 +1,7 @@
 package com.ticketbox.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ticketbox.shared.response.ErrorResponse;
+import com.ticketbox.shared.response.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -44,16 +44,16 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
-                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.setContentType("application/json");
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    ErrorResponse error = ErrorResponse.of(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
-                    objectMapper.writeValue(response.getOutputStream(), error);
+                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
+                    response.getWriter().write(objectMapper.writeValueAsString(error));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.setContentType("application/json");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    ErrorResponse error = ErrorResponse.of(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-                    objectMapper.writeValue(response.getOutputStream(), error);
+                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+                    response.getWriter().write(objectMapper.writeValueAsString(error));
                 })
             )
             .authorizeHttpRequests(auth -> auth
