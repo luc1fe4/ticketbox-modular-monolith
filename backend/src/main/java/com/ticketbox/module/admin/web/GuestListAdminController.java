@@ -3,6 +3,7 @@ package com.ticketbox.module.admin.web;
 import com.ticketbox.module.admin.application.BatchLogService;
 import com.ticketbox.module.admin.application.GuestListImportService;
 import com.ticketbox.module.admin.application.GuestListManagementService;
+import com.ticketbox.module.admin.application.GuestListScheduledImporter;
 import com.ticketbox.module.admin.domain.BatchLog;
 import com.ticketbox.module.admin.web.dto.BatchLogResponse;
 import com.ticketbox.module.admin.web.dto.GuestListEntryResponse;
@@ -31,14 +32,17 @@ public class GuestListAdminController {
     private final GuestListImportService importService;
     private final GuestListManagementService managementService;
     private final BatchLogService batchLogService;
+    private final GuestListScheduledImporter scheduledImporter;
 
     public GuestListAdminController(
             GuestListImportService importService,
             GuestListManagementService managementService,
-            BatchLogService batchLogService) {
+            BatchLogService batchLogService,
+            GuestListScheduledImporter scheduledImporter) {
         this.importService = importService;
         this.managementService = managementService;
         this.batchLogService = batchLogService;
+        this.scheduledImporter = scheduledImporter;
     }
 
     @PostMapping(
@@ -106,6 +110,12 @@ public class GuestListAdminController {
                 batchLogId,
                 userId(authentication),
                 isAdmin(authentication)));
+    }
+
+    @PostMapping("/batch-jobs/guest-list-import/run")
+    public ApiResponse<String> runImportScan() {
+        scheduledImporter.scanAndImport();
+        return ApiResponse.success("Scheduled import scanning triggered successfully");
     }
 
     private UUID userId(Authentication authentication) {

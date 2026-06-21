@@ -1,0 +1,6 @@
+interface:
+  display_name: "TicketBox Frontend Design"
+  short_description: "Build UI in the TicketBox visual language"
+  brand_color: "#FF765F"
+  default_prompt: "Use $ticketbox-frontend-design to build a polished TicketBox frontend feature that matches the existing design system."
+
