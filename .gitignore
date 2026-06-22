@@ -1,35 +1,49 @@
-# Environment
-.env
-*.local
-application-staging.yml
-
-# Java
+# Backend / Java
 target/
+backend/target/
 out/
 *.class
+*.jar
+*.war
+*.ear
+.mvn/
 
-# Node
+# Frontend / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 node_modules/
 dist/
 build/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+*.local
+application-staging.yml
 
 # Expo
 .expo/
 .expo-shared/
 
-# Docker and logs
-*.log
-
-# IDE and OS
+# IDE
 .idea/
 .vscode/
+*.iml
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs and caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm-cache/
 
 # Agent skills
 .skills/
 .agents/
-.npm-cache/
