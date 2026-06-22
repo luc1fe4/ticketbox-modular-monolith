@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { isRequestCanceled } from '../../api/client';
 import { getConcert, getConcertTicketTypes, type ConcertDetail, type TicketType } from '../../api/concerts';
 import { ConcertSeatMap } from '../../components/ConcertSeatMap';
 import { currency, eventDate } from '../../data/mockData';
@@ -20,22 +21,28 @@ export function SeatSelectionPage() {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
+    let active = true;
     setLoading(true);
     setError(null);
     Promise.all([getConcert(id, controller.signal), getConcertTicketTypes(id, controller.signal)])
       .then(([detail, types]) => {
+        if (!active) return;
         const activeTypes = types.filter((item) => item.isActive);
         setConcert(detail);
         setTicketTypes(activeTypes);
         setSelectedZone(activeTypes.find((item) => item.availableQty > 0)?.id ?? null);
+        setError(null);
       })
       .catch((requestError: unknown) => {
-        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) setError('The seat map and ticket inventory could not be loaded.');
+        if (active && !isRequestCanceled(requestError)) setError('The seat map and ticket inventory could not be loaded.');
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active) setLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [id, reloadKey]);
 
   const selection = useMemo<CheckoutSelection[]>(
