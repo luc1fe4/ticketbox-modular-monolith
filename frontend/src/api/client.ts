@@ -19,6 +19,11 @@ export class ApiClientError extends Error {
   }
 }
 
+export function isRequestCanceled(error: unknown): boolean {
+  return axios.isCancel(error) ||
+    (error instanceof DOMException && error.name === 'AbortError');
+}
+
 export const api = axios.create({
   baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
@@ -39,6 +44,10 @@ api.interceptors.response.use(
     return body;
   },
   (error: AxiosError<{ message?: string; details?: unknown }>) => {
+    if (isRequestCanceled(error)) {
+      throw error;
+    }
+
     const status = error.response?.status ?? 500;
     if (status === 401) {
       localStorage.removeItem('token');
