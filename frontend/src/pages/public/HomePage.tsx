@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { isRequestCanceled } from '../../api/client';
 import { getConcerts, type ConcertSummary } from '../../api/concerts';
 import { EventCard } from '../../components/EventCard';
 import { fallbackConcertImage, RemoteImage } from '../../components/RemoteImage';
@@ -16,19 +17,27 @@ export function HomePage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    let active = true;
     setLoading(true);
     setError(null);
     getConcerts(0, 12, controller.signal)
-      .then((page) => setConcerts(page.content))
+      .then((page) => {
+        if (!active) return;
+        setConcerts(page.content);
+        setError(null);
+      })
       .catch((requestError: unknown) => {
-        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
+        if (active && !isRequestCanceled(requestError)) {
           setError('We could not load concerts. Check that the backend is running and try again.');
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active) setLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [reloadKey]);
 
   const filteredConcerts = useMemo(

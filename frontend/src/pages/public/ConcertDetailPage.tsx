@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { isRequestCanceled } from '../../api/client';
 import { getConcert, getConcerts, getConcertTicketTypes, type ConcertDetail, type ConcertSummary, type TicketType } from '../../api/concerts';
 import { EventCard } from '../../components/EventCard';
 import { RemoteImage } from '../../components/RemoteImage';
@@ -17,21 +18,27 @@ export function ConcertDetailPage() {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
+    let active = true;
     setLoading(true);
     setError(null);
     Promise.all([getConcert(id, controller.signal), getConcertTicketTypes(id, controller.signal), getConcerts(0, 4, controller.signal)])
       .then(([detail, types, page]) => {
+        if (!active) return;
         setConcert(detail);
         setTicketTypes(types);
         setRelatedConcerts(page.content.filter((item) => item.id !== detail.id).slice(0, 3));
+        setError(null);
       })
       .catch((requestError: unknown) => {
-        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) setError('This concert could not be loaded.');
+        if (active && !isRequestCanceled(requestError)) setError('This concert could not be loaded.');
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active) setLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [id, reloadKey]);
 
   const lowestPrice = useMemo(() => {
