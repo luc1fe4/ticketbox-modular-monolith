@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { isRequestCanceled } from '../../api/client';
 import { getConcert, type ConcertDetail, type TicketType } from '../../api/concerts';
 import { ConcertSeatMap } from '../../components/ConcertSeatMap';
 import { currency, eventDate } from '../../data/mockData';
@@ -28,19 +29,25 @@ export function SeatSelectionPage() {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
+    let active = true;
     setConcertLoading(true);
     setError(null);
     getConcert(id, controller.signal)
       .then((detail) => {
+        if (!active) return;
         setConcert(detail);
+        setError(null);
       })
       .catch((requestError: unknown) => {
-        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) setError('The concert and seat map could not be loaded.');
+        if (active && !isRequestCanceled(requestError)) setError('The concert and seat map could not be loaded.');
       })
       .finally(() => {
-        if (!controller.signal.aborted) setConcertLoading(false);
+        if (active) setConcertLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [id, reloadKey]);
 
   useEffect(() => {

@@ -1,0 +1,66 @@
+import { api } from './client';
+
+export type OrderStatus =
+  | 'AWAITING_PAYMENT'
+  | 'PAID'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'PAYMENT_FAILED';
+
+export type OrderItem = {
+  id: string;
+  ticketTypeId: string;
+  ticketTypeName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type Order = {
+  id: string;
+  concertId: string;
+  concertTitle: string;
+  status: OrderStatus;
+  totalAmount: number;
+  paymentUrl: string | null;
+  expiresAt: string;
+  createdAt: string;
+  items: OrderItem[];
+};
+
+export type PaymentProvider = 'MOCK' | 'VNPAY';
+
+export type PaymentInitiation = {
+  orderId: string;
+  provider: PaymentProvider;
+  providerRef: string;
+  paymentUrl: string;
+};
+
+export function createOrder(
+  concertId: string,
+  items: Array<{ ticketTypeId: string; quantity: number }>,
+  idempotencyKey: string,
+) {
+  return api.post<unknown, Order>(
+    '/api/orders',
+    { concertId, items },
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  );
+}
+
+export function getOrder(orderId: string, signal?: AbortSignal) {
+  return api.get<unknown, Order>(`/api/orders/${encodeURIComponent(orderId)}`, { signal });
+}
+
+export function initiatePayment(orderId: string, provider: PaymentProvider) {
+  return api.post<unknown, PaymentInitiation>(
+    `/api/payments/${encodeURIComponent(orderId)}/initiate`,
+    { provider },
+  );
+}
+
+export function completeMockPayment(paymentUrl: string) {
+  return api.post<unknown, void>(paymentUrl);
+}

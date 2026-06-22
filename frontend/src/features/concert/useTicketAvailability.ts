@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isRequestCanceled } from '../../api/client';
 import { getConcertTicketTypes, type TicketType } from '../../api/concerts';
 
 const AVAILABILITY_POLL_INTERVAL_MS = 4_000;
@@ -24,6 +25,7 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
 
     const activeConcertId = concertId;
     const controller = new AbortController();
+    let active = true;
     let hasLoadedInventory = false;
     let requestInProgress = false;
     let timeoutId: number | undefined;
@@ -47,19 +49,20 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
       requestInProgress = true;
       try {
         const types = await getConcertTicketTypes(activeConcertId, controller.signal);
+        if (!active) return;
         setTicketTypes(types.filter((item) => item.isActive));
         setLastUpdatedAt(new Date());
         setUpdatesDelayed(false);
         setInitialLoadFailed(false);
         hasLoadedInventory = true;
       } catch (requestError) {
-        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
+        if (active && !isRequestCanceled(requestError)) {
           setUpdatesDelayed(true);
           if (!hasLoadedInventory) setInitialLoadFailed(true);
         }
       } finally {
         requestInProgress = false;
-        if (!controller.signal.aborted) {
+        if (active) {
           setLoading(false);
           scheduleNextRefresh();
         }
@@ -83,6 +86,7 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
     void runRefresh();
 
     return () => {
+      active = false;
       controller.abort();
       window.clearTimeout(timeoutId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);

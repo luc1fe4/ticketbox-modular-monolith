@@ -6,6 +6,7 @@ import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
 import { CheckoutPage } from '../pages/customer/CheckoutPage';
 import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
+import { PaymentResultPage } from '../pages/customer/PaymentResultPage';
 import { ProfilePage } from '../pages/customer/ProfilePage';
 import { SeatSelectionPage } from '../pages/customer/SeatSelectionPage';
 import { ConcertDetailPage } from '../pages/public/ConcertDetailPage';
@@ -26,6 +27,7 @@ export function App() {
             <Route path="/concerts/:id/seats" element={protectedPage(<SeatSelectionPage />)} />
             <Route path="/checkout" element={protectedPage(<CheckoutPage />)} />
             <Route path="/booking-confirmation" element={protectedPage(<BookingConfirmationPage />)} />
+            <Route path="/payment/result" element={protectedPage(<PaymentResultPage />)} />
             <Route path="/my-tickets" element={protectedPage(<MyTicketsPage />)} />
             <Route path="/profile" element={protectedPage(<ProfilePage />)} />
           </Route>

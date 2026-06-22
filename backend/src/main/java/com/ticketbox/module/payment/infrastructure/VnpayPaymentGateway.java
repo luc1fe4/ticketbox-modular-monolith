@@ -17,6 +17,7 @@ import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.TreeMap;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @Component
 public class VnpayPaymentGateway implements PaymentGateway {
     private static final DateTimeFormatter VNPAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final ZoneId VNPAY_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final VnpayProperties properties;
 
@@ -44,7 +46,7 @@ public class VnpayPaymentGateway implements PaymentGateway {
         requireConfigured();
 
         String providerRef = order.id().toString();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(VNPAY_ZONE);
         TreeMap<String, String> params = new TreeMap<>();
         params.put("vnp_Version", "2.1.0");
         params.put("vnp_Command", "pay");
