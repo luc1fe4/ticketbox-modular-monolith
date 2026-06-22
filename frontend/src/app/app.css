@@ -195,6 +195,7 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .flow-steps b { width: 46px; height: 1px; background: var(--line); }
 .timer, .secure-label { color: var(--muted); font-size: 12px; }
 .timer span { color: var(--coral); }
+.timer.delayed { color: var(--coral-light); }
 .selection-page, .checkout-page { padding-bottom: 110px; }
 .selection-header { padding: 70px 0 36px; }
 .selection-header h1 { margin-bottom: 12px; font-size: 46px; }
@@ -239,6 +240,10 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .map-note { margin: 18px 0 0; color: #706d77; font-size: 9px; text-align: center; }
 .ticket-picker { display: flex; flex-direction: column; min-width: 0; background: var(--surface); }
 .ticket-picker > .panel-heading { padding: 30px 28px 0; }
+.inventory-notice { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 0 28px 20px; padding: 12px 14px; border: 1px solid rgba(255,118,95,.35); background: rgba(255,118,95,.08); }
+.inventory-notice p { margin: 0; color: var(--cream); font-size: 11px; line-height: 1.5; }
+.inventory-notice button { flex: none; width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); font-size: 18px; }
+.inventory-notice button:hover, .inventory-notice button:focus-visible { color: var(--cream); }
 .zone-list { flex: 1; }
 .zone-item { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; padding: 20px 28px; border-top: 1px solid var(--line); }
 .zone-item.focused { background: rgba(255,255,255,.035); }
