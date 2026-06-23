@@ -11,6 +11,7 @@ import {
   Menu,
   ScanLine,
   Settings,
+  Sparkles,
   Ticket,
   Users,
   X,
@@ -31,7 +32,7 @@ const adminNavigation: NavigationItem[] = [
   { to: '/admin/concerts', label: 'Concert', icon: CalendarDays },
   { to: '/admin/ticket-types', label: 'Hạng vé', icon: Ticket },
   { to: '/admin/guests', label: 'Khách mời', icon: Users },
-  { to: '/admin/batch-logs', label: 'Batch jobs', icon: FileClock },
+  { to: '/admin/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
   { to: '/admin/revenue', label: 'Doanh thu', icon: CircleDollarSign },
 ];
 

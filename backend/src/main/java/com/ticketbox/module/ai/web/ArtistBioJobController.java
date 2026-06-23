@@ -8,6 +8,9 @@ import com.ticketbox.shared.response.ApiResponse;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,6 +54,25 @@ public class ArtistBioJobController {
                 jobId,
                 userId(authentication),
                 isAdmin(authentication)));
+    }
+
+    @GetMapping("/artist-bio-jobs")
+    public ApiResponse<Page<ArtistBioJobResponse>> list(
+            @RequestParam(required = false) UUID concertId,
+            @RequestParam(required = false) ArtistPdfJob.Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        PageRequest pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100),
+                Sort.by("createdAt").descending());
+        return ApiResponse.success(jobService.list(
+                userId(authentication),
+                isAdmin(authentication),
+                concertId,
+                status,
+                pageable));
     }
 
     @PostMapping("/artist-bio-jobs/{jobId}/retry")

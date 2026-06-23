@@ -9,6 +9,7 @@ import com.ticketbox.module.concert.application.mapper.ConcertMapper;
 import com.ticketbox.module.concert.domain.Concert;
 import com.ticketbox.module.concert.domain.ConcertRepository;
 import com.ticketbox.module.concert.domain.TicketTypeRepository;
+import com.ticketbox.module.concert.application.port.PosterStorage;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.util.RedisKeyConstants;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,6 +20,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -35,6 +38,7 @@ public class ConcertService {
     private final ConcertMapper concertMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final PosterStorage posterStorage;
 
     private static final Map<Concert.Status, Set<Concert.Status>> VALID_TRANSITIONS = Map.of(
             Concert.Status.DRAFT, Set.of(Concert.Status.ON_SALE, Concert.Status.CANCELLED),
@@ -42,12 +46,13 @@ public class ConcertService {
             Concert.Status.SOLD_OUT, Set.of(Concert.Status.ON_SALE, Concert.Status.CANCELLED, Concert.Status.COMPLETED)
     );
 
-    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository, ConcertMapper concertMapper, RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
+    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository, ConcertMapper concertMapper, RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper, PosterStorage posterStorage) {
         this.concertRepository = concertRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.concertMapper = concertMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.posterStorage = posterStorage;
     }
 
     @SuppressWarnings("unchecked")
@@ -199,6 +204,17 @@ public class ConcertService {
         ticketTypeRepository.deleteByConcertId(id);
         concertRepository.delete(concert);
         evictConcertCaches(id);
+        String posterPublicId = concert.getPosterPublicId();
+        if (posterPublicId != null && TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    posterStorage.deleteBestEffort(posterPublicId);
+                }
+            });
+        } else if (posterPublicId != null) {
+            posterStorage.deleteBestEffort(posterPublicId);
+        }
     }
 
     @Transactional
@@ -242,7 +258,7 @@ public class ConcertService {
      * List cache uses page-based keys so we use a pattern delete.
      * Called after any mutation that changes visible concert data.
      */
-    private void evictConcertCaches(UUID concertId) {
+    void evictConcertCaches(UUID concertId) {
         try {
             // Evict detail cache
             redisTemplate.delete(RedisKeyConstants.CACHE_CONCERT_DETAIL + concertId);

@@ -18,6 +18,7 @@ public enum ErrorCode {
     TICKET_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "Ticket purchase limit exceeded"),
     PAYMENT_GATEWAY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Payment gateway temporarily unavailable"),
     AI_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI provider temporarily unavailable"),
+    IMAGE_STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Image storage is temporarily unavailable"),
     ARTIST_BIO_JOB_NOT_READY(HttpStatus.CONFLICT, "Artist bio job is not ready"),
     ARTIST_BIO_ALREADY_EXISTS(HttpStatus.CONFLICT, "Concert already has an artist bio"),
     

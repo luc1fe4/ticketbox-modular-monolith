@@ -69,8 +69,21 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       GUEST_LIST_ROOT_DIR: /data/guest-list
       GUEST_LIST_IMPORT_CRON: ${GUEST_LIST_IMPORT_CRON:-0 */5 * * * *}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      ARTIST_BIO_AI_PROVIDER: ${ARTIST_BIO_AI_PROVIDER:-auto}
+      ARTIST_BIO_AI_BASE_URL: ${ARTIST_BIO_AI_BASE_URL:-https://api.openai.com/v1}
+      ARTIST_BIO_AI_API_KEY: ${ARTIST_BIO_AI_API_KEY:-}
+      ARTIST_BIO_AI_MODEL: ${ARTIST_BIO_AI_MODEL:-gpt-4o-mini}
+      ARTIST_BIO_AI_TIMEOUT: ${ARTIST_BIO_AI_TIMEOUT:-30s}
+      ARTIST_BIO_MAX_INPUT_CHARACTERS: ${ARTIST_BIO_MAX_INPUT_CHARACTERS:-30000}
+      ARTIST_BIO_MAX_FILE_SIZE: ${ARTIST_BIO_MAX_FILE_SIZE:-10MB}
+      ARTIST_BIO_MAX_PAGES: ${ARTIST_BIO_MAX_PAGES:-50}
+      ARTIST_BIO_STORAGE_ROOT: /data/artist-bio
     volumes:
       - guest_list_data:/data/guest-list
+      - artist_bio_data:/data/artist-bio
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,3 +117,4 @@ services:
 volumes:
   postgres_data:
   guest_list_data:
+  artist_bio_data:

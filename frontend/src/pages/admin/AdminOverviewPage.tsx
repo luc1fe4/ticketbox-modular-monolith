@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarDays, FileClock, Ticket, Users } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Sparkles, Ticket, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
@@ -23,10 +23,10 @@ const workspaces = [
     icon: Users,
   },
   {
-    to: '/admin/batch-logs',
-    title: 'Batch jobs',
-    copy: 'Theo dõi tiến trình nhập dữ liệu và các bản ghi lỗi.',
-    icon: FileClock,
+    to: '/admin/artist-bio',
+    title: 'AI Artist Bio',
+    copy: 'Tải press-kit PDF, review bio do AI tạo và áp dụng vào concert.',
+    icon: Sparkles,
   },
 ];
 

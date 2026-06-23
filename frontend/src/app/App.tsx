@@ -5,6 +5,8 @@ import { ToastProvider } from '../components/feedback/ToastProvider';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
+import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
+import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
 import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage';
 import { AdminRoutePlaceholderPage } from '../pages/admin/AdminRoutePlaceholderPage';
 import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
@@ -48,9 +50,10 @@ export function App() {
           >
             <Route index element={<AdminOverviewPage />} />
             <Route path="concerts" element={<AdminConcertsPage />} />
+            <Route path="artist-bio" element={<AdminArtistBioPage />} />
             <Route path="ticket-types" element={<AdminTicketTypesPage />} />
-            <Route path="guests" element={<AdminRoutePlaceholderPage title="Quản lý khách mời" description="Route dành cho nhập CSV và danh sách khách mời thuộc concert." />} />
-            <Route path="batch-logs" element={<AdminRoutePlaceholderPage title="Batch jobs" description="Route theo dõi tiến trình nhập dữ liệu và log xử lý nền." />} />
+            <Route path="guests" element={<AdminGuestImportsPage />} />
+            <Route path="batch-logs" element={<Navigate to="/admin/guests" replace />} />
             <Route path="revenue" element={<AdminRoutePlaceholderPage title="Báo cáo doanh thu" description="Không gian báo cáo dành cho ORGANIZER theo API /api/organizer/concerts." />} />
           </Route>
           <Route
