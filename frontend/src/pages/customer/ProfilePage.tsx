@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../../api/client';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { api, ApiClientError } from '../../api/client';
+import { useAuth, type UserRole, type UserSummary } from '../../features/auth/AuthContext';
 
 interface UserProfile {
   id: string;
   email: string;
   fullName: string;
-  phone: string;
+  phone: string | null;
+  role: UserRole;
 }
 
 interface OrderItem {
@@ -19,360 +20,352 @@ interface OrderItem {
 
 interface OrderResponse {
   id: string;
-  userId: string;
   concertId: string;
   concertTitle: string;
-  status: 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED' | 'EXPIRED';
+  status: 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED' | 'EXPIRED' | 'PAYMENT_FAILED';
   totalAmount: number;
-  expiresAt: string;
+  expiresAt?: string | null;
   createdAt: string;
   items: OrderItem[];
 }
 
 interface TicketResponse {
   id: string;
-  orderId: string;
   concertId: string;
   concertTitle: string;
-  ticketTypeId: string;
   ticketTypeName: string;
   price: number;
   qrCode: string;
-  status: 'UNUSED' | 'USED' | 'CANCELLED';
+  status: 'VALID' | 'UNUSED' | 'USED' | 'CANCELLED' | 'EXPIRED';
   ownerFullName: string;
   ownerPhone: string;
 }
 
+type ProfileTab = 'profile' | 'orders' | 'tickets';
+
+const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+const dateTime = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
+
+const roleLabels: Record<UserRole, string> = {
+  AUDIENCE: 'Audience',
+  ORGANIZER: 'Organizer',
+  STAFF: 'Staff',
+  ADMIN: 'Admin',
+};
+
+const orderLabels: Record<OrderResponse['status'], string> = {
+  AWAITING_PAYMENT: 'Chờ thanh toán',
+  PAID: 'Đã thanh toán',
+  CANCELLED: 'Đã hủy',
+  EXPIRED: 'Hết hạn',
+  PAYMENT_FAILED: 'Thanh toán lỗi',
+};
+
+const ticketLabels: Record<TicketResponse['status'], string> = {
+  VALID: 'Chưa sử dụng',
+  UNUSED: 'Chưa sử dụng',
+  USED: 'Đã sử dụng',
+  CANCELLED: 'Đã hủy',
+  EXPIRED: 'Hết hạn',
+};
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUserSummary } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [tickets, setTickets] = useState<TicketResponse[]>([]);
-
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'tickets'>('profile');
-  
-  // Profile update form state
+  const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const showAudienceHistory = user?.role === 'AUDIENCE';
+
   useEffect(() => {
-    fetchProfileData();
-  }, []);
+    let cancelled = false;
 
-  const fetchProfileData = async () => {
-    try {
+    async function loadProfileData() {
       setLoading(true);
-      const [profileData, ordersData, ticketsData] = await Promise.all([
-        api.get<any, UserProfile>('/api/users/me/profile'),
-        api.get<any, OrderResponse[]>('/api/orders/my'),
-        api.get<any, TicketResponse[]>('/api/tickets/my'),
-      ]);
+      setLoadError(null);
+      setMessage(null);
 
-      setProfile(profileData);
-      setFullName(profileData.fullName);
-      setPhone(profileData.phone || '');
-      setOrders(ordersData || []);
-      setTickets(ticketsData || []);
-    } catch (err: any) {
-      console.error('Failed to fetch profile details', err);
-    } finally {
-      setLoading(false);
+      try {
+        if (showAudienceHistory) {
+          const [profileData, ordersData, ticketsData] = await Promise.all([
+            api.get<unknown, UserProfile>('/api/users/me/profile'),
+            api.get<unknown, OrderResponse[]>('/api/orders/my'),
+            api.get<unknown, TicketResponse[]>('/api/tickets/my'),
+          ]);
+
+          if (cancelled) return;
+          setProfile(profileData);
+          setFullName(profileData.fullName);
+          setPhone(profileData.phone ?? '');
+          setOrders(ordersData ?? []);
+          setTickets(ticketsData ?? []);
+          return;
+        }
+
+        const profileData = await api.get<unknown, UserProfile>('/api/users/me/profile');
+        if (cancelled) return;
+        setProfile(profileData);
+        setFullName(profileData.fullName);
+        setPhone(profileData.phone ?? '');
+        setOrders([]);
+        setTickets([]);
+        setActiveTab('profile');
+      } catch (error) {
+        if (!cancelled) {
+          const isForbidden = error instanceof ApiClientError && error.status === 403;
+          setLoadError(isForbidden ? 'Tài khoản hiện tại không có quyền xem dữ liệu này.' : errorMessage(error, 'Không thể tải hồ sơ.'));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-  };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+    loadProfileData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showAudienceHistory]);
+
+  const profileSummary = useMemo(() => {
+    if (!profile) return [];
+    return [
+      { label: 'Email', value: profile.email },
+      { label: 'Phone', value: profile.phone || 'Chưa cập nhật' },
+      { label: 'Role', value: roleLabels[profile.role] },
+    ];
+  }, [profile]);
+
+  async function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setMessage(null);
 
-    if (!fullName.trim() || !phone.trim()) {
-      setMessage({ type: 'error', text: 'Vui lòng nhập đầy đủ họ tên và số điện thoại.' });
+    const nextFullName = fullName.trim();
+    const nextPhone = phone.trim();
+
+    if (!nextFullName) {
+      setMessage({ type: 'error', text: 'Vui lòng nhập họ tên.' });
       return;
     }
 
     try {
-      setActionLoading(true);
-      const updated: UserProfile = await api.patch('/api/users/me/profile', {
-        fullName,
-        phone,
+      setSaving(true);
+      const updated = await api.patch<unknown, UserProfile>('/api/users/me/profile', {
+        fullName: nextFullName,
+        phone: nextPhone || null,
       });
       setProfile(updated);
+      setFullName(updated.fullName);
+      setPhone(updated.phone ?? '');
       setIsEditing(false);
+      updateUserSummary({
+        id: updated.id,
+        email: updated.email,
+        fullName: updated.fullName,
+        role: updated.role,
+      } satisfies UserSummary);
       setMessage({ type: 'success', text: 'Cập nhật thông tin cá nhân thành công.' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Cập nhật thất bại. Vui lòng thử lại.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: errorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại.') });
     } finally {
-      setActionLoading(false);
+      setSaving(false);
     }
-  };
+  }
+
+  function cancelEditing() {
+    if (!profile) return;
+    setFullName(profile.fullName);
+    setPhone(profile.phone ?? '');
+    setIsEditing(false);
+    setMessage(null);
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b1020] py-12 px-4 flex justify-center items-center">
-        <div className="relative h-16 w-16">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
+      <main className="profile-page page-width">
+        <div className="profile-loading" role="status" aria-live="polite">
+          <div className="route-spinner" aria-hidden="true" />
+          <span>Đang tải hồ sơ...</span>
         </div>
-      </div>
+      </main>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <main className="profile-page page-width">
+        <div className="state-panel" role="alert">
+          <span className="state-icon" aria-hidden="true">!</span>
+          <h1>Không thể mở hồ sơ</h1>
+          <p>{loadError ?? 'Không tìm thấy thông tin tài khoản hiện tại.'}</p>
+          <button className="button button-secondary" type="button" onClick={() => window.location.reload()}>Thử lại</button>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1020] text-white py-12 px-4 sm:px-6 lg:px-8 font-body">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-display font-bold mb-8">Trang cá nhân</h1>
-
-        {/* Tab Navigation */}
-        <div className="flex border-b border-border mb-8 gap-6">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`pb-4 text-sm font-semibold tracking-wide transition cursor-pointer ${
-              activeTab === 'profile' ? 'border-b-2 border-primary text-primary' : 'text-textMuted hover:text-white'
-            }`}
-          >
-            Thông tin cá nhân
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`pb-4 text-sm font-semibold tracking-wide transition cursor-pointer ${
-              activeTab === 'orders' ? 'border-b-2 border-primary text-primary' : 'text-textMuted hover:text-white'
-            }`}
-          >
-            Lịch sử đơn hàng ({orders.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('tickets')}
-            className={`pb-4 text-sm font-semibold tracking-wide transition cursor-pointer ${
-              activeTab === 'tickets' ? 'border-b-2 border-primary text-primary' : 'text-textMuted hover:text-white'
-            }`}
-          >
-            Vé của tôi ({tickets.length})
-          </button>
+    <main className="profile-page page-width">
+      <section className="profile-hero">
+        <div className="profile-avatar" aria-hidden="true">{initials(profile.fullName)}</div>
+        <div>
+          <p className="eyebrow"><span /> Account center</p>
+          <h1>{profile.fullName}</h1>
+          <p>Quản lý hồ sơ, quyền truy cập và lịch sử đặt vé của tài khoản TicketBox.</p>
         </div>
+        <span className={`role-badge role-${profile.role.toLowerCase()}`}>{roleLabels[profile.role]}</span>
+      </section>
 
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-xl border text-sm ${
-              message.type === 'success'
-                ? 'border-green-500/30 bg-green-500/10 text-green-400'
-                : 'border-red-500/30 bg-red-500/10 text-red-400'
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
+      <div className="profile-tabs" role="tablist" aria-label="Profile sections">
+        <button type="button" role="tab" aria-selected={activeTab === 'profile'} className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>Profile</button>
+        {showAudienceHistory ? (
+          <>
+            <button type="button" role="tab" aria-selected={activeTab === 'orders'} className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>Orders ({orders.length})</button>
+            <button type="button" role="tab" aria-selected={activeTab === 'tickets'} className={activeTab === 'tickets' ? 'active' : ''} onClick={() => setActiveTab('tickets')}>Tickets ({tickets.length})</button>
+          </>
+        ) : null}
+      </div>
 
-        {/* Tab Contents */}
-        {activeTab === 'profile' && profile && (
-          <div className="rounded-3xl border border-border/70 bg-card p-8 shadow-xl backdrop-blur">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold">
-                {profile.fullName.substring(0, 2).toUpperCase()}
-              </div>
+      {message ? <div className={`inline-message ${message.type}`} role="status">{message.text}</div> : null}
+
+      {activeTab === 'profile' ? (
+        <section className="profile-grid">
+          <form className="profile-panel" onSubmit={handleUpdateProfile}>
+            <div className="panel-heading">
               <div>
-                <h2 className="text-xl font-bold">{profile.fullName}</h2>
-                <p className="text-sm text-textMuted">Vai trò: {user?.role}</p>
+                <span>Identity</span>
+                <h2>Personal details</h2>
               </div>
+              {!isEditing ? <button className="button button-secondary" type="button" onClick={() => setIsEditing(true)}>Edit</button> : null}
             </div>
 
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <label className="field">
+              <span>Email address</span>
+              <input type="email" value={profile.email} disabled />
+            </label>
+            <label className="field">
+              <span>Full name</span>
+              <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} disabled={!isEditing} autoComplete="name" required />
+            </label>
+            <label className="field">
+              <span>Phone number</span>
+              <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} disabled={!isEditing} autoComplete="tel" placeholder="0901234567" />
+            </label>
+
+            {isEditing ? (
+              <div className="profile-actions">
+                <button className="button button-secondary" type="button" onClick={cancelEditing}>Cancel</button>
+                <button className="button button-primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+              </div>
+            ) : null}
+          </form>
+
+          <aside className="profile-panel profile-summary" aria-label="Account summary">
+            <div className="panel-heading">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-outline mb-2">
-                  Địa chỉ email
-                </label>
-                <input
-                  type="email"
-                  value={profile.email}
-                  disabled
-                  className="w-full rounded-xl border border-border bg-bg/50 py-3 px-4 text-textMuted cursor-not-allowed outline-none"
-                />
+                <span>Access</span>
+                <h2>Role guard</h2>
               </div>
+            </div>
+            {profileSummary.map((item) => (
+              <div className="summary-row" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+            <p>
+              {profile.role === 'AUDIENCE'
+                ? 'Audience accounts can buy tickets, pay orders, and view e-tickets.'
+                : 'This role is kept out of the audience purchase flow in the web UI to match backend RBAC.'}
+            </p>
+          </aside>
+        </section>
+      ) : null}
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-outline mb-2">
-                  Họ và tên
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={!isEditing}
-                  className={`w-full rounded-xl border py-3 px-4 outline-none transition ${
-                    isEditing
-                      ? 'border-primary bg-bg text-white focus:ring-2 focus:ring-primary/20'
-                      : 'border-border bg-bg/50 text-textMuted cursor-not-allowed'
-                  }`}
-                />
-              </div>
+      {activeTab === 'orders' && showAudienceHistory ? <OrderHistory orders={orders} /> : null}
+      {activeTab === 'tickets' && showAudienceHistory ? <TicketHistory tickets={tickets} /> : null}
+    </main>
+  );
+}
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-outline mb-2">
-                  Số điện thoại
-                </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={!isEditing}
-                  className={`w-full rounded-xl border py-3 px-4 outline-none transition ${
-                    isEditing
-                      ? 'border-primary bg-bg text-white focus:ring-2 focus:ring-primary/20'
-                      : 'border-border bg-bg/50 text-textMuted cursor-not-allowed'
-                  }`}
-                />
-              </div>
+function OrderHistory({ orders }: { orders: OrderResponse[] }) {
+  if (orders.length === 0) {
+    return <div className="state-panel compact"><span className="state-icon" aria-hidden="true">◇</span><h2>Chưa có đơn hàng</h2><p>Các đơn mua vé sẽ xuất hiện tại đây sau khi bạn đặt vé.</p></div>;
+  }
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-border/70">
-                {isEditing ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setFullName(profile.fullName);
-                        setPhone(profile.phone || '');
-                      }}
-                      className="px-6 py-2.5 rounded-full border border-border text-sm font-semibold hover:bg-white/5 cursor-pointer transition"
-                    >
-                      Hủy bỏ
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={actionLoading}
-                      className="px-6 py-2.5 rounded-full bg-primary text-sm font-semibold text-white hover:brightness-110 cursor-pointer transition disabled:opacity-50"
-                    >
-                      {actionLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    className="px-6 py-2.5 rounded-full bg-white text-sm font-semibold text-bg hover:bg-gray-200 cursor-pointer transition"
-                  >
-                    Chỉnh sửa
-                  </button>
-                )}
-              </div>
-            </form>
+  return (
+    <section className="history-list" aria-label="Order history">
+      {orders.map((order) => (
+        <article className="history-item" key={order.id}>
+          <div className="history-topline">
+            <span>Order {order.id.slice(0, 8).toUpperCase()}</span>
+            <span className={`status-chip status-${order.status.toLowerCase().replace('_', '-')}`}>{orderLabels[order.status]}</span>
           </div>
-        )}
-
-        {activeTab === 'orders' && (
-          <div className="space-y-6">
-            {orders.length === 0 ? (
-              <div className="text-center py-12 rounded-3xl border border-border/70 bg-card/50 text-textMuted">
-                Bạn chưa thực hiện bất kỳ đơn hàng nào.
+          <h2>{order.concertTitle}</h2>
+          <div className="history-lines">
+            {order.items.map((item) => (
+              <div key={item.ticketTypeId}>
+                <span>{item.ticketTypeName} x{item.quantity}</span>
+                <strong>{money.format(item.subtotal || item.unitPrice * item.quantity)}</strong>
               </div>
-            ) : (
-              orders.map((order) => (
-                <div key={order.id} className="rounded-3xl border border-border/70 bg-card p-6 shadow-md">
-                  <div className="flex justify-between items-start gap-4 mb-4 pb-4 border-b border-border/50">
-                    <div>
-                      <span className="text-xs text-textMuted font-mono">ĐƠN HÀNG: {order.id.substring(0, 8).toUpperCase()}</span>
-                      <h3 className="text-lg font-bold text-white mt-1">{order.concertTitle}</h3>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        order.status === 'PAID'
-                          ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                          : order.status === 'AWAITING_PAYMENT'
-                          ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                          : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                      }`}
-                    >
-                      {order.status === 'PAID'
-                        ? 'Đã thanh toán'
-                        : order.status === 'AWAITING_PAYMENT'
-                        ? 'Chờ thanh toán'
-                        : order.status === 'CANCELLED'
-                        ? 'Đã hủy'
-                        : 'Hết hạn'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-sm text-textMuted">
-                        <span>
-                          {item.ticketTypeName} (x{item.quantity})
-                        </span>
-                        <span>{(item.unitPrice * item.quantity).toLocaleString()} VND</span>
-                      </div>
-                    ))}
-
-                    <div className="flex justify-between text-sm font-semibold text-white pt-2 border-t border-border/30">
-                      <span>Tổng tiền</span>
-                      <span>{order.totalAmount.toLocaleString()} VND</span>
-                    </div>
-
-                    <div className="text-xs text-textMuted pt-2">
-                      Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')} {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+            ))}
           </div>
-        )}
-
-        {activeTab === 'tickets' && (
-          <div className="grid gap-6 md:grid-cols-2">
-            {tickets.length === 0 ? (
-              <div className="col-span-2 text-center py-12 rounded-3xl border border-border/70 bg-card/50 text-textMuted">
-                Bạn chưa sở hữu chiếc vé nào.
-              </div>
-            ) : (
-              tickets.map((ticket) => (
-                <div key={ticket.id} className="rounded-3xl border border-border/70 bg-card p-6 shadow-md flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start gap-2 mb-4">
-                      <span className="text-xs text-textMuted font-mono">MÃ VÉ: {ticket.id.substring(0, 8).toUpperCase()}</span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          ticket.status === 'UNUSED'
-                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                            : ticket.status === 'USED'
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}
-                      >
-                        {ticket.status === 'UNUSED' ? 'Chưa sử dụng' : ticket.status === 'USED' ? 'Đã sử dụng' : 'Đã hủy'}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold mb-1 text-white">{ticket.concertTitle}</h3>
-                    <p className="text-sm text-primary font-semibold mb-4">{ticket.ticketTypeName}</p>
-
-                    <div className="text-xs text-textMuted space-y-1 mb-6">
-                      <p>Người sở hữu: {ticket.ownerFullName}</p>
-                      <p>Số điện thoại: {ticket.ownerPhone}</p>
-                    </div>
-                  </div>
-
-                  {ticket.status === 'UNUSED' && (
-                    <div className="flex justify-center border-t border-border/50 pt-4 bg-white/5 rounded-2xl p-4">
-                      <div className="text-center">
-                        <div className="bg-white p-2 rounded-xl inline-block mb-2">
-                          {/* Emulating a neat QR display */}
-                          <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-xs text-gray-700 font-mono break-all p-2">
-                            {ticket.qrCode}
-                          </div>
-                        </div>
-                        <p className="text-xs text-textMuted">Xuất trình mã QR tại cửa soát vé</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+          <div className="history-total">
+            <span>{dateTime.format(new Date(order.createdAt))}</span>
+            <strong>{money.format(order.totalAmount)}</strong>
           </div>
-        )}
-      </div>
-    </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function TicketHistory({ tickets }: { tickets: TicketResponse[] }) {
+  if (tickets.length === 0) {
+    return <div className="state-panel compact"><span className="state-icon" aria-hidden="true">◇</span><h2>Chưa có vé</h2><p>Vé điện tử và mã QR sẽ hiển thị sau khi thanh toán thành công.</p></div>;
+  }
+
+  return (
+    <section className="ticket-history-grid" aria-label="Ticket history">
+      {tickets.map((ticket) => (
+        <article className="profile-ticket" key={ticket.id}>
+          <div className="history-topline">
+            <span>Ticket {ticket.id.slice(0, 8).toUpperCase()}</span>
+            <span className={`status-chip status-${ticket.status.toLowerCase()}`}>{ticketLabels[ticket.status]}</span>
+          </div>
+          <h2>{ticket.concertTitle}</h2>
+          <p>{ticket.ticketTypeName} · {money.format(ticket.price)}</p>
+          <p>{ticket.ownerFullName} · {ticket.ownerPhone}</p>
+          {ticket.status === 'VALID' || ticket.status === 'UNUSED' ? (
+            <div className="profile-qr">
+              <div>{ticket.qrCode}</div>
+              <span>Xuất trình mã QR tại cửa soát vé</span>
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </section>
   );
 }

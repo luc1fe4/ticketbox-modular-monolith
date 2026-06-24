@@ -13,7 +13,11 @@ import { HomePage } from '../pages/public/HomePage';
 import { LoginPage } from '../pages/public/LoginPage';
 import { RegisterPage } from '../pages/public/RegisterPage';
 
-const protectedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
+const audiencePage = (page: React.ReactNode) => (
+  <ProtectedRoute allowedRoles={['AUDIENCE']}>{page}</ProtectedRoute>
+);
+
+const authenticatedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
 
 export function App() {
   return (
@@ -23,18 +27,18 @@ export function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/concerts/:id" element={<ConcertDetailPage />} />
-            <Route path="/concerts/:id/seats" element={protectedPage(<SeatSelectionPage />)} />
-            <Route path="/checkout" element={protectedPage(<CheckoutPage />)} />
-            <Route path="/booking-confirmation" element={protectedPage(<BookingConfirmationPage />)} />
-            <Route path="/my-tickets" element={protectedPage(<MyTicketsPage />)} />
-            <Route path="/profile" element={protectedPage(<ProfilePage />)} />
+            <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
+            <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
+            <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
+            <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
+            <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route
             path="/admin"
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER', 'STAFF']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER']}>
                 <AdminDashboardPage />
               </ProtectedRoute>
             }

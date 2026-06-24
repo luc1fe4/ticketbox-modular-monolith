@@ -471,3 +471,405 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; transition-duration: .01ms!important; }
 }
+
+.auth-route-loading,
+.profile-loading {
+  min-height: 620px;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  color: var(--muted);
+}
+
+.profile-loading {
+  align-content: center;
+}
+
+.route-spinner {
+  width: 54px;
+  height: 54px;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+.route-forbidden {
+  min-height: 680px;
+  display: grid;
+  place-items: center;
+  padding-block: 80px;
+}
+
+.forbidden-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.profile-page {
+  min-height: 760px;
+  padding-block: 72px 120px;
+}
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  padding-bottom: 34px;
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-hero h1 {
+  margin-bottom: 10px;
+  font-size: clamp(42px, 5.4vw, 72px);
+  line-height: 1;
+}
+
+.profile-hero p:last-child {
+  max-width: 620px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.profile-avatar {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--coral), var(--violet));
+  color: var(--ink);
+  font: 900 22px/1 "Manrope", sans-serif;
+}
+
+.role-badge,
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cream);
+  font: 800 9px/1 "Manrope", sans-serif;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.role-audience,
+.status-paid,
+.status-valid,
+.status-unused {
+  border-color: rgba(121, 219, 168, 0.32);
+  color: #79dba8;
+}
+
+.role-organizer,
+.role-admin,
+.status-awaiting-payment {
+  border-color: rgba(255, 118, 95, 0.35);
+  color: var(--coral-light);
+}
+
+.role-staff,
+.status-used {
+  border-color: rgba(143, 122, 255, 0.35);
+  color: #b6abff;
+}
+
+.status-cancelled,
+.status-expired,
+.status-payment-failed {
+  border-color: rgba(255, 118, 95, 0.28);
+  color: #ff9a86;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 28px;
+  margin: 30px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.profile-tabs button {
+  position: relative;
+  padding: 0 0 15px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-tabs button.active {
+  color: var(--cream);
+}
+
+.profile-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--coral);
+}
+
+.inline-message {
+  margin-bottom: 22px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--cream);
+  font-size: 13px;
+}
+
+.inline-message.success {
+  border-color: rgba(121, 219, 168, 0.28);
+  color: #79dba8;
+}
+
+.inline-message.error {
+  border-color: rgba(255, 118, 95, 0.32);
+  color: var(--coral-light);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.profile-panel,
+.history-item,
+.profile-ticket {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.profile-panel {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+}
+
+.profile-panel .panel-heading {
+  margin-bottom: 4px;
+}
+
+.profile-panel .field input:disabled {
+  color: #807d86;
+  cursor: not-allowed;
+  background: #151519;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.profile-summary {
+  position: sticky;
+  top: 105px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.summary-row strong {
+  color: var(--cream);
+  text-align: right;
+}
+
+.profile-summary p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.history-item,
+.profile-ticket {
+  padding: 24px;
+}
+
+.history-topline,
+.history-total,
+.history-lines div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.history-topline {
+  align-items: center;
+  margin-bottom: 16px;
+  color: #77747e;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.history-item h2,
+.profile-ticket h2 {
+  margin-bottom: 18px;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.history-lines {
+  display: grid;
+  gap: 11px;
+  padding-block: 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-lines strong,
+.history-total strong {
+  color: var(--cream);
+}
+
+.history-total {
+  padding-top: 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ticket-history-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.profile-ticket > p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.profile-qr {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+  text-align: center;
+}
+
+.profile-qr div {
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--cream);
+  color: var(--ink);
+  font: 700 10px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.profile-qr span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.state-panel.compact {
+  min-height: 320px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 980px) {
+  .profile-grid,
+  .ticket-history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-page {
+    padding-block: 52px 88px;
+  }
+
+  .profile-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 18px;
+  }
+
+  .role-badge {
+    justify-self: start;
+  }
+
+  .profile-actions,
+  .forbidden-actions,
+  .history-topline,
+  .history-total,
+  .history-lines div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.auth-error {
+  min-height: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-color: rgba(255, 118, 95, 0.32);
+  text-align: left;
+}
+
+.auth-error p {
+  margin: 0;
+  color: var(--coral-light);
+  font-size: 13px;
+}
+
+.google-button:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+}
+
+.mobile-nav button {
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+}

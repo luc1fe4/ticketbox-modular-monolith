@@ -33,6 +33,14 @@ interface Guest {
   isActive: boolean;
 }
 
+interface BatchJobRunResponse {
+  message?: string;
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'guestlist' | 'batchlogs'>('overview');
   
@@ -58,7 +66,7 @@ export function AdminDashboardPage() {
 
   const fetchConcerts = async () => {
     try {
-      const data = await api.get<any, PageResponse<ConcertSummary>>('/api/concerts');
+      const data = await api.get<unknown, PageResponse<ConcertSummary>>('/api/concerts');
       if (data && data.content) {
         setConcerts(data.content);
         if (data.content.length > 0) {
@@ -72,7 +80,7 @@ export function AdminDashboardPage() {
 
   const fetchBatchLogs = async () => {
     try {
-      const logs = await api.get<any, BatchLog[]>('/api/admin/batch-logs');
+      const logs = await api.get<unknown, BatchLog[]>('/api/admin/batch-logs');
       setBatchLogs(logs || []);
     } catch (err) {
       console.error('Failed to load batch logs', err);
@@ -83,7 +91,7 @@ export function AdminDashboardPage() {
     if (!concertId) return;
     try {
       setLoading(true);
-      const guestList = await api.get<any, Guest[]>(`/api/admin/concerts/${concertId}/guest-lists`);
+      const guestList = await api.get<unknown, Guest[]>(`/api/admin/concerts/${concertId}/guest-lists`);
       setGuests(guestList || []);
     } catch (err) {
       console.error('Failed to load guests', err);
@@ -138,8 +146,8 @@ export function AdminDashboardPage() {
       // Refresh guest list and batch logs
       fetchGuests(selectedConcertId);
       fetchBatchLogs();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Lỗi khi tải lên file khách mời.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: errorMessage(err, 'Lỗi khi tải lên file khách mời.') });
     } finally {
       setActionLoading(false);
     }
@@ -149,12 +157,12 @@ export function AdminDashboardPage() {
     setMessage(null);
     try {
       setActionLoading(true);
-      const res: any = await api.post('/api/admin/batch-jobs/guest-list-import/run');
+      const res = await api.post<unknown, BatchJobRunResponse>('/api/admin/batch-jobs/guest-list-import/run');
       setMessage({ type: 'success', text: res.message || 'Đã kích hoạt quét thư mục import khách mời tự động.' });
       // Refresh logs after brief delay
       setTimeout(fetchBatchLogs, 2000);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Không thể chạy tiến trình quét tự động.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: errorMessage(err, 'Không thể chạy tiến trình quét tự động.') });
     } finally {
       setActionLoading(false);
     }
