@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { isRequestCanceled } from '../../api/client';
-import { getConcert, getConcertTicketTypes, type ConcertDetail, type TicketType } from '../../api/concerts';
+import { getConcert, type ConcertDetail, type TicketType } from '../../api/concerts';
 import { ConcertSeatMap } from '../../components/ConcertSeatMap';
 import { currency, eventDate } from '../../data/mockData';
+import { useTicketAvailability } from '../../features/concert/useTicketAvailability';
 
 export type CheckoutSelection = TicketType & { quantity: number };
 
@@ -11,39 +12,81 @@ export function SeatSelectionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [concert, setConcert] = useState<ConcertDetail | null>(null);
-  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const [concertLoading, setConcertLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inventoryNotice, setInventoryNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const {
+    ticketTypes,
+    loading: availabilityLoading,
+    updatesDelayed,
+    initialLoadFailed,
+    lastUpdatedAt,
+  } = useTicketAvailability(id, reloadKey);
 
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
     let active = true;
-    setLoading(true);
+    setConcertLoading(true);
     setError(null);
-    Promise.all([getConcert(id, controller.signal), getConcertTicketTypes(id, controller.signal)])
-      .then(([detail, types]) => {
+    getConcert(id, controller.signal)
+      .then((detail) => {
         if (!active) return;
-        const activeTypes = types.filter((item) => item.isActive);
         setConcert(detail);
-        setTicketTypes(activeTypes);
-        setSelectedZone(activeTypes.find((item) => item.availableQty > 0)?.id ?? null);
         setError(null);
       })
       .catch((requestError: unknown) => {
-        if (active && !isRequestCanceled(requestError)) setError('The seat map and ticket inventory could not be loaded.');
+        if (active && !isRequestCanceled(requestError)) setError('The concert and seat map could not be loaded.');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setConcertLoading(false);
       });
     return () => {
       active = false;
       controller.abort();
     };
   }, [id, reloadKey]);
+
+  useEffect(() => {
+    if (ticketTypes.length === 0) {
+      setSelectedZone(null);
+      return;
+    }
+
+    setSelectedZone((current) => {
+      const currentType = ticketTypes.find((item) => item.id === current);
+      return currentType && currentType.availableQty > 0
+        ? current
+        : ticketTypes.find((item) => item.availableQty > 0)?.id ?? null;
+    });
+  }, [ticketTypes]);
+
+  useEffect(() => {
+    const adjustedTypes = ticketTypes.filter((ticketType) => {
+      const maximum = Math.min(ticketType.maxPerAccount, ticketType.availableQty);
+      return (quantities[ticketType.id] ?? 0) > maximum;
+    });
+
+    if (adjustedTypes.length === 0) return;
+
+    setQuantities((current) => {
+      const next = { ...current };
+      for (const ticketType of adjustedTypes) {
+        next[ticketType.id] = Math.min(
+          current[ticketType.id] ?? 0,
+          ticketType.maxPerAccount,
+          ticketType.availableQty,
+        );
+      }
+      return next;
+    });
+    setInventoryNotice(
+      `${adjustedTypes.map((item) => item.name).join(', ')} availability changed. Your selection was adjusted.`,
+    );
+  }, [quantities, ticketTypes]);
 
   const selection = useMemo<CheckoutSelection[]>(
     () => ticketTypes.filter((item) => (quantities[item.id] ?? 0) > 0).map((item) => ({ ...item, quantity: quantities[item.id] })),
@@ -62,9 +105,9 @@ export function SeatSelectionPage() {
     setSelectedZone(ticketType.id);
   }
 
-  if (loading) return <div className="selection-loading page-width"><div className="event-skeleton"><div /><span /><span /></div></div>;
-  if (error || !concert) {
-    return <div className="selection-error page-width state-panel"><span className="state-icon">!</span><h1>Seat map unavailable</h1><p>{error ?? 'Concert information was not found.'}</p><button className="button button-primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Try again</button><Link className="text-link" to="/">Return to concerts</Link></div>;
+  if (concertLoading || availabilityLoading) return <div className="selection-loading page-width"><div className="event-skeleton"><div /><span /><span /></div></div>;
+  if (error || initialLoadFailed || !concert) {
+    return <div className="selection-error page-width state-panel"><span className="state-icon">!</span><h1>Seat map unavailable</h1><p>{error ?? (initialLoadFailed ? 'Ticket availability could not be loaded.' : 'Concert information was not found.')}</p><button className="button button-primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Try again</button><Link className="text-link" to="/">Return to concerts</Link></div>;
   }
 
   function continueToCheckout() {
@@ -82,7 +125,14 @@ export function SeatSelectionPage() {
       <div className="flow-topbar">
         <Link className="back-link" to={`/concerts/${concert.id}`}>← Event details</Link>
         <div className="flow-steps" aria-label="Booking progress"><span className="active">1 <i>Tickets</i></span><b /><span>2 <i>Checkout</i></span><b /><span>3 <i>Done</i></span></div>
-        <div className="timer"><span aria-hidden="true">◷</span> Live inventory</div>
+        <div className={`timer ${updatesDelayed ? 'delayed' : ''}`} role="status">
+          <span aria-hidden="true">◷</span>{' '}
+          {updatesDelayed
+            ? 'Updates delayed'
+            : lastUpdatedAt
+              ? `Updated ${lastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+              : 'Live inventory'}
+        </div>
       </div>
       <header className="selection-header">
         <div><p className="eyebrow"><span /> Choose your experience</p><h1>{concert.title}</h1><p>{eventDate.format(new Date(concert.eventDate))} · {concert.venueName}</p></div>
@@ -95,6 +145,12 @@ export function SeatSelectionPage() {
         </section>
         <aside className="ticket-picker">
           <div className="panel-heading"><div><span>Live availability</span><h2>Choose tickets</h2></div></div>
+          {inventoryNotice ? (
+            <div className="inventory-notice" role="status">
+              <p>{inventoryNotice}</p>
+              <button type="button" onClick={() => setInventoryNotice(null)} aria-label="Dismiss availability update">×</button>
+            </div>
+          ) : null}
           <div className="zone-list">
             {ticketTypes.map((ticketType) => {
               const quantity = quantities[ticketType.id] ?? 0;
@@ -118,7 +174,7 @@ export function SeatSelectionPage() {
           </div>
           <div className="selection-summary">
             <div><span>{ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}</span><strong>{currency.format(subtotal)}</strong></div>
-            <p>Availability is live. Your order will be reserved securely at checkout.</p>
+            <p>Availability refreshes every 4 seconds. Your order will be reserved securely at checkout.</p>
             <button className="button button-primary button-block" type="button" disabled={!ticketCount} onClick={continueToCheckout}>Continue to checkout <span aria-hidden="true">→</span></button>
           </div>
         </aside>
