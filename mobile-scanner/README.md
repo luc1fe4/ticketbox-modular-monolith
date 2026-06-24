@@ -63,7 +63,7 @@ Migration `V11__seed_staff_data.sql` tạo tài khoản:
 
 ```text
 Email: staff@ticketbox.com
-Mật khẩu: staff123
+Mật khẩu: password123
 Concert test: STAFF Scanner Test Concert
 Cổng gợi ý: A
 ```
