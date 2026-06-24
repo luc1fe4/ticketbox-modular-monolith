@@ -1,8 +1,6 @@
-import { syncCheckinLogs } from '../../api';
+import { MAX_SYNC_BATCH_SIZE, syncCheckinLogs } from '../../api';
 import { listPendingLogs, updateSyncResult } from '../../database';
 import type { LocalCheckinStatus } from '../../database';
-
-const MAX_SYNC_BATCH_SIZE = 500;
 
 export type PendingSyncSummary = {
   total: number;

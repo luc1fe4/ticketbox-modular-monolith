@@ -143,3 +143,14 @@ export type ServerCheckinHistory = {
   qrCode: string | null;
   ticketStatus: string | null;
 };
+
+export type StaffGuestListEntry = {
+  found: boolean;
+  guestId: string;
+  concertId: string;
+  phone: string;
+  fullName: string;
+  category: string;
+  sponsorName: string;
+  notes: string | null;
+};

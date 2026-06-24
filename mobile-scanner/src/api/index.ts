@@ -1,4 +1,10 @@
-export { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from './config';
+export {
+  DEFAULT_API_BASE_URL,
+  MAX_SYNC_BATCH_SIZE,
+  SCAN_DUPLICATE_WINDOW_MS,
+  getApiBaseUrl,
+  setApiBaseUrl,
+} from './config';
 export { apiClient, ApiClientError, requestJson } from './client';
 export { loginStaff, logoutStaff } from './services/auth';
 export {
@@ -9,6 +15,7 @@ export {
   getStaffTickets,
   scanTicketOnline,
   syncCheckinLogs,
+  getStaffGuestList,
 } from './services/checkin';
 export {
   deleteAccessToken,
@@ -39,4 +46,5 @@ export type {
   SyncCheckinResponse,
   SyncResultEntry,
   TicketDatasetEntry,
+  StaffGuestListEntry,
 } from './types';

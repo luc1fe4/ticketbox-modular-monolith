@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 
-import type { StaffConcert } from '../api';
+import { SCAN_DUPLICATE_WINDOW_MS, type StaffConcert } from '../api';
 import type { LogStatusCounts } from '../database';
 import type { ManualCheckinResult } from '../features/checkin';
 import { BottomNav, Header, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../ui/components';
@@ -95,37 +95,48 @@ export function ScannerHomeScreen({
           </View>
         ) : null}
 
-        <View style={styles.modeRow}>
-          <Text style={styles.helper}>
-            {isOnline ? 'Server xác nhận ngay.' : 'Kiểm tra local và lưu chờ đồng bộ.'}
-          </Text>
-          <SecondaryButton
-            label={cameraActive ? 'Nhập tay' : 'Mở camera'}
-            onPress={() => setCameraActive((value) => !value)}
-          />
+        <View style={styles.tabContainer}>
+          <Pressable
+            style={[styles.tabButton, cameraActive && styles.tabButtonActive]}
+            onPress={() => setCameraActive(true)}
+          >
+            <Text style={[styles.tabText, cameraActive && styles.tabTextActive]}>Quét mã QR</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tabButton, !cameraActive && styles.tabButtonActive]}
+            onPress={() => setCameraActive(false)}
+          >
+            <Text style={[styles.tabText, !cameraActive && styles.tabTextActive]}>Nhập tay</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.manualPanel}>
-          <TextInput
-            autoCapitalize="none"
-            editable={!isCheckingIn && canScan}
-            multiline
-            onChangeText={onChangeQrCode}
-            placeholder="Dán nội dung QR"
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
-            value={qrCode}
-          />
-          <PrimaryButton
-            disabled={!canScan || !qrCode.trim()}
-            label={isOnline ? 'Check-in online' : 'Lưu check-in offline'}
-            loading={isCheckingIn}
-            onPress={onCheckin}
-          />
-        </View>
+        {!cameraActive && (
+          <View style={styles.manualPanel}>
+            <TextInput
+              autoCapitalize="none"
+              editable={!isCheckingIn && canScan}
+              multiline
+              onChangeText={onChangeQrCode}
+              placeholder="Dán nội dung QR"
+              placeholderTextColor={colors.textMuted}
+              style={styles.input}
+              value={qrCode}
+            />
+            <PrimaryButton
+              disabled={!canScan || !qrCode.trim()}
+              label={isOnline ? 'Check-in online' : 'Lưu check-in offline'}
+              loading={isCheckingIn}
+              onPress={onCheckin}
+            />
+          </View>
+        )}
 
         {result ? (
-          <View style={[styles.result, resultTone(result.status)]}>
+          <View
+            accessibilityLiveRegion="assertive"
+            accessibilityRole="alert"
+            style={[styles.result, resultTone(result.status)]}
+          >
             <Text style={styles.resultTitle}>{resultLabel(result.status)}</Text>
             <Text style={styles.resultMessage}>{result.message}</Text>
             {result.checkedAt ? <Text style={styles.resultMeta}>{formatDateTime(result.checkedAt)}</Text> : null}
@@ -145,7 +156,10 @@ export function ScannerHomeScreen({
     const value = scan.data.trim();
     const now = Date.now();
     if (!value) return;
-    if (lastScanRef.current?.value === value && now - lastScanRef.current.at < 3000) return;
+    if (
+      lastScanRef.current?.value === value &&
+      now - lastScanRef.current.at < SCAN_DUPLICATE_WINDOW_MS
+    ) return;
     lastScanRef.current = { value, at: now };
     onChangeQrCode(value);
     onCameraQrScanned(value);
@@ -192,7 +206,11 @@ const styles = StyleSheet.create({
   camera: { minHeight: 330, alignItems: 'center', justifyContent: 'center' },
   scanFrame: { width: 220, height: 220, borderWidth: 3, borderColor: '#FFFFFF', borderRadius: radius.card },
   cameraFallback: { minHeight: 330, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 20, backgroundColor: colors.surface },
-  modeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tabContainer: { flexDirection: 'row', backgroundColor: colors.surfaceMuted, borderRadius: radius.input, padding: 4, marginBottom: 8 },
+  tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.input - 2 },
+  tabButtonActive: { backgroundColor: colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1, elevation: 1 },
+  tabText: { color: colors.textMuted, fontSize: 14, fontWeight: '700' },
+  tabTextActive: { color: colors.text, fontWeight: '800' },
   manualPanel: { gap: 10 },
   input: {
     minHeight: 76,
