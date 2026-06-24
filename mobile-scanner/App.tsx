@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 import {
   ApiClientError,
@@ -10,6 +11,7 @@ import {
   getStaffConcerts,
   getStaffTickets,
   getStaffUser,
+  getStaffGuestList,
   loginStaff,
   logoutStaff,
 } from './src/api';
@@ -19,6 +21,7 @@ import type {
   StaffConcertOverview,
   StaffTicket,
   StaffUser,
+  StaffGuestListEntry,
 } from './src/api';
 import {
   cacheStaffConcerts,
@@ -49,12 +52,13 @@ import {
   ConcertDataScreen,
   ConcertListScreen,
   ConcertOverviewScreen,
+  GuestListScreen,
   ScannerHomeScreen,
   StaffLoginScreen,
 } from './src/screens';
 
 type Session = { accessToken: string; user: StaffUser };
-type AppScreen = 'concerts' | 'overview' | 'scanner' | 'data';
+type AppScreen = 'concerts' | 'overview' | 'scanner' | 'data' | 'guestlist';
 
 const SELECTED_CONCERT_KEY = 'scanner:selectedConcertId';
 const SELECTED_GATE_KEY = 'scanner:selectedGate';
@@ -96,6 +100,9 @@ export default function App() {
   const [serverHistory, setServerHistory] = useState<ServerCheckinHistory[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  const [guestList, setGuestList] = useState<StaffGuestListEntry[]>([]);
+  const [isDownloadingGuestList, setIsDownloadingGuestList] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -272,6 +279,20 @@ export default function App() {
     }
   }
 
+  async function handleDownloadGuestList() {
+    if (!selectedConcert || !session) return;
+    setIsDownloadingGuestList(true);
+    setOperationError(null);
+    try {
+      const response = await getStaffGuestList(selectedConcert.id, session.accessToken);
+      setGuestList(response);
+    } catch (error) {
+      setOperationError(toErrorMessage(error));
+    } finally {
+      setIsDownloadingGuestList(false);
+    }
+  }
+
   async function runCheckin(value: string) {
     if (!selectedConcert || !session) return;
     setIsCheckingIn(true);
@@ -351,7 +372,14 @@ export default function App() {
     }
   }
 
-  function navigateWithinConcert(next: 'overview' | 'scanner' | 'data') {
+  function navigateWithinConcert(next: 'overview' | 'scanner' | 'data' | 'guestlist') {
+    if (next === 'scanner' && !gate.trim()) {
+      Alert.alert(
+        'Thiếu thông tin',
+        'Vui lòng nhập Cổng đang làm việc trước khi quét.',
+      );
+      return;
+    }
     setScreen(next);
   }
 
@@ -425,6 +453,16 @@ export default function App() {
     );
   }
 
+  if (screen === 'guestlist') {
+    return (
+      <GuestListScreen
+        concert={selectedConcert}
+        guestList={guestList}
+        onBack={() => setScreen('overview')}
+      />
+    );
+  }
+
   return (
     <ConcertOverviewScreen
       concert={selectedConcert}
@@ -442,7 +480,10 @@ export default function App() {
       onBack={() => setScreen('concerts')}
       onDownloadDataset={handleDownloadDataset}
       onSync={handleSync}
+      onDownloadGuestList={handleDownloadGuestList}
       onNavigate={navigateWithinConcert}
+      hasGuestList={guestList.length > 0}
+      isDownloadingGuestList={isDownloadingGuestList}
     />
   );
 }

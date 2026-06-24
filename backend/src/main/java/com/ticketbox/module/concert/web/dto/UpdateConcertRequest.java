@@ -21,7 +21,5 @@ public record UpdateConcertRequest(
 
         OffsetDateTime doorsOpenAt,
 
-        String seatMapSvg,
-
-        String posterUrl
+        String seatMapSvg
 ) {}

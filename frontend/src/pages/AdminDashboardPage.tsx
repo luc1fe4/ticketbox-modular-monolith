@@ -1,37 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../api/client';
-
-interface ConcertSummary {
-  id: string;
-  title: string;
-  artist: string;
-}
-
-interface PageResponse<T> {
-  content: T[];
-}
-
-interface BatchLog {
-  id: string;
-  jobName: string;
-  status: 'COMPLETED' | 'FAILED' | 'STARTED';
-  startTime: string;
-  endTime: string;
-  readCount: number;
-  writeCount: number;
-  skipCount: number;
-  errorMessage?: string;
-}
-
-interface Guest {
-  id: string;
-  concertId: string;
-  fullName: string;
-  phone: string;
-  ticketTypeName: string;
-  quantity: number;
-  isActive: boolean;
-}
+import { AdminOverviewPage } from './admin/AdminOverviewPage';
 
 interface BatchJobRunResponse {
   message?: string;

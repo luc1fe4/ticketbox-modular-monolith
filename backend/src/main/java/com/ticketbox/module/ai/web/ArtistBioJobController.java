@@ -5,9 +5,13 @@ import com.ticketbox.module.ai.domain.ArtistPdfJob;
 import com.ticketbox.module.ai.web.dto.ArtistBioJobResponse;
 import com.ticketbox.module.ai.web.dto.ArtistBioJobSubmissionResponse;
 import com.ticketbox.shared.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping({"/api/admin", "/api/organizer/manage"})
 public class ArtistBioJobController {
 
     private final ArtistBioJobService jobService;
@@ -34,13 +38,14 @@ public class ArtistBioJobController {
     public ResponseEntity<ApiResponse<ArtistBioJobSubmissionResponse>> submit(
             @PathVariable UUID concertId,
             @RequestPart("file") MultipartFile file,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         ArtistPdfJob job = jobService.submit(
                 concertId,
                 file,
                 userId(authentication),
                 isAdmin(authentication));
-        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job)));
+        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job, httpRequest)));
     }
 
     @GetMapping("/artist-bio-jobs/{jobId}")
@@ -53,15 +58,35 @@ public class ArtistBioJobController {
                 isAdmin(authentication)));
     }
 
+    @GetMapping("/artist-bio-jobs")
+    public ApiResponse<Page<ArtistBioJobResponse>> list(
+            @RequestParam(required = false) UUID concertId,
+            @RequestParam(required = false) ArtistPdfJob.Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        PageRequest pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100),
+                Sort.by("createdAt").descending());
+        return ApiResponse.success(jobService.list(
+                userId(authentication),
+                isAdmin(authentication),
+                concertId,
+                status,
+                pageable));
+    }
+
     @PostMapping("/artist-bio-jobs/{jobId}/retry")
     public ResponseEntity<ApiResponse<ArtistBioJobSubmissionResponse>> retry(
             @PathVariable UUID jobId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         ArtistPdfJob job = jobService.retry(
                 jobId,
                 userId(authentication),
                 isAdmin(authentication));
-        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job)));
+        return ResponseEntity.accepted().body(ApiResponse.accepted(submission(job, httpRequest)));
     }
 
     @PostMapping("/artist-bio-jobs/{jobId}/apply")
@@ -76,11 +101,14 @@ public class ArtistBioJobController {
                 overwrite));
     }
 
-    private ArtistBioJobSubmissionResponse submission(ArtistPdfJob job) {
+    private ArtistBioJobSubmissionResponse submission(ArtistPdfJob job, HttpServletRequest request) {
+        String basePath = request.getRequestURI().startsWith("/api/organizer/")
+                ? "/api/organizer/manage"
+                : "/api/admin";
         return new ArtistBioJobSubmissionResponse(
                 job.getId(),
                 job.getStatus().name(),
-                "/api/admin/artist-bio-jobs/" + job.getId());
+                basePath + "/artist-bio-jobs/" + job.getId());
     }
 
     private UUID userId(Authentication authentication) {

@@ -24,6 +24,8 @@ public interface ConcertMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "artistBio", ignore = true)
+    @Mapping(target = "posterUrl", ignore = true)
+    @Mapping(target = "posterPublicId", ignore = true)
     Concert toEntity(CreateConcertRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -33,5 +35,7 @@ public interface ConcertMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "artistBio", ignore = true)
+    @Mapping(target = "posterUrl", ignore = true)
+    @Mapping(target = "posterPublicId", ignore = true)
     void updateConcertFromRequest(UpdateConcertRequest request, @MappingTarget Concert concert);
 }

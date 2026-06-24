@@ -79,6 +79,12 @@ export function PublicLayout() {
                     {canOpenAdmin ? (
                       <Link to="/admin" onClick={() => setMenuOpen(false)}>Administration</Link>
                     ) : null}
+                    {user.role === 'ORGANIZER' ? (
+                      <Link to="/organizer" onClick={() => setMenuOpen(false)}>Organizer studio</Link>
+                    ) : null}
+                    {user.role === 'STAFF' ? (
+                      <Link to="/staff" onClick={() => setMenuOpen(false)}>Gate operations</Link>
+                    ) : null}
                     <button type="button" onClick={logOut}>Log out</button>
                   </div>
                 ) : null}

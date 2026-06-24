@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import type { StaffConcert, StaffUser } from '../api';
 import type { DatasetInfo } from '../database';
@@ -43,11 +48,39 @@ export function ConcertListScreen({
   onSelectConcert,
   onLogout,
 }: Props) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchDate, setSearchDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const filteredConcerts = concerts.filter((concert) => {
+    const matchesQuery = concert.title.toLowerCase().includes(searchQuery.toLowerCase());
+    let matchesDate = true;
+    if (searchDate) {
+      const concertDate = new Date(concert.eventDate);
+      matchesDate =
+        concertDate.getDate() === searchDate.getDate() &&
+        concertDate.getMonth() === searchDate.getMonth() &&
+        concertDate.getFullYear() === searchDate.getFullYear();
+    }
+    return matchesQuery && matchesDate;
+  });
+
+  const handleSelectConcert = (concert: StaffConcert) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc chắn muốn chọn concert "${concert.title}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Chọn', onPress: () => onSelectConcert(concert) },
+      ]
+    );
+  };
+
   return (
     <Screen>
       <FlatList
         contentContainerStyle={styles.content}
-        data={concerts}
+        data={filteredConcerts}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} />}
         ListHeaderComponent={
@@ -56,9 +89,47 @@ export function ConcertListScreen({
               eyebrow="TicketBox Scanner"
               title="Chọn concert"
               subtitle={`Xin chào ${user.fullName}. Chọn concert trước khi tải dữ liệu và quét vé.`}
-              right={<StatusBadge label={isOnline ? 'Online' : 'Offline'} tone={isOnline ? 'success' : 'warning'} />}
+              right={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <StatusBadge label={isOnline ? 'Online' : 'Offline'} tone={isOnline ? 'success' : 'warning'} />
+                  <Pressable onPress={onLogout} style={{ padding: 4 }}>
+                    <MaterialIcons name="logout" size={24} color={colors.danger} />
+                  </Pressable>
+                </View>
+              }
             />
             {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+            <View style={styles.filters}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm tên concert..."
+                placeholderTextColor={colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <Pressable style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+                <MaterialIcons name="date-range" size={20} color={colors.accent} />
+                <Text style={styles.datePickerText}>
+                  {searchDate ? searchDate.toLocaleDateString('vi-VN') : 'Lọc theo ngày'}
+                </Text>
+              </Pressable>
+              {searchDate ? (
+                <Pressable style={styles.clearDateBtn} onPress={() => setSearchDate(null)}>
+                  <MaterialIcons name="close" size={16} color={colors.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+            {showDatePicker && (
+              <DateTimePicker
+                value={searchDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, date) => {
+                  setShowDatePicker(false);
+                  if (date) setSearchDate(date);
+                }}
+              />
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -82,7 +153,7 @@ export function ConcertListScreen({
           const localDataset = datasetInfo[item.id];
           return (
             <Pressable
-              onPress={() => onSelectConcert(item)}
+              onPress={() => handleSelectConcert(item)}
               style={({ pressed }) => [styles.concertRow, pressed && styles.pressed]}
             >
               <View style={styles.dateBlock}>
@@ -105,11 +176,6 @@ export function ConcertListScreen({
             </Pressable>
           );
         }}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            <SecondaryButton label="Đăng xuất" onPress={onLogout} />
-          </View>
-        }
       />
     </Screen>
   );
@@ -162,5 +228,9 @@ const styles = StyleSheet.create({
   meta: { color: colors.textMuted, fontSize: 13 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 5 },
   chevron: { color: colors.textMuted, fontSize: 28, fontWeight: '300' },
-  footer: { marginTop: 18, marginBottom: 10 },
+  filters: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  searchInput: { flex: 1, height: 40, borderWidth: 1, borderColor: colors.border, borderRadius: radius.input, paddingHorizontal: 12, color: colors.text, backgroundColor: colors.surface },
+  datePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 40, borderWidth: 1, borderColor: colors.border, borderRadius: radius.input, paddingHorizontal: 10, backgroundColor: colors.surface },
+  datePickerText: { color: colors.text, fontSize: 13 },
+  clearDateBtn: { padding: 4 },
 });

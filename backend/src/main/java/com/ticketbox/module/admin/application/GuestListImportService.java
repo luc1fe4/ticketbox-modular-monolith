@@ -22,7 +22,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class GuestListImportService {
 
     private static final List<BatchLog.Status> DEDUPLICATED_STATUSES =
-            List.of(BatchLog.Status.RUNNING, BatchLog.Status.SUCCESS, BatchLog.Status.PARTIAL);
+            List.of(
+                    BatchLog.Status.PENDING,
+                    BatchLog.Status.RUNNING,
+                    BatchLog.Status.SUCCESS,
+                    BatchLog.Status.PARTIAL);
 
     private final BatchLogRepository batchLogRepository;
     private final GuestListFileStorage fileStorage;
@@ -67,26 +71,93 @@ public class GuestListImportService {
         }
     }
 
+    public BatchLog queueScheduledUpload(
+            UUID concertId,
+            MultipartFile file,
+            UUID userId) {
+        accessService.requireAccess(concertId, userId, false);
+        validateUpload(file);
+
+        Path stored = null;
+        try {
+            stored = fileStorage.storeScheduledUpload(concertId, file);
+            String fileName = safeOriginalName(file.getOriginalFilename());
+            String checksum = fileStorage.checksum(stored);
+            Optional<BatchLog> existing = findDuplicate(concertId, checksum);
+            if (existing.isPresent()) {
+                fileStorage.deleteQuietly(stored);
+                return recordSkippedQueue(concertId, fileName, checksum, existing.get());
+            }
+
+            BatchLog pending = new BatchLog();
+            pending.setJobName("GUEST_LIST_IMPORT");
+            pending.setConcertId(concertId);
+            pending.setSource(BatchLog.Source.SCHEDULED);
+            pending.setChecksum(checksum);
+            pending.setFileName(fileName);
+            pending.setFilePath(stored.toString());
+            pending.setStartedAt(OffsetDateTime.now());
+            pending.setStatus(BatchLog.Status.PENDING);
+            try {
+                return batchLogRepository.saveAndFlush(pending);
+            } catch (DataIntegrityViolationException race) {
+                BatchLog duplicate = findDuplicate(concertId, checksum).orElseThrow(() -> race);
+                fileStorage.deleteQuietly(stored);
+                return recordSkippedQueue(concertId, fileName, checksum, duplicate);
+            }
+        } catch (IOException ex) {
+            if (stored != null) {
+                fileStorage.deleteQuietly(stored);
+            }
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Could not queue CSV file for scheduled import");
+        }
+    }
+
     public BatchLog submitScheduled(UUID concertId, Path claimedFile, String originalFileName) {
+        return submitScheduled(concertId, claimedFile, originalFileName, null);
+    }
+
+    public BatchLog submitScheduled(
+            UUID concertId,
+            Path claimedFile,
+            String originalFileName,
+            Path queuedPath) {
         try {
             if (fileStorage.size(claimedFile) > properties.getMaxFileSize().toBytes()) {
                 return rejectScheduled(
                         concertId,
                         claimedFile,
                         originalFileName,
-                        "CSV exceeds configured maximum file size");
+                        "CSV exceeds configured maximum file size",
+                        queuedPath);
+            }
+            String checksum = fileStorage.checksum(claimedFile);
+            Optional<BatchLog> pending = batchLogRepository
+                    .findFirstByConcertIdAndChecksumAndStatusOrderByStartedAtDesc(
+                            concertId,
+                            checksum,
+                            BatchLog.Status.PENDING);
+            if (pending.isPresent()
+                    && (queuedPath == null
+                            || Path.of(pending.get().getFilePath()).toAbsolutePath().normalize()
+                                    .equals(queuedPath.toAbsolutePath().normalize()))) {
+                return launchPending(pending.get(), claimedFile);
             }
             return submit(
                     concertId,
                     claimedFile,
                     safeOriginalName(originalFileName),
-                    BatchLog.Source.SCHEDULED);
+                    BatchLog.Source.SCHEDULED,
+                    checksum);
         } catch (IOException ex) {
             return rejectScheduled(
                     concertId,
                     claimedFile,
                     originalFileName,
-                    "Could not inspect CSV file: " + ex.getMessage());
+                    "Could not inspect CSV file: " + ex.getMessage(),
+                    queuedPath);
         }
     }
 
@@ -96,6 +167,15 @@ public class GuestListImportService {
             String fileName,
             BatchLog.Source source) throws IOException {
         String checksum = fileStorage.checksum(file);
+        return submit(concertId, file, fileName, source, checksum);
+    }
+
+    private BatchLog submit(
+            UUID concertId,
+            Path file,
+            String fileName,
+            BatchLog.Source source,
+            String checksum) throws IOException {
         Optional<BatchLog> existing = findDuplicate(concertId, checksum);
         if (existing.isPresent()) {
             if (source == BatchLog.Source.UPLOAD) {
@@ -130,6 +210,34 @@ public class GuestListImportService {
         return log;
     }
 
+    private BatchLog launchPending(
+            BatchLog pending,
+            Path claimedFile) {
+        pending.setFilePath(claimedFile.toString());
+        pending.setStatus(BatchLog.Status.RUNNING);
+        BatchLog running = batchLogRepository.saveAndFlush(pending);
+        jobRunner.launch(running);
+        return running;
+    }
+
+    private BatchLog recordSkippedQueue(
+            UUID concertId,
+            String fileName,
+            String checksum,
+            BatchLog original) {
+        BatchLog skipped = new BatchLog();
+        skipped.setJobName("GUEST_LIST_IMPORT");
+        skipped.setConcertId(concertId);
+        skipped.setSource(BatchLog.Source.SCHEDULED);
+        skipped.setChecksum(checksum);
+        skipped.setFileName(fileName);
+        skipped.setStartedAt(OffsetDateTime.now());
+        skipped.setCompletedAt(OffsetDateTime.now());
+        skipped.setStatus(BatchLog.Status.SKIPPED);
+        skipped.setErrorDetail("Duplicate of batch " + original.getId());
+        return batchLogRepository.save(skipped);
+    }
+
     private BatchLog skipScheduled(
             UUID concertId,
             Path file,
@@ -155,13 +263,22 @@ public class GuestListImportService {
             UUID concertId,
             Path file,
             String fileName,
-            String reason) {
-        BatchLog failed = new BatchLog();
-        failed.setJobName("GUEST_LIST_IMPORT");
-        failed.setConcertId(concertId);
-        failed.setSource(BatchLog.Source.SCHEDULED);
-        failed.setFileName(safeOriginalName(fileName));
-        failed.setStartedAt(OffsetDateTime.now());
+            String reason,
+            Path queuedPath) {
+        BatchLog failed = queuedPath == null
+                ? new BatchLog()
+                : batchLogRepository.findFirstByConcertIdAndFilePathAndStatus(
+                                concertId,
+                                queuedPath.toString(),
+                                BatchLog.Status.PENDING)
+                        .orElseGet(BatchLog::new);
+        if (failed.getJobName() == null) {
+            failed.setJobName("GUEST_LIST_IMPORT");
+            failed.setConcertId(concertId);
+            failed.setSource(BatchLog.Source.SCHEDULED);
+            failed.setFileName(safeOriginalName(fileName));
+            failed.setStartedAt(OffsetDateTime.now());
+        }
         failed.setCompletedAt(OffsetDateTime.now());
         failed.setStatus(BatchLog.Status.FAILED);
         failed.setErrorDetail(reason);

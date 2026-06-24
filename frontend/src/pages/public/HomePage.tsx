@@ -20,7 +20,7 @@ export function HomePage() {
     let active = true;
     setLoading(true);
     setError(null);
-    getConcerts(0, 12, controller.signal)
+    getConcerts(0, 20, controller.signal)
       .then((page) => {
         if (!active) return;
         setConcerts(page.content);

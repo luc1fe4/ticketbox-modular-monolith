@@ -51,6 +51,24 @@ public class GuestListFileStorage {
         return target;
     }
 
+    public Path storeScheduledUpload(UUID concertId, MultipartFile file) throws IOException {
+        Path targetDirectory = safeConcertDirectory(incomingRoot(), concertId);
+        Files.createDirectories(targetDirectory);
+        String safeName = sanitizeFileName(file.getOriginalFilename());
+        String token = UUID.randomUUID().toString();
+        Path temporary = targetDirectory.resolve(token + ".uploading");
+        Path target = targetDirectory.resolve(token + "-" + safeName);
+        try (InputStream input = file.getInputStream()) {
+            Files.copy(input, temporary, StandardCopyOption.REPLACE_EXISTING);
+        }
+        try {
+            return atomicMove(temporary, target);
+        } catch (IOException ex) {
+            Files.deleteIfExists(temporary);
+            throw ex;
+        }
+    }
+
     public Path claimScheduledFile(UUID concertId, Path source) throws IOException {
         Path safeSource = requireUnder(incomingRoot(), source);
         Path targetDirectory = safeConcertDirectory(processingRoot(), concertId);
@@ -148,6 +166,9 @@ public class GuestListFileStorage {
     }
 
     private String sanitizeFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "guest-list.csv";
+        }
         String sanitized = fileName.replaceAll("[^A-Za-z0-9._-]", "_");
         return sanitized.isBlank() ? "guest-list.csv" : sanitized;
     }

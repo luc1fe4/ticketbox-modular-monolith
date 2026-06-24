@@ -129,10 +129,22 @@ export async function performOnlineCheckin({
     accessToken,
   );
 
+  const accepted = response.status === 'SUCCESS';
+
+  if (accepted) {
+    await insertLocalCheckinLog({
+      concertId: selectedConcertId,
+      qrCode: selectedQrCode,
+      checkedAt: response.checkAt,
+      gate: gate.trim() || null,
+      status: 'SYNCED',
+    });
+  }
+
   return {
-    inserted: false,
+    inserted: accepted,
     result: {
-      status: response.status === 'SUCCESS' ? 'ONLINE_ACCEPTED' : 'ONLINE_FAILED',
+      status: accepted ? 'ONLINE_ACCEPTED' : 'ONLINE_FAILED',
       message: response.message,
       checkedAt: response.checkAt,
       qrCode: selectedQrCode,

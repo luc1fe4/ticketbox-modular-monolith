@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -30,6 +31,7 @@ type Props = {
 export function ConcertDataScreen(props: Props) {
   const [tab, setTab] = useState<'tickets' | 'history'>('tickets');
   const [query, setQuery] = useState('');
+  const [ticketStatus, setTicketStatus] = useState<TicketStatusFilter>('ALL');
   const normalizedQuery = query.trim().toLowerCase();
 
   const tickets = useMemo(() => {
@@ -37,9 +39,13 @@ export function ConcertDataScreen(props: Props) {
     return source.filter((item) => {
       const qrCode = 'qrCode' in item ? item.qrCode : '';
       const ticketId = 'ticketId' in item ? item.ticketId : '';
-      return !normalizedQuery || qrCode.toLowerCase().includes(normalizedQuery) || ticketId.toLowerCase().includes(normalizedQuery);
+      const matchesQuery =
+        !normalizedQuery ||
+        qrCode.toLowerCase().includes(normalizedQuery) ||
+        ticketId.toLowerCase().includes(normalizedQuery);
+      return matchesQuery && matchesTicketStatus(item, ticketStatus);
     });
-  }, [normalizedQuery, props.localTickets, props.serverTickets]);
+  }, [normalizedQuery, props.localTickets, props.serverTickets, ticketStatus]);
 
   const history = useMemo(() => {
     const serverQrCodes = new Set(
@@ -92,6 +98,22 @@ export function ConcertDataScreen(props: Props) {
               style={styles.search}
               value={query}
             />
+            {tab === 'tickets' ? (
+              <ScrollView
+                contentContainerStyle={styles.filters}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {TICKET_STATUS_FILTERS.map((filter) => (
+                  <FilterChip
+                    active={ticketStatus === filter.value}
+                    key={filter.value}
+                    label={filter.label}
+                    onPress={() => setTicketStatus(filter.value)}
+                  />
+                ))}
+              </ScrollView>
+            ) : null}
             {props.errorMessage ? <ErrorBanner message={props.errorMessage} /> : null}
             {props.isLoading ? (
               <View style={styles.loading}>
@@ -127,12 +149,56 @@ type DataItem =
   | { kind: 'ticket'; item: LocalTicketListItem | StaffTicket }
   | { kind: 'history'; item: HistoryItem };
 
+type TicketStatusFilter = 'ALL' | 'VALID' | 'CHECKED_IN' | 'PENDING' | 'ERROR';
+
+const TICKET_STATUS_FILTERS: { label: string; value: TicketStatusFilter }[] = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Hợp lệ', value: 'VALID' },
+  { label: 'Đã check-in', value: 'CHECKED_IN' },
+  { label: 'Chờ sync', value: 'PENDING' },
+  { label: 'Lỗi', value: 'ERROR' },
+];
+
 function Tab({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.tab, active && styles.tabActive]}>
       <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
     </Pressable>
   );
+}
+
+function FilterChip({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.filterChip, active && styles.filterChipActive]}
+    >
+      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function matchesTicketStatus(
+  item: LocalTicketListItem | StaffTicket,
+  filter: TicketStatusFilter,
+) {
+  if (filter === 'ALL') return true;
+
+  const status = 'checkinStatus' in item ? item.checkinStatus ?? 'VALID_LOCAL' : item.status;
+  if (filter === 'VALID') return status === 'VALID' || status === 'VALID_LOCAL';
+  if (filter === 'CHECKED_IN') return status === 'USED' || status === 'SYNCED';
+  if (filter === 'PENDING') return status === 'PENDING';
+  return ['FAILED', 'CONFLICT', 'CANCELLED', 'TRANSFERRED'].includes(status);
 }
 
 function TicketRow({ item }: { item: LocalTicketListItem | StaffTicket }) {
@@ -189,6 +255,20 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.surface },
   tabText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   tabTextActive: { color: colors.accent, fontWeight: '900' },
+  filters: { gap: 8, paddingRight: spacing.screen },
+  filterChip: {
+    minHeight: 38,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+  },
+  filterChipActive: { borderColor: colors.accent, backgroundColor: colors.surfaceMuted },
+  filterChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  filterChipTextActive: { color: colors.accent, fontWeight: '900' },
   search: {
     minHeight: 48,
     paddingHorizontal: 14,
