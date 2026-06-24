@@ -6,12 +6,16 @@ import com.ticketbox.module.ai.infrastructure.ArtistPdfFileStorage;
 import com.ticketbox.module.ai.infrastructure.StoredArtistPdf;
 import com.ticketbox.module.ai.web.dto.ArtistBioJobResponse;
 import com.ticketbox.module.concert.ConcertArtistBioPort;
+import com.ticketbox.module.concert.ConcertReportingPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,17 +32,49 @@ public class ArtistBioJobService {
     private final ArtistPdfJobRepository jobRepository;
     private final ArtistPdfFileStorage fileStorage;
     private final ConcertArtistBioPort concertPort;
+    private final ConcertReportingPort concertReportingPort;
     private final ApplicationEventPublisher eventPublisher;
 
     public ArtistBioJobService(
             ArtistPdfJobRepository jobRepository,
             ArtistPdfFileStorage fileStorage,
             ConcertArtistBioPort concertPort,
+            ConcertReportingPort concertReportingPort,
             ApplicationEventPublisher eventPublisher) {
         this.jobRepository = jobRepository;
         this.fileStorage = fileStorage;
         this.concertPort = concertPort;
+        this.concertReportingPort = concertReportingPort;
         this.eventPublisher = eventPublisher;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ArtistBioJobResponse> list(
+            UUID requesterId,
+            boolean admin,
+            UUID concertId,
+            ArtistPdfJob.Status status,
+            Pageable pageable) {
+        Specification<ArtistPdfJob> specification = Specification.where(null);
+
+        if (concertId != null) {
+            concertPort.requireAccessibleConcert(concertId, requesterId, admin);
+            specification = specification.and(
+                    (root, query, builder) -> builder.equal(root.get("concertId"), concertId));
+        } else if (!admin) {
+            List<UUID> ownedConcertIds = concertReportingPort.findConcertIdsOwnedBy(requesterId);
+            specification = specification.and((root, query, builder) ->
+                    ownedConcertIds.isEmpty()
+                            ? builder.disjunction()
+                            : root.get("concertId").in(ownedConcertIds));
+        }
+
+        if (status != null) {
+            specification = specification.and(
+                    (root, query, builder) -> builder.equal(root.get("status"), status));
+        }
+
+        return jobRepository.findAll(specification, pageable).map(ArtistBioJobResponse::from);
     }
 
     @Transactional

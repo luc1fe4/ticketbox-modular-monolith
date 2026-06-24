@@ -1,6 +1,7 @@
 package com.ticketbox.module.concert.web;
 
 import com.ticketbox.module.concert.application.ConcertService;
+import com.ticketbox.module.concert.application.ConcertPosterService;
 import com.ticketbox.module.concert.web.dto.ConcertDetailResponse;
 import com.ticketbox.module.concert.web.dto.CreateConcertRequest;
 import com.ticketbox.module.concert.web.dto.UpdateConcertRequest;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class AdminConcertController {
 
     private final ConcertService concertService;
+    private final ConcertPosterService concertPosterService;
 
 
     @GetMapping
@@ -85,6 +88,27 @@ public class AdminConcertController {
     ) {
         concertService.deleteConcert(id, getUserId(authentication), isAdmin(authentication));
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PutMapping(value = "/{id}/poster", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<ConcertDetailResponse>> replacePoster(
+            @PathVariable UUID id,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        ConcertDetailResponse updated = concertPosterService.replacePoster(
+                id, file, getUserId(authentication), isAdmin(authentication));
+        return ResponseEntity.ok(ApiResponse.success(updated, "Concert poster uploaded"));
+    }
+
+    @DeleteMapping("/{id}/poster")
+    public ResponseEntity<ApiResponse<ConcertDetailResponse>> removePoster(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        ConcertDetailResponse updated = concertPosterService.removePoster(
+                id, getUserId(authentication), isAdmin(authentication));
+        return ResponseEntity.ok(ApiResponse.success(updated, "Concert poster removed"));
     }
 
     private UUID getUserId(Authentication authentication) {

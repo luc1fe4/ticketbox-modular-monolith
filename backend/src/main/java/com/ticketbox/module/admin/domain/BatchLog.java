@@ -15,7 +15,7 @@ import java.util.UUID;
 public class BatchLog extends BaseEntity {
 
     public enum Status {
-        RUNNING, SUCCESS, PARTIAL, FAILED, SKIPPED
+        PENDING, RUNNING, SUCCESS, PARTIAL, FAILED, SKIPPED
     }
 
     public enum Source {

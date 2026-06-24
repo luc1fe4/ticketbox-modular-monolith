@@ -61,7 +61,7 @@ public class GuestListImportScheduler {
         try {
             String originalName = path.getFileName().toString();
             Path claimed = fileStorage.claimScheduledFile(concertId, path);
-            importService.submitScheduled(concertId, claimed, originalName);
+            importService.submitScheduled(concertId, claimed, originalName, path);
         } catch (Exception ex) {
             log.error("Could not claim guest-list file {}", path, ex);
         }

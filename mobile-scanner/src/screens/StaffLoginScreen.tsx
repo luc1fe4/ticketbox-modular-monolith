@@ -41,7 +41,6 @@ export function StaffLoginScreen({
           <View style={styles.header}>
             <Text style={styles.kicker}>TicketBox Scanner</Text>
             <Text style={styles.title}>Đăng nhập nhân viên</Text>
-            <Text style={styles.copy}>Dùng tài khoản STAFF để chọn concert và chuẩn bị dữ liệu tại cổng.</Text>
           </View>
 
           <View style={styles.form}>

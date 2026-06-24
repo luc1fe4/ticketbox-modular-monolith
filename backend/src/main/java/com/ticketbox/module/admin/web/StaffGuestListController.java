@@ -28,4 +28,16 @@ public class StaffGuestListController {
     ) {
         return ApiResponse.success(guestListService.findActiveGuest(concertId, phone));
     }
+
+    @GetMapping("/list")
+    public ApiResponse<java.util.List<GuestLookupResponse>> getGuestList(
+            @RequestParam(name = "concert_id") UUID concertId
+    ) {
+        java.util.List<GuestLookupResponse> list = guestListService.getGuestListByConcertId(concertId).stream()
+                .map(g -> new GuestLookupResponse(
+                        true, g.getId(), g.getConcertId(), g.getPhone(),
+                        g.getFullName(), g.getCategory(), g.getSponsorName(), g.getNotes()))
+                .toList();
+        return ApiResponse.success(list);
+    }
 }

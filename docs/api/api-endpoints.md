@@ -418,15 +418,20 @@ Offline conflicts are resolved during sync.
 | GET | `/admin/concerts/{concertId}/guest-lists` | ORGANIZER/ADMIN/STAFF | List guest entries. |
 | GET | `/admin/batch-logs` | ORGANIZER/ADMIN | List batch job runs. |
 | GET | `/admin/batch-logs/{batchLogId}` | ORGANIZER/ADMIN | Get batch import detail. |
-| POST | `/admin/batch-jobs/guest-list-import/run` | ADMIN/DEV | Manually trigger guest list import job if implemented. |
+| POST | `/admin/batch-jobs/guest-list-import/run` | ADMIN | Manually trigger the canonical incoming-directory scan. |
+| POST | `/organizer/manage/concerts/{concertId}/guest-lists/schedule` | ORGANIZER | Queue an owned concert's CSV for the scheduled importer. |
+| GET | `/organizer/manage/concerts/{concertId}/guest-lists` | ORGANIZER | List imported guests for an owned concert. |
+| GET | `/organizer/manage/batch-logs` | ORGANIZER | List batch runs for owned concerts. |
+| GET | `/organizer/manage/batch-logs/{batchLogId}` | ORGANIZER | Get an owned concert's batch detail. |
 
 CSV import behavior:
 
 ```text
-Validate required fields.
-Use upsert on (concert_id, phone).
-Write batch_logs.
-Reject or mark failed if error rate exceeds configured threshold.
+Scheduled uploads create a PENDING batch log and are stored under incoming/{concertId}.
+The scheduler claims stable CSV files into processing before changing PENDING to RUNNING.
+Validate the required phone, full_name, category, sponsor_name, and notes headers.
+Use upsert on (concert_id, phone), and reject duplicate phones within one file.
+Write SUCCESS, PARTIAL, FAILED, or SKIPPED results and per-row error reports.
 ```
 
 Example staff guest lookup response data:

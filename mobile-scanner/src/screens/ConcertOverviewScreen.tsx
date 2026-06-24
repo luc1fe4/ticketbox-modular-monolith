@@ -30,7 +30,10 @@ type Props = {
   onBack: () => void;
   onDownloadDataset: () => void;
   onSync: () => void;
-  onNavigate: (screen: 'overview' | 'scanner' | 'data') => void;
+  onDownloadGuestList: () => void;
+  onNavigate: (screen: 'overview' | 'scanner' | 'data' | 'guestlist') => void;
+  hasGuestList: boolean;
+  isDownloadingGuestList: boolean;
 };
 
 export function ConcertOverviewScreen(props: Props) {
@@ -48,36 +51,8 @@ export function ConcertOverviewScreen(props: Props) {
           <SecondaryButton label="‹ Concerts" onPress={props.onBack} />
           <StatusBadge label={props.isOnline ? 'Online' : 'Offline'} tone={props.isOnline ? 'success' : 'warning'} />
         </View>
-        <Header
-          eyebrow="Concert đang chọn"
-          title={props.concert.title}
-          subtitle={`${formatDateTime(props.concert.eventDate)} · ${props.concert.venueName}`}
-        />
 
         {props.errorMessage ? <ErrorBanner message={props.errorMessage} /> : null}
-
-        <View style={styles.datasetPanel}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionCopy}>
-              <Text style={styles.sectionTitle}>Dataset trên thiết bị</Text>
-              <Text style={styles.helper}>
-                {hasDataset
-                  ? `${props.datasetInfo.totalCount} vé · tải ${formatDateTime(props.datasetInfo.downloadedAt!)}`
-                  : 'Chưa có dữ liệu local để quét offline.'}
-              </Text>
-            </View>
-            <StatusBadge
-              label={hasUpdate ? 'Có cập nhật' : hasDataset ? 'Sẵn sàng' : 'Chưa tải'}
-              tone={hasUpdate ? 'warning' : hasDataset ? 'success' : 'neutral'}
-            />
-          </View>
-          <PrimaryButton
-            disabled={!props.isOnline}
-            label={hasDataset ? 'Cập nhật dataset' : 'Tải dataset'}
-            loading={props.isDownloading}
-            onPress={props.onDownloadDataset}
-          />
-        </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Cổng đang làm việc</Text>
@@ -103,6 +78,64 @@ export function ConcertOverviewScreen(props: Props) {
           label="Bắt đầu quét"
           onPress={() => props.onNavigate('scanner')}
         />
+
+        <View style={styles.datasetPanel}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionCopy}>
+              <Text style={styles.sectionTitle}>Dataset trên thiết bị</Text>
+              <Text style={styles.helper}>
+                {hasDataset
+                  ? `${props.datasetInfo.totalCount} vé · tải ${formatDateTime(props.datasetInfo.downloadedAt!)}`
+                  : 'Chưa có dữ liệu local để quét offline.'}
+              </Text>
+            </View>
+            <StatusBadge
+              label={hasUpdate ? 'Có cập nhật' : hasDataset ? 'Sẵn sàng' : 'Chưa tải'}
+              tone={hasUpdate ? 'warning' : hasDataset ? 'success' : 'neutral'}
+            />
+          </View>
+          <PrimaryButton
+            disabled={!props.isOnline}
+            label={hasDataset ? 'Cập nhật dataset' : 'Tải dataset'}
+            loading={props.isDownloading}
+            onPress={props.onDownloadDataset}
+          />
+        </View>
+
+        <View style={styles.datasetPanel}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionCopy}>
+              <Text style={styles.sectionTitle}>Danh sách khách mời</Text>
+              <Text style={styles.helper}>
+                {props.hasGuestList
+                  ? 'Đã tải danh sách khách mời.'
+                  : 'Chưa có dữ liệu khách mời.'}
+              </Text>
+            </View>
+            <StatusBadge
+              label={props.hasGuestList ? 'Sẵn sàng' : 'Chưa tải'}
+              tone={props.hasGuestList ? 'success' : 'neutral'}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <PrimaryButton
+                disabled={!props.isOnline}
+                label="Tải khách mời"
+                loading={props.isDownloadingGuestList}
+                onPress={props.onDownloadGuestList}
+              />
+            </View>
+            {props.hasGuestList && (
+              <View style={{ flex: 1 }}>
+                <SecondaryButton
+                  label="Xem danh sách"
+                  onPress={() => props.onNavigate('guestlist')}
+                />
+              </View>
+            )}
+          </View>
+        </View>
 
         <View style={styles.syncPanel}>
           <View style={styles.sectionCopy}>

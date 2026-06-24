@@ -10,7 +10,14 @@ import type {
   StaffTicket,
   SyncCheckinRequestPayload,
   SyncCheckinResponse,
+  StaffGuestListEntry,
 } from '../types';
+
+export function getStaffGuestList(concertId: string, token?: string) {
+  return requestJson<StaffGuestListEntry[]>(`/staff/guestlist/list?concert_id=${concertId}`, {
+    token,
+  });
+}
 
 export function getStaffConcerts(token?: string) {
   return requestJson<PageResponse<StaffConcert>>(

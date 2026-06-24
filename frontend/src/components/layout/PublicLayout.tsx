@@ -68,8 +68,14 @@ export function PublicLayout() {
                     <div><strong>{user.fullName}</strong><span>{user.email}</span></div>
                     <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile & history</Link>
                     <Link to="/my-tickets" onClick={() => setMenuOpen(false)}>My Tickets</Link>
-                    {user.role !== 'AUDIENCE' ? (
+                    {user.role === 'ADMIN' ? (
                       <Link to="/admin" onClick={() => setMenuOpen(false)}>Administration</Link>
+                    ) : null}
+                    {user.role === 'ORGANIZER' ? (
+                      <Link to="/organizer" onClick={() => setMenuOpen(false)}>Organizer studio</Link>
+                    ) : null}
+                    {user.role === 'STAFF' ? (
+                      <Link to="/staff" onClick={() => setMenuOpen(false)}>Gate operations</Link>
                     ) : null}
                     <button type="button" onClick={logOut}>Log out</button>
                   </div>

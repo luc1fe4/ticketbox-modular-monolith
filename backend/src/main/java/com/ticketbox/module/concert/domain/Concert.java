@@ -50,6 +50,9 @@ public class Concert extends BaseEntity {
     @Column(name = "poster_url", length = 500)
     private String posterUrl;
 
+    @Column(name = "poster_public_id", length = 500)
+    private String posterPublicId;
+
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
@@ -91,6 +94,10 @@ public class Concert extends BaseEntity {
 
     public void setPosterUrl(String posterUrl) {
         this.posterUrl = posterUrl;
+    }
+
+    public void setPosterPublicId(String posterPublicId) {
+        this.posterPublicId = posterPublicId;
     }
 
     public void setCreatedBy(UUID createdBy) {

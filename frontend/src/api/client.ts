@@ -1,4 +1,14 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type Method } from 'axios';
+
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    preserveEnvelope?: boolean;
+  }
+
+  export interface InternalAxiosRequestConfig {
+    preserveEnvelope?: boolean;
+  }
+}
 
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
@@ -6,6 +16,11 @@ type ApiEnvelope<T> = {
   code: number;
   message: string;
   data: T;
+};
+
+export type ApiCommandResult<T> = {
+  data: T;
+  message: string;
 };
 
 export class ApiClientError extends Error {
@@ -39,7 +54,11 @@ api.interceptors.response.use(
   (response) => {
     const body = response.data;
     if (body && typeof body === 'object' && 'code' in body && 'data' in body) {
-      return (body as ApiEnvelope<unknown>).data;
+      const envelope = body as ApiEnvelope<unknown>;
+      if (response.config.preserveEnvelope) {
+        return { data: envelope.data, message: envelope.message };
+      }
+      return envelope.data;
     }
     return body;
   },
@@ -66,6 +85,40 @@ api.interceptors.response.use(
 
 export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
   return api.get<unknown, T>(path, { signal });
+}
+
+export async function apiCommand<T>(
+  method: Method,
+  path: string,
+  data?: unknown,
+): Promise<ApiCommandResult<T>> {
+  return api.request<unknown, ApiCommandResult<T>>({
+    method,
+    url: path,
+    data,
+    preserveEnvelope: true,
+  });
+}
+
+export async function apiMultipartCommand<T>(
+  method: Method,
+  path: string,
+  data: FormData,
+): Promise<ApiCommandResult<T>> {
+  return api.request<unknown, ApiCommandResult<T>>({
+    method,
+    url: path,
+    data,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    preserveEnvelope: true,
+  });
+}
+
+export function commandMessage(serverMessage: string, fallback: string) {
+  const normalized = serverMessage.trim().toLowerCase();
+  return normalized && !['success', 'created', 'accepted'].includes(normalized)
+    ? serverMessage
+    : fallback;
 }
 
 export async function apiHealthCheck() {
