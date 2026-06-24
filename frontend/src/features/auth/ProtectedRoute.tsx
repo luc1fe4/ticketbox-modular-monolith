@@ -1,10 +1,10 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import { useAuth, type UserRole } from './AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: Array<'AUDIENCE' | 'ORGANIZER' | 'STAFF' | 'ADMIN'>;
+  allowedRoles?: UserRole[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
@@ -13,23 +13,33 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0b1020]">
-        <div className="relative h-20 w-20">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
-        </div>
+      <div className="auth-route-loading" role="status" aria-live="polite">
+        <div className="route-spinner" aria-hidden="true" />
+        <span className="sr-only">Checking your session</span>
       </div>
     );
   }
 
   if (!user) {
-    // Redirect to login but save the current location they tried to go to
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Role not authorized, redirect to homepage
-    return <Navigate to="/" replace />;
+    return (
+      <main className="route-forbidden page-width">
+        <div className="state-panel" role="alert">
+          <span className="state-icon" aria-hidden="true">!</span>
+          <h1>Access limited</h1>
+          <p>
+            This area is reserved for {allowedRoles.join(' / ')} accounts. You are signed in as {user.role}.
+          </p>
+          <div className="forbidden-actions">
+            <Link className="button button-primary" to="/">Back to events</Link>
+            <Link className="button button-secondary" to="/profile">View profile</Link>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return <>{children}</>;
