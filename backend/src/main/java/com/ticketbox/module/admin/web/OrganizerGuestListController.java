@@ -4,7 +4,6 @@ import com.ticketbox.module.admin.application.BatchLogService;
 import com.ticketbox.module.admin.application.GuestListImportService;
 import com.ticketbox.module.admin.application.GuestListManagementService;
 import com.ticketbox.module.admin.domain.BatchLog;
-import com.ticketbox.module.admin.infrastructure.batch.GuestListImportScheduler;
 import com.ticketbox.module.admin.web.dto.BatchLogResponse;
 import com.ticketbox.module.admin.web.dto.GuestListEntryResponse;
 import com.ticketbox.module.admin.web.dto.GuestListImportResponse;
@@ -26,41 +25,37 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/admin")
-public class GuestListAdminController {
+@RequestMapping("/api/organizer/manage")
+public class OrganizerGuestListController {
 
     private final GuestListImportService importService;
     private final GuestListManagementService managementService;
     private final BatchLogService batchLogService;
-    private final GuestListImportScheduler importScheduler;
 
-    public GuestListAdminController(
+    public OrganizerGuestListController(
             GuestListImportService importService,
             GuestListManagementService managementService,
-            BatchLogService batchLogService,
-            GuestListImportScheduler importScheduler) {
+            BatchLogService batchLogService) {
         this.importService = importService;
         this.managementService = managementService;
         this.batchLogService = batchLogService;
-        this.importScheduler = importScheduler;
     }
 
     @PostMapping(
-            path = "/concerts/{concertId}/guest-lists/import",
+            path = "/concerts/{concertId}/guest-lists/schedule",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<GuestListImportResponse>> importGuestList(
+    public ResponseEntity<ApiResponse<GuestListImportResponse>> scheduleGuestList(
             @PathVariable UUID concertId,
             @RequestPart("file") MultipartFile file,
             Authentication authentication) {
-        BatchLog log = importService.submitUpload(
+        BatchLog log = importService.queueScheduledUpload(
                 concertId,
                 file,
-                userId(authentication),
-                isAdmin(authentication));
+                userId(authentication));
         GuestListImportResponse response = new GuestListImportResponse(
                 log.getId(),
                 log.getStatus().name(),
-                "/api/admin/batch-logs/" + log.getId());
+                "/api/organizer/manage/batch-logs/" + log.getId());
         return ResponseEntity.accepted().body(ApiResponse.accepted(response));
     }
 
@@ -71,13 +66,13 @@ public class GuestListAdminController {
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {
         PageRequest pageable = PageRequest.of(
-                page,
+                Math.max(page, 0),
                 Math.min(Math.max(size, 1), 100),
                 Sort.by("fullName").ascending());
         return ApiResponse.success(managementService.list(
                 concertId,
                 userId(authentication),
-                isAdmin(authentication),
+                false,
                 pageable));
     }
 
@@ -90,12 +85,12 @@ public class GuestListAdminController {
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {
         PageRequest pageable = PageRequest.of(
-                page,
+                Math.max(page, 0),
                 Math.min(Math.max(size, 1), 100),
                 Sort.by("startedAt").descending());
         return ApiResponse.success(batchLogService.list(
                 userId(authentication),
-                isAdmin(authentication),
+                false,
                 concertId,
                 status,
                 source,
@@ -109,21 +104,10 @@ public class GuestListAdminController {
         return ApiResponse.success(batchLogService.get(
                 batchLogId,
                 userId(authentication),
-                isAdmin(authentication)));
-    }
-
-    @PostMapping("/batch-jobs/guest-list-import/run")
-    public ApiResponse<String> runImportScan() {
-        importScheduler.importAvailableFiles();
-        return ApiResponse.success("Scheduled import scanning triggered successfully");
+                false));
     }
 
     private UUID userId(Authentication authentication) {
         return UUID.fromString(authentication.getName());
-    }
-
-    private boolean isAdmin(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }

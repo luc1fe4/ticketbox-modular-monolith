@@ -1,6 +1,12 @@
 import { apiCommand, apiGet, apiMultipartCommand } from './client';
 import type { ConcertDetail, ConcertStatus, Page, TicketType } from './concerts';
 
+export type ManagementApiScope = 'admin' | 'organizer';
+
+function managementBase(scope: ManagementApiScope) {
+  return scope === 'organizer' ? '/api/organizer/manage' : '/api/admin';
+}
+
 export type ConcertMutation = {
   title: string;
   description: string | null;
@@ -32,7 +38,7 @@ export type StaffConcert = {
   posterUrl: string | null;
 };
 
-export type BatchLogStatus = 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
+export type BatchLogStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
 export type BatchLogSource = 'UPLOAD' | 'SCHEDULED';
 
 export type BatchLog = {
@@ -105,56 +111,57 @@ export function getAdminConcerts(
   size = 20,
   status?: ConcertStatus,
   signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
 ) {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
-  return apiGet<Page<ConcertDetail>>(`/api/admin/concerts?${params}`, signal);
+  return apiGet<Page<ConcertDetail>>(`${managementBase(scope)}/concerts?${params}`, signal);
 }
 
-export function createConcert(payload: ConcertMutation) {
-  return apiCommand<ConcertDetail>('post', '/api/admin/concerts', payload);
+export function createConcert(payload: ConcertMutation, scope: ManagementApiScope = 'admin') {
+  return apiCommand<ConcertDetail>('post', `${managementBase(scope)}/concerts`, payload);
 }
 
-export function updateConcert(concertId: string, payload: ConcertMutation) {
+export function updateConcert(concertId: string, payload: ConcertMutation, scope: ManagementApiScope = 'admin') {
   return apiCommand<ConcertDetail>(
     'put',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}`,
     payload,
   );
 }
 
-export function updateConcertStatus(concertId: string, status: ConcertStatus) {
+export function updateConcertStatus(concertId: string, status: ConcertStatus, scope: ManagementApiScope = 'admin') {
   return apiCommand<ConcertDetail>(
     'patch',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/status`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/status`,
     { status },
   );
 }
 
-export function deleteConcert(concertId: string) {
-  return apiCommand<void>('delete', `/api/admin/concerts/${encodeURIComponent(concertId)}`);
+export function deleteConcert(concertId: string, scope: ManagementApiScope = 'admin') {
+  return apiCommand<void>('delete', `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}`);
 }
 
-export function uploadConcertPoster(concertId: string, file: File) {
+export function uploadConcertPoster(concertId: string, file: File, scope: ManagementApiScope = 'admin') {
   const data = new FormData();
   data.append('file', file);
   return apiMultipartCommand<ConcertDetail>(
     'put',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/poster`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/poster`,
     data,
   );
 }
 
-export function removeConcertPoster(concertId: string) {
+export function removeConcertPoster(concertId: string, scope: ManagementApiScope = 'admin') {
   return apiCommand<ConcertDetail>(
     'delete',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/poster`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/poster`,
   );
 }
 
-export function getAdminTicketTypes(concertId: string, signal?: AbortSignal) {
+export function getAdminTicketTypes(concertId: string, signal?: AbortSignal, scope: ManagementApiScope = 'admin') {
   return apiGet<TicketType[]>(
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/ticket-types`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/ticket-types`,
     signal,
   );
 }
@@ -162,10 +169,11 @@ export function getAdminTicketTypes(concertId: string, signal?: AbortSignal) {
 export function createTicketType(
   concertId: string,
   payload: TicketTypeMutation,
+  scope: ManagementApiScope = 'admin',
 ) {
   return apiCommand<TicketType>(
     'post',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/ticket-types`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/ticket-types`,
     payload,
   );
 }
@@ -173,10 +181,11 @@ export function createTicketType(
 export function updateTicketType(
   ticketTypeId: string,
   payload: TicketTypeMutation,
+  scope: ManagementApiScope = 'admin',
 ) {
   return apiCommand<TicketType>(
     'put',
-    `/api/admin/ticket-types/${encodeURIComponent(ticketTypeId)}`,
+    `${managementBase(scope)}/ticket-types/${encodeURIComponent(ticketTypeId)}`,
     payload,
   );
 }
@@ -184,16 +193,17 @@ export function updateTicketType(
 export function updateTicketTypeStatus(
   ticketTypeId: string,
   isActive: boolean,
+  scope: ManagementApiScope = 'admin',
 ) {
   return apiCommand<TicketType>(
     'patch',
-    `/api/admin/ticket-types/${encodeURIComponent(ticketTypeId)}/status`,
+    `${managementBase(scope)}/ticket-types/${encodeURIComponent(ticketTypeId)}/status`,
     { isActive },
   );
 }
 
-export function deleteTicketType(ticketTypeId: string) {
-  return apiCommand<void>('delete', `/api/admin/ticket-types/${encodeURIComponent(ticketTypeId)}`);
+export function deleteTicketType(ticketTypeId: string, scope: ManagementApiScope = 'admin') {
+  return apiCommand<void>('delete', `${managementBase(scope)}/ticket-types/${encodeURIComponent(ticketTypeId)}`);
 }
 
 export function getStaffConcerts(
@@ -204,17 +214,29 @@ export function getStaffConcerts(
   return apiGet<Page<StaffConcert>>(`/api/staff/concerts?${params}`, signal);
 }
 
-export function importGuestList(concertId: string, file: File) {
+export function importGuestList(
+  concertId: string,
+  file: File,
+  scope: ManagementApiScope = 'admin',
+  scheduled = false,
+) {
   const data = new FormData();
   data.append('file', file);
+  const path = scheduled
+    ? `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/guest-lists/schedule`
+    : `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/guest-lists/import`;
   return apiMultipartCommand<GuestListImportResponse>(
     'post',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/guest-lists/import`,
+    path,
     data,
   );
 }
 
-export function getBatchLogs(filters: BatchLogFilters = {}, signal?: AbortSignal) {
+export function getBatchLogs(
+  filters: BatchLogFilters = {},
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
   const params = new URLSearchParams({
     page: String(filters.page ?? 0),
     size: String(filters.size ?? 20),
@@ -222,54 +244,58 @@ export function getBatchLogs(filters: BatchLogFilters = {}, signal?: AbortSignal
   if (filters.concertId) params.set('concertId', filters.concertId);
   if (filters.status) params.set('status', filters.status);
   if (filters.source) params.set('source', filters.source);
-  return apiGet<Page<BatchLog>>(`/api/admin/batch-logs?${params}`, signal);
+  return apiGet<Page<BatchLog>>(`${managementBase(scope)}/batch-logs?${params}`, signal);
 }
 
-export function getBatchLog(batchLogId: string, signal?: AbortSignal) {
+export function getBatchLog(
+  batchLogId: string,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
   return apiGet<BatchLog>(
-    `/api/admin/batch-logs/${encodeURIComponent(batchLogId)}`,
+    `${managementBase(scope)}/batch-logs/${encodeURIComponent(batchLogId)}`,
     signal,
   );
 }
 
-export function submitArtistBioJob(concertId: string, file: File) {
+export function submitArtistBioJob(concertId: string, file: File, scope: ManagementApiScope = 'admin') {
   const data = new FormData();
   data.append('file', file);
   return apiMultipartCommand<ArtistBioJobSubmission>(
     'post',
-    `/api/admin/concerts/${encodeURIComponent(concertId)}/artist-bio-jobs`,
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/artist-bio-jobs`,
     data,
   );
 }
 
-export function getArtistBioJobs(filters: ArtistBioJobFilters = {}, signal?: AbortSignal) {
+export function getArtistBioJobs(filters: ArtistBioJobFilters = {}, signal?: AbortSignal, scope: ManagementApiScope = 'admin') {
   const params = new URLSearchParams({
     page: String(filters.page ?? 0),
     size: String(filters.size ?? 20),
   });
   if (filters.concertId) params.set('concertId', filters.concertId);
   if (filters.status) params.set('status', filters.status);
-  return apiGet<Page<ArtistBioJob>>(`/api/admin/artist-bio-jobs?${params}`, signal);
+  return apiGet<Page<ArtistBioJob>>(`${managementBase(scope)}/artist-bio-jobs?${params}`, signal);
 }
 
-export function getArtistBioJob(jobId: string, signal?: AbortSignal) {
+export function getArtistBioJob(jobId: string, signal?: AbortSignal, scope: ManagementApiScope = 'admin') {
   return apiGet<ArtistBioJob>(
-    `/api/admin/artist-bio-jobs/${encodeURIComponent(jobId)}`,
+    `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}`,
     signal,
   );
 }
 
-export function retryArtistBioJob(jobId: string) {
+export function retryArtistBioJob(jobId: string, scope: ManagementApiScope = 'admin') {
   return apiCommand<ArtistBioJobSubmission>(
     'post',
-    `/api/admin/artist-bio-jobs/${encodeURIComponent(jobId)}/retry`,
+    `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}/retry`,
   );
 }
 
-export function applyArtistBioJob(jobId: string, overwrite = false) {
+export function applyArtistBioJob(jobId: string, overwrite = false, scope: ManagementApiScope = 'admin') {
   const params = new URLSearchParams({ overwrite: String(overwrite) });
   return apiCommand<ArtistBioJob>(
     'post',
-    `/api/admin/artist-bio-jobs/${encodeURIComponent(jobId)}/apply?${params}`,
+    `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}/apply?${params}`,
   );
 }

@@ -20,6 +20,8 @@ import { HomePage } from '../pages/public/HomePage';
 import { LoginPage } from '../pages/public/LoginPage';
 import { RegisterPage } from '../pages/public/RegisterPage';
 import { StaffOverviewPage } from '../pages/staff/StaffOverviewPage';
+import { OrganizerOverviewPage } from '../pages/organizer/OrganizerOverviewPage';
+import { OrganizerRevenuePage } from '../pages/organizer/OrganizerRevenuePage';
 
 const protectedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
 
@@ -43,7 +45,7 @@ export function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER']}>
+              <ProtectedRoute allowedRoles={['ADMIN']}>
                 <OperationsLayout mode="admin" />
               </ProtectedRoute>
             }
@@ -54,7 +56,21 @@ export function App() {
             <Route path="ticket-types" element={<AdminTicketTypesPage />} />
             <Route path="guests" element={<AdminGuestImportsPage />} />
             <Route path="batch-logs" element={<Navigate to="/admin/guests" replace />} />
-            <Route path="revenue" element={<AdminRoutePlaceholderPage title="Báo cáo doanh thu" description="Không gian báo cáo dành cho ORGANIZER theo API /api/organizer/concerts." />} />
+          </Route>
+          <Route
+            path="/organizer"
+            element={
+              <ProtectedRoute allowedRoles={['ORGANIZER']}>
+                <OperationsLayout mode="organizer" />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<OrganizerOverviewPage />} />
+            <Route path="concerts" element={<AdminConcertsPage apiScope="organizer" />} />
+            <Route path="ticket-types" element={<AdminTicketTypesPage apiScope="organizer" />} />
+            <Route path="guests" element={<AdminGuestImportsPage apiScope="organizer" uploadMode="scheduled" />} />
+            <Route path="artist-bio" element={<AdminArtistBioPage apiScope="organizer" />} />
+            <Route path="revenue" element={<OrganizerRevenuePage />} />
           </Route>
           <Route
             path="/staff"

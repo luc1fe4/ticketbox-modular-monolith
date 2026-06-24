@@ -10,7 +10,9 @@ import {
   RefreshCw,
   Trash2,
   X,
+  Map,
 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { useSearchParams } from 'react-router-dom';
 import {
   createConcert,
@@ -21,6 +23,7 @@ import {
   updateConcert,
   updateConcertStatus,
   type ConcertMutation,
+  type ManagementApiScope,
 } from '../../api/admin';
 import type { ConcertDetail, ConcertStatus, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
@@ -107,7 +110,7 @@ function statusLabel(status: ConcertStatus) {
   return statuses.find((item) => item.value === status)?.label ?? status;
 }
 
-export function AdminConcertsPage() {
+export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pageData, setPageData] = useState<Page<ConcertDetail> | null>(null);
@@ -130,7 +133,7 @@ export function AdminConcertsPage() {
       setError('');
       try {
         setPageData(
-          await getAdminConcerts(page, 10, status || undefined, signal),
+          await getAdminConcerts(page, 10, status || undefined, signal, apiScope),
         );
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
@@ -144,7 +147,7 @@ export function AdminConcertsPage() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [page, status],
+    [apiScope, page, status],
   );
 
   useEffect(() => {
@@ -196,12 +199,12 @@ export function AdminConcertsPage() {
     try {
       const payload = toPayload(form);
       const result = editing
-        ? await updateConcert(editing.id, payload)
-        : await createConcert(payload);
+        ? await updateConcert(editing.id, payload, apiScope)
+        : await createConcert(payload, apiScope);
 
       if (posterFile) {
         try {
-          await uploadConcertPoster(result.data.id, posterFile);
+          await uploadConcertPoster(result.data.id, posterFile, apiScope);
         } catch (uploadError) {
           closeForm();
           await loadConcerts();
@@ -247,7 +250,7 @@ export function AdminConcertsPage() {
     if (!editing?.posterUrl) return;
     setRemovingPoster(true);
     try {
-      const result = await removeConcertPoster(editing.id);
+      const result = await removeConcertPoster(editing.id, apiScope);
       setEditing(result.data);
       toast.success(commandMessage(result.message, 'Đã xóa poster concert.'));
       await loadConcerts();
@@ -261,7 +264,7 @@ export function AdminConcertsPage() {
   async function changeStatus(concert: ConcertDetail, next: ConcertStatus) {
     setBusyId(concert.id);
     try {
-      const result = await updateConcertStatus(concert.id, next);
+      const result = await updateConcertStatus(concert.id, next, apiScope);
       toast.success(commandMessage(result.message, `Đã chuyển "${concert.title}" sang ${statusLabel(next)}.`));
       await loadConcerts();
     } catch (requestError) {
@@ -275,7 +278,7 @@ export function AdminConcertsPage() {
     if (!deleteTarget) return;
     setBusyId(deleteTarget.id);
     try {
-      const result = await deleteConcert(deleteTarget.id);
+      const result = await deleteConcert(deleteTarget.id, apiScope);
       toast.success(commandMessage(result.message, 'Đã xóa concert.'));
       setDeleteTarget(null);
       await loadConcerts();
@@ -471,6 +474,7 @@ function ConcertForm({
   onClose: () => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const toast = useToast();
   const [selectedPosterPreview, setSelectedPosterPreview] = useState<string | null>(null);
 
   useEffect(() => {
@@ -492,6 +496,30 @@ function ConcertForm({
     onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       onChange({ ...form, [name]: event.target.value }),
   });
+
+  const handleSvgUpload = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+    if (file.type !== 'image/svg+xml') {
+      toast.error('Vui lòng chọn file SVG hợp lệ.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File SVG không được vượt quá 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const sanitized = DOMPurify.sanitize(text, {
+        USE_PROFILES: { svg: true, svgFilters: true },
+      });
+      onChange({ ...form, seatMapSvg: sanitized });
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div className="admin-dialog-backdrop" role="presentation">
@@ -556,10 +584,45 @@ function ConcertForm({
               <span>Mô tả</span>
               <textarea rows={4} {...field('description')} />
             </label>
-            <label className="admin-field admin-field-wide">
+            <div className="admin-field admin-field-wide">
               <span>Seat map SVG</span>
-              <textarea rows={5} spellCheck={false} {...field('seatMapSvg')} />
-            </label>
+              <div className="admin-poster-field">
+                <div className="admin-poster-preview">
+                  {form.seatMapSvg ? (
+                    <div 
+                      style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      dangerouslySetInnerHTML={{ __html: form.seatMapSvg }} 
+                    />
+                  ) : (
+                    <Map aria-hidden="true" size={25} />
+                  )}
+                </div>
+                <div className="admin-poster-controls">
+                  <label className="admin-secondary-action">
+                    <Map aria-hidden="true" size={16} />
+                    {form.seatMapSvg ? 'Đổi sơ đồ' : 'Chọn sơ đồ SVG'}
+                    <input
+                      type="file"
+                      accept=".svg,image/svg+xml"
+                      onChange={(event) => {
+                        handleSvgUpload(event.target.files?.[0] ?? null);
+                        event.target.value = ''; // Reset input to allow re-uploading the same file
+                      }}
+                    />
+                  </label>
+                  {form.seatMapSvg ? (
+                    <button 
+                      className="admin-secondary-action" 
+                      type="button" 
+                      onClick={() => onChange({ ...form, seatMapSvg: '' })}
+                    >
+                      Xóa sơ đồ
+                    </button>
+                  ) : null}
+                  <small>Định dạng SVG. Tối đa 2 MB.</small>
+                </div>
+              </div>
+            </div>
           </div>
           <footer>
             <button className="admin-secondary-action" type="button" onClick={onClose}>Hủy</button>

@@ -33,7 +33,6 @@ const adminNavigation: NavigationItem[] = [
   { to: '/admin/ticket-types', label: 'Hạng vé', icon: Ticket },
   { to: '/admin/guests', label: 'Khách mời', icon: Users },
   { to: '/admin/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
-  { to: '/admin/revenue', label: 'Doanh thu', icon: CircleDollarSign },
 ];
 
 const staffNavigation: NavigationItem[] = [
@@ -43,18 +42,31 @@ const staffNavigation: NavigationItem[] = [
   { to: '/staff/history', label: 'Lịch sử vào cổng', icon: FileClock },
 ];
 
+const organizerNavigation: NavigationItem[] = [
+  { to: '/organizer', label: 'Tổng quan', icon: BarChart3, end: true },
+  { to: '/organizer/concerts', label: 'Concert', icon: CalendarDays },
+  { to: '/organizer/ticket-types', label: 'Hạng vé', icon: Ticket },
+  { to: '/organizer/guests', label: 'Khách mời', icon: Users },
+  { to: '/organizer/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
+  { to: '/organizer/revenue', label: 'Doanh thu', icon: CircleDollarSign },
+];
+
 function roleLabel(role: UserSummary['role']) {
   if (role === 'ADMIN') return 'Quản trị viên';
   if (role === 'ORGANIZER') return 'Nhà tổ chức';
   return 'Nhân viên cổng';
 }
 
-export function OperationsLayout({ mode }: { mode: 'admin' | 'staff' }) {
+export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staff' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const navigation = mode === 'admin' ? adminNavigation : staffNavigation;
+  const navigation = mode === 'admin'
+    ? adminNavigation
+    : mode === 'organizer'
+      ? organizerNavigation
+      : staffNavigation;
 
   function logOut() {
     logout();
@@ -65,11 +77,11 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'staff' }) {
     <div className="operations-shell">
       <aside
         className={`operations-sidebar ${mobileOpen ? 'is-open' : ''}`}
-        aria-label={mode === 'admin' ? 'Điều hướng quản trị' : 'Điều hướng nhân viên'}
+        aria-label={mode === 'staff' ? 'Điều hướng nhân viên' : 'Điều hướng quản lý'}
       >
         <div className="operations-brand">
           <Logo />
-          <span>{mode === 'admin' ? 'Control room' : 'Gate desk'}</span>
+          <span>{mode === 'admin' ? 'Control room' : mode === 'organizer' ? 'Organizer studio' : 'Gate desk'}</span>
         </div>
 
         <nav className="operations-nav">
@@ -123,7 +135,7 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'staff' }) {
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="operations-context">
-            <span>{mode === 'admin' ? 'Quản lý vận hành' : 'Vận hành tại cổng'}</span>
+            <span>{mode === 'admin' ? 'Quản lý vận hành' : mode === 'organizer' ? 'Không gian nhà tổ chức' : 'Vận hành tại cổng'}</span>
             <strong>TicketBox Vietnam</strong>
           </div>
           <div className="operations-account">

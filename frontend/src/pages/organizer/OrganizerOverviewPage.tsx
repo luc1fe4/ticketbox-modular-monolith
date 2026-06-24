@@ -1,53 +1,59 @@
-import { ArrowUpRight, CalendarDays, Sparkles, Ticket, Users } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, CircleDollarSign, Sparkles, Ticket, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../features/auth/AuthContext';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { useAuth } from '../../features/auth/AuthContext';
 
 const workspaces = [
   {
-    to: '/admin/concerts',
+    to: '/organizer/concerts',
     title: 'Concert',
     copy: 'Tạo chương trình, cập nhật thông tin và điều phối trạng thái bán.',
     icon: CalendarDays,
   },
   {
-    to: '/admin/ticket-types',
+    to: '/organizer/ticket-types',
     title: 'Hạng vé',
     copy: 'Quản lý giá, số lượng, thời gian mở bán và màu vùng chỗ.',
     icon: Ticket,
   },
   {
-    to: '/admin/guests',
+    to: '/organizer/guests',
     title: 'Khách mời',
-    copy: 'Nhập danh sách CSV và theo dõi danh sách được duyệt.',
+    copy: 'Đưa danh sách CSV vào lịch import và theo dõi kết quả xử lý.',
     icon: Users,
   },
   {
-    to: '/admin/artist-bio',
+    to: '/organizer/artist-bio',
     title: 'AI Artist Bio',
-    copy: 'Tải press-kit PDF, review bio do AI tạo và áp dụng vào concert.',
+    copy: 'Tải press-kit PDF, review nội dung AI và áp dụng vào concert.',
     icon: Sparkles,
+  },
+  {
+    to: '/organizer/revenue',
+    title: 'Doanh thu',
+    copy: 'Theo dõi doanh thu, lượng vé bán và hiệu suất từng hạng vé.',
+    icon: CircleDollarSign,
   },
 ];
 
-export function AdminOverviewPage() {
+export function OrganizerOverviewPage() {
   const { user } = useAuth();
 
   return (
     <>
       <AdminPageHeader
-        eyebrow="Control room"
+        eyebrow="Organizer studio"
         title={`Chào ${user?.fullName ?? 'bạn'}`}
-        description="Điều phối chương trình, hạng vé và dữ liệu vận hành từ một không gian thống nhất."
+        description="Quản lý concert, hạng vé và nội dung nghệ sĩ trong phạm vi chương trình do bạn sở hữu."
         actions={
-          <Link className="admin-primary-action" to="/admin/concerts?create=1">
+          <Link className="admin-primary-action" to="/organizer/concerts?create=1">
             Tạo concert
             <ArrowUpRight aria-hidden="true" size={17} />
           </Link>
         }
       />
 
-      <section className="admin-workspace-grid" aria-label="Khu vực quản lý">
+      <section className="admin-workspace-grid" aria-label="Khu vực quản lý của nhà tổ chức">
         {workspaces.map((workspace) => {
           const Icon = workspace.icon;
           return (

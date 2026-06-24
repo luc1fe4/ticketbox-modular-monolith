@@ -26,6 +26,7 @@ import {
   type BatchLog,
   type BatchLogSource,
   type BatchLogStatus,
+  type ManagementApiScope,
 } from '../../api/admin';
 import type { ConcertDetail, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
@@ -34,6 +35,7 @@ import { useToast } from '../../components/feedback/toast-context';
 
 const statuses: Array<{ value: '' | BatchLogStatus; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING', label: 'Chờ scheduler' },
   { value: 'RUNNING', label: 'Đang xử lý' },
   { value: 'SUCCESS', label: 'Thành công' },
   { value: 'PARTIAL', label: 'Một phần' },
@@ -61,7 +63,7 @@ function sourceLabel(source: BatchLogSource | null) {
 }
 
 function duration(log: BatchLog) {
-  if (!log.completedAt) return 'Đang chạy';
+  if (!log.completedAt) return log.status === 'PENDING' ? 'Đang chờ lịch quét' : 'Đang chạy';
   const seconds = Math.max(0, Math.round(
     (new Date(log.completedAt).getTime() - new Date(log.startedAt).getTime()) / 1000,
   ));
@@ -69,7 +71,17 @@ function duration(log: BatchLog) {
   return `${Math.floor(seconds / 60)} phút ${seconds % 60} giây`;
 }
 
-export function AdminGuestImportsPage() {
+function isActiveBatch(status: BatchLogStatus) {
+  return status === 'PENDING' || status === 'RUNNING';
+}
+
+export function AdminGuestImportsPage({
+  apiScope = 'admin',
+  uploadMode = 'immediate',
+}: {
+  apiScope?: ManagementApiScope;
+  uploadMode?: 'immediate' | 'scheduled';
+}) {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
@@ -101,7 +113,7 @@ export function AdminGuestImportsPage() {
     async function loadConcerts() {
       setLoadingConcerts(true);
       try {
-        const data = await getAdminConcerts(0, 100, undefined, controller.signal);
+        const data = await getAdminConcerts(0, 100, undefined, controller.signal, apiScope);
         setConcerts(data.content);
         setUploadConcertId((current) => current || data.content[0]?.id || '');
       } catch (requestError) {
@@ -114,7 +126,7 @@ export function AdminGuestImportsPage() {
     }
     void loadConcerts();
     return () => controller.abort();
-  }, [toast]);
+  }, [apiScope, toast]);
 
   const loadLogs = useCallback(async (signal?: AbortSignal, silent = false) => {
     if (!silent) setLoadingLogs(true);
@@ -126,7 +138,7 @@ export function AdminGuestImportsPage() {
         concertId: concertFilter || undefined,
         status: statusFilter || undefined,
         source: sourceFilter || undefined,
-      }, signal));
+      }, signal, apiScope));
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
         setLogsError(requestError instanceof Error ? requestError.message : 'Không thể tải lịch sử import.');
@@ -134,7 +146,7 @@ export function AdminGuestImportsPage() {
     } finally {
       if (!signal?.aborted && !silent) setLoadingLogs(false);
     }
-  }, [concertFilter, page, sourceFilter, statusFilter]);
+  }, [apiScope, concertFilter, page, sourceFilter, statusFilter]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -142,7 +154,7 @@ export function AdminGuestImportsPage() {
     return () => controller.abort();
   }, [loadLogs]);
 
-  const hasRunningLog = logs?.content.some((log) => log.status === 'RUNNING') ?? false;
+  const hasRunningLog = logs?.content.some((log) => isActiveBatch(log.status)) ?? false;
   useEffect(() => {
     if (!hasRunningLog) return;
     const timer = window.setInterval(() => {
@@ -152,7 +164,7 @@ export function AdminGuestImportsPage() {
   }, [hasRunningLog, loadLogs]);
 
   useEffect(() => {
-    if (!selectedLog || selectedLog.status !== 'RUNNING') return;
+    if (!selectedLog || !isActiveBatch(selectedLog.status)) return;
     const controller = new AbortController();
     let requestInFlight = false;
     const timer = window.setInterval(async () => {
@@ -160,10 +172,10 @@ export function AdminGuestImportsPage() {
       if (document.visibilityState !== 'visible') return;
       requestInFlight = true;
       try {
-        const updated = await getBatchLog(selectedLog.id, controller.signal);
+        const updated = await getBatchLog(selectedLog.id, controller.signal, apiScope);
         setSelectedLog(updated);
         setLatestBatch((current) => current?.id === updated.id ? updated : current);
-        if (updated.status !== 'RUNNING') void loadLogs(undefined, true);
+        if (!isActiveBatch(updated.status)) void loadLogs(undefined, true);
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           toast.error(requestError instanceof Error ? requestError.message : 'Không thể cập nhật trạng thái import.');
@@ -176,19 +188,19 @@ export function AdminGuestImportsPage() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [loadLogs, selectedLog, toast]);
+  }, [apiScope, loadLogs, selectedLog, toast]);
 
   useEffect(() => {
-    if (!latestBatch || latestBatch.status !== 'RUNNING' || selectedLog?.id === latestBatch.id) return;
+    if (!latestBatch || !isActiveBatch(latestBatch.status) || selectedLog?.id === latestBatch.id) return;
     const controller = new AbortController();
     let requestInFlight = false;
     const timer = window.setInterval(async () => {
       if (requestInFlight || document.visibilityState !== 'visible') return;
       requestInFlight = true;
       try {
-        const updated = await getBatchLog(latestBatch.id, controller.signal);
+        const updated = await getBatchLog(latestBatch.id, controller.signal, apiScope);
         setLatestBatch(updated);
-        if (updated.status !== 'RUNNING') void loadLogs(undefined, true);
+        if (!isActiveBatch(updated.status)) void loadLogs(undefined, true);
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           toast.error(requestError instanceof Error ? requestError.message : 'Không thể cập nhật batch gần nhất.');
@@ -201,7 +213,7 @@ export function AdminGuestImportsPage() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [latestBatch, loadLogs, selectedLog?.id, toast]);
+  }, [apiScope, latestBatch, loadLogs, selectedLog?.id, toast]);
 
   const concertNames = useMemo(
     () => new Map(concerts.map((concert) => [concert.id, concert.title])),
@@ -246,12 +258,18 @@ export function AdminGuestImportsPage() {
     if (!file || !uploadConcertId) return;
     setUploading(true);
     try {
-      const result = await importGuestList(uploadConcertId, file);
-      toast.success(commandMessage(result.message, 'Đã tiếp nhận file CSV để xử lý.'));
+      const scheduled = uploadMode === 'scheduled';
+      const result = await importGuestList(uploadConcertId, file, apiScope, scheduled);
+      toast.success(commandMessage(
+        result.message,
+        scheduled
+          ? 'Đã xếp file CSV vào hàng chờ scheduler.'
+          : 'Đã tiếp nhận file CSV để xử lý.',
+      ));
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       try {
-        const detail = await getBatchLog(result.data.batchLogId);
+        const detail = await getBatchLog(result.data.batchLogId, undefined, apiScope);
         setLatestBatch(detail);
         setSelectedLog(detail);
       } catch (detailError) {
@@ -271,7 +289,7 @@ export function AdminGuestImportsPage() {
     setSelectedLog(log);
     setDetailLoading(true);
     try {
-      setSelectedLog(await getBatchLog(log.id));
+      setSelectedLog(await getBatchLog(log.id, undefined, apiScope));
     } catch (requestError) {
       toast.error(requestError instanceof Error ? requestError.message : 'Không thể tải chi tiết batch.');
     } finally {
@@ -284,13 +302,15 @@ export function AdminGuestImportsPage() {
       <AdminPageHeader
         eyebrow="Guest operations"
         title="Import khách mời"
-        description="Tiếp nhận danh sách CSV, theo dõi tiến trình xử lý và kiểm tra các dòng được nhập hoặc bị từ chối."
+        description={uploadMode === 'scheduled'
+          ? 'Đưa danh sách CSV vào hàng chờ định kỳ, theo dõi tiến trình và kiểm tra các dòng được nhập hoặc bị từ chối.'
+          : 'Tiếp nhận danh sách CSV, theo dõi tiến trình xử lý và kiểm tra các dòng được nhập hoặc bị từ chối.'}
       />
 
       <section className="guest-import-workspace">
         <form className="guest-upload-panel" onSubmit={submitUpload}>
           <div className="guest-section-heading">
-            <div><span>Import thủ công</span><h2>Tải danh sách mới</h2></div>
+            <div><span>{uploadMode === 'scheduled' ? 'Import theo lịch' : 'Import thủ công'}</span><h2>Tải danh sách mới</h2></div>
             <UploadCloud aria-hidden="true" size={22} />
           </div>
           <label className="admin-field">
@@ -308,7 +328,7 @@ export function AdminGuestImportsPage() {
           </label>
           <button className="admin-primary-action" type="submit" disabled={!file || !uploadConcertId || uploading}>
             <UploadCloud aria-hidden="true" size={17} />
-            {uploading ? 'Đang gửi file...' : 'Bắt đầu import'}
+            {uploading ? 'Đang gửi file...' : uploadMode === 'scheduled' ? 'Đưa vào hàng chờ' : 'Bắt đầu import'}
           </button>
         </form>
 
@@ -367,20 +387,20 @@ export function AdminGuestImportsPage() {
         ) : null}
       </section>
 
-      {selectedLog ? <BatchDetailDialog log={selectedLog} concertName={concertNames.get(selectedLog.concertId ?? '')} loading={detailLoading} onClose={() => setSelectedLog(null)} /> : null}
+      {selectedLog ? <BatchDetailDialog log={selectedLog} concertName={concertNames.get(selectedLog.concertId ?? '')} loading={detailLoading} showTechnicalDetails={apiScope === 'admin'} onClose={() => setSelectedLog(null)} /> : null}
     </>
   );
 }
 
 function BatchStatus({ status }: { status: BatchLogStatus }) {
-  return <span className={`batch-status batch-${status.toLowerCase()}`}>{status === 'RUNNING' ? <i aria-hidden="true" /> : null}{statusLabel(status)}</span>;
+  return <span className={`batch-status batch-${status.toLowerCase()}`}>{isActiveBatch(status) ? <i aria-hidden="true" /> : null}{statusLabel(status)}</span>;
 }
 
 function BatchSnapshot({ log, concertName, onOpen }: { log: BatchLog; concertName?: string; onOpen: () => void }) {
   return (
     <div className="guest-batch-snapshot">
       <div><BatchStatus status={log.status} /><span>{sourceLabel(log.source)}</span></div>
-      {log.status === 'RUNNING' ? <div className="guest-indeterminate" aria-label="Đang xử lý"><span /></div> : null}
+      {isActiveBatch(log.status) ? <div className="guest-indeterminate" aria-label={log.status === 'PENDING' ? 'Đang chờ scheduler' : 'Đang xử lý'}><span /></div> : null}
       <h3>{log.fileName ?? 'Danh sách khách mời'}</h3>
       <p>{concertName ?? 'Concert không xác định'}</p>
       <div className="guest-batch-counts"><span><strong>{log.totalRows}</strong>Tổng dòng</span><span><strong>{log.successRows}</strong>Thành công</span><span><strong>{log.errorRows}</strong>Lỗi</span></div>
@@ -389,7 +409,19 @@ function BatchSnapshot({ log, concertName, onOpen }: { log: BatchLog; concertNam
   );
 }
 
-function BatchDetailDialog({ log, concertName, loading, onClose }: { log: BatchLog; concertName?: string; loading: boolean; onClose: () => void }) {
+function BatchDetailDialog({
+  log,
+  concertName,
+  loading,
+  showTechnicalDetails,
+  onClose,
+}: {
+  log: BatchLog;
+  concertName?: string;
+  loading: boolean;
+  showTechnicalDetails: boolean;
+  onClose: () => void;
+}) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) { if (event.key === 'Escape') onClose(); }
     document.addEventListener('keydown', onKeyDown);
@@ -403,9 +435,16 @@ function BatchDetailDialog({ log, concertName, loading, onClose }: { log: BatchL
         <div className="batch-detail-body">
           {loading ? <div className="batch-detail-loading">Đang tải dữ liệu mới nhất...</div> : null}
           <div className="batch-detail-lead"><BatchStatus status={log.status} /><strong>{concertName ?? 'Concert không xác định'}</strong><span>{sourceLabel(log.source)}</span></div>
-          {log.status === 'RUNNING' ? <div className="guest-indeterminate" aria-label="Đang xử lý"><span /></div> : null}
+          {isActiveBatch(log.status) ? <div className="guest-indeterminate" aria-label={log.status === 'PENDING' ? 'Đang chờ scheduler' : 'Đang xử lý'}><span /></div> : null}
           <dl className="batch-detail-counts"><div><dt>Tổng dòng</dt><dd>{log.totalRows}</dd></div><div><dt>Thành công</dt><dd>{log.successRows}</dd></div><div><dt>Lỗi</dt><dd>{log.errorRows}</dd></div></dl>
-          <dl className="batch-detail-meta"><div><dt>Bắt đầu</dt><dd>{dateTime.format(new Date(log.startedAt))}</dd></div><div><dt>Hoàn tất</dt><dd>{log.completedAt ? dateTime.format(new Date(log.completedAt)) : 'Đang xử lý'}</dd></div><div><dt>Thời lượng</dt><dd>{duration(log)}</dd></div><div><dt>Checksum</dt><dd><code>{log.checksum ?? 'Không có'}</code></dd></div><div><dt>File lưu trữ</dt><dd><code>{log.filePath ?? 'Không có'}</code></dd></div><div><dt>Báo cáo lỗi</dt><dd><code>{log.errorReportPath ?? 'Không có'}</code></dd></div></dl>
+          <dl className="batch-detail-meta">
+            <div><dt>Bắt đầu</dt><dd>{dateTime.format(new Date(log.startedAt))}</dd></div>
+            <div><dt>Hoàn tất</dt><dd>{log.completedAt ? dateTime.format(new Date(log.completedAt)) : 'Đang xử lý'}</dd></div>
+            <div><dt>Thời lượng</dt><dd>{duration(log)}</dd></div>
+            {showTechnicalDetails ? <div><dt>Checksum</dt><dd><code>{log.checksum ?? 'Không có'}</code></dd></div> : null}
+            {showTechnicalDetails ? <div><dt>File lưu trữ</dt><dd><code>{log.filePath ?? 'Không có'}</code></dd></div> : null}
+            <div><dt>Báo cáo lỗi</dt><dd><code>{log.errorReportPath ?? 'Không có'}</code></dd></div>
+          </dl>
           {log.errorDetail ? <div className="batch-error-detail"><span>Chi tiết lỗi</span><p>{log.errorDetail}</p></div> : null}
         </div>
       </section>

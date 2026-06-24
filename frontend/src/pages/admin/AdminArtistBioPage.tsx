@@ -29,6 +29,7 @@ import {
   submitArtistBioJob,
   type ArtistBioJob,
   type ArtistBioJobStatus,
+  type ManagementApiScope,
 } from '../../api/admin';
 import type { ConcertDetail, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
@@ -66,7 +67,7 @@ function duration(job: ArtistBioJob) {
   return seconds < 60 ? `${seconds} giây` : `${Math.floor(seconds / 60)} phút ${seconds % 60} giây`;
 }
 
-export function AdminArtistBioPage() {
+export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
@@ -95,7 +96,7 @@ export function AdminArtistBioPage() {
   const loadConcerts = useCallback(async (signal?: AbortSignal) => {
     setLoadingConcerts(true);
     try {
-      const data = await getAdminConcerts(0, 100, undefined, signal);
+      const data = await getAdminConcerts(0, 100, undefined, signal, apiScope);
       setConcerts(data.content);
       setUploadConcertId((current) => current || data.content[0]?.id || '');
     } catch (requestError) {
@@ -105,7 +106,7 @@ export function AdminArtistBioPage() {
     } finally {
       if (!signal?.aborted) setLoadingConcerts(false);
     }
-  }, [toast]);
+  }, [apiScope, toast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -122,7 +123,7 @@ export function AdminArtistBioPage() {
         size: 20,
         concertId: concertFilter || undefined,
         status: statusFilter || undefined,
-      }, signal));
+      }, signal, apiScope));
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
         setJobsError(requestError instanceof Error ? requestError.message : 'Không thể tải lịch sử AI Artist Bio.');
@@ -130,7 +131,7 @@ export function AdminArtistBioPage() {
     } finally {
       if (!signal?.aborted && !silent) setLoadingJobs(false);
     }
-  }, [concertFilter, page, statusFilter]);
+  }, [apiScope, concertFilter, page, statusFilter]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -155,7 +156,7 @@ export function AdminArtistBioPage() {
       if (requestInFlight || document.visibilityState !== 'visible') return;
       requestInFlight = true;
       try {
-        const updated = await getArtistBioJob(selectedJob.id, controller.signal);
+        const updated = await getArtistBioJob(selectedJob.id, controller.signal, apiScope);
         setSelectedJob(updated);
         setLatestJob((current) => current?.id === updated.id ? updated : current);
         if (!isActive(updated.status)) void loadJobs(undefined, true);
@@ -171,7 +172,7 @@ export function AdminArtistBioPage() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [loadJobs, selectedJob, toast]);
+  }, [apiScope, loadJobs, selectedJob, toast]);
 
   useEffect(() => {
     if (!latestJob || !isActive(latestJob.status) || selectedJob?.id === latestJob.id) return;
@@ -181,7 +182,7 @@ export function AdminArtistBioPage() {
       if (requestInFlight || document.visibilityState !== 'visible') return;
       requestInFlight = true;
       try {
-        const updated = await getArtistBioJob(latestJob.id, controller.signal);
+        const updated = await getArtistBioJob(latestJob.id, controller.signal, apiScope);
         setLatestJob(updated);
         if (!isActive(updated.status)) void loadJobs(undefined, true);
       } catch (requestError) {
@@ -196,7 +197,7 @@ export function AdminArtistBioPage() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [latestJob, loadJobs, selectedJob?.id, toast]);
+  }, [apiScope, latestJob, loadJobs, selectedJob?.id, toast]);
 
   const concertMap = useMemo(
     () => new Map(concerts.map((concert) => [concert.id, concert])),
@@ -241,12 +242,12 @@ export function AdminArtistBioPage() {
     if (!file || !uploadConcertId) return;
     setUploading(true);
     try {
-      const result = await submitArtistBioJob(uploadConcertId, file);
+      const result = await submitArtistBioJob(uploadConcertId, file, apiScope);
       toast.success(commandMessage(result.message, 'Đã tiếp nhận PDF để tạo Artist Bio.'));
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       try {
-        const detail = await getArtistBioJob(result.data.jobId);
+        const detail = await getArtistBioJob(result.data.jobId, undefined, apiScope);
         setLatestJob(detail);
         setSelectedJob(detail);
       } catch (detailError) {
@@ -266,7 +267,7 @@ export function AdminArtistBioPage() {
     setSelectedJob(job);
     setDetailLoading(true);
     try {
-      setSelectedJob(await getArtistBioJob(job.id));
+      setSelectedJob(await getArtistBioJob(job.id, undefined, apiScope));
     } catch (requestError) {
       toast.error(requestError instanceof Error ? requestError.message : 'Không thể tải chi tiết AI job.');
     } finally {
@@ -277,9 +278,9 @@ export function AdminArtistBioPage() {
   async function retryJob(job: ArtistBioJob) {
     setRetrying(true);
     try {
-      const result = await retryArtistBioJob(job.id);
+      const result = await retryArtistBioJob(job.id, apiScope);
       toast.success(commandMessage(result.message, 'Đã đưa job vào hàng chờ xử lý lại.'));
-      const updated = await getArtistBioJob(result.data.jobId);
+      const updated = await getArtistBioJob(result.data.jobId, undefined, apiScope);
       setSelectedJob(updated);
       setLatestJob(updated);
       await loadJobs(undefined, true);
@@ -293,7 +294,7 @@ export function AdminArtistBioPage() {
   async function applyJob(job: ArtistBioJob, overwrite: boolean) {
     setApplying(true);
     try {
-      const result = await applyArtistBioJob(job.id, overwrite);
+      const result = await applyArtistBioJob(job.id, overwrite, apiScope);
       toast.success(commandMessage(result.message, overwrite ? 'Đã thay thế Artist Bio của concert.' : 'Đã áp dụng Artist Bio cho concert.'));
       setSelectedJob(result.data);
       setLatestJob((current) => current?.id === result.data.id ? result.data : current);

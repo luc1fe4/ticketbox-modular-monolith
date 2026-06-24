@@ -46,6 +46,14 @@ class TestStaffController {
 }
 
 @RestController
+class TestOrganizerController {
+    @GetMapping("/api/organizer/manage/test")
+    public String organizerTest() {
+        return "organizer-ok";
+    }
+}
+
+@RestController
 class TestAudienceProtectedController {
     @GetMapping("/api/orders")
     public String orders() {
@@ -78,7 +86,12 @@ class TestAudienceProtectedController {
     }
 }
 
-@WebMvcTest(controllers = {TestAdminController.class, TestStaffController.class, TestAudienceProtectedController.class})
+@WebMvcTest(controllers = {
+    TestAdminController.class,
+    TestStaffController.class,
+    TestOrganizerController.class,
+    TestAudienceProtectedController.class
+})
 @Import(SecurityConfig.class)
 class SecurityRbacTest {
 
@@ -138,6 +151,20 @@ class SecurityRbacTest {
         mockMvc.perform(get("/api/admin/users/test")
                         .with(authentication(createAuthToken(User.Role.ADMIN))))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void organizerEndpoint_WithOrganizer_Returns200() throws Exception {
+        mockMvc.perform(get("/api/organizer/manage/test")
+                        .with(authentication(createAuthToken(User.Role.ORGANIZER))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void organizerEndpoint_WithAdmin_Returns403() throws Exception {
+        mockMvc.perform(get("/api/organizer/manage/test")
+                        .with(authentication(createAuthToken(User.Role.ADMIN))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

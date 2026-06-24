@@ -138,6 +138,16 @@ public class ConcertService {
         return concerts.map(concertMapper::toDetailResponse);
     }
 
+    public Page<ConcertDetailResponse> getOwnedConcerts(
+            UUID organizerId,
+            Concert.Status status,
+            Pageable pageable) {
+        Page<Concert> concerts = status == null
+                ? concertRepository.findByCreatedBy(organizerId, pageable)
+                : concertRepository.findByCreatedByAndStatus(organizerId, status, pageable);
+        return concerts.map(concertMapper::toDetailResponse);
+    }
+
     @Transactional
     public ConcertDetailResponse createConcert(CreateConcertRequest request, UUID organizerId) {
         validateDates(request.eventDate(), request.doorsOpenAt());

@@ -7,6 +7,7 @@ import {
   getAdminTicketTypes,
   updateTicketType,
   updateTicketTypeStatus,
+  type ManagementApiScope,
   type TicketTypeMutation,
 } from '../../api/admin';
 import type { ConcertDetail, TicketType as TicketTypeModel } from '../../api/concerts';
@@ -77,7 +78,7 @@ function toPayload(form: TicketFormState): TicketTypeMutation {
   };
 }
 
-export function AdminTicketTypesPage() {
+export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
   const [selectedConcertId, setSelectedConcertId] = useState('');
@@ -97,7 +98,7 @@ export function AdminTicketTypesPage() {
     async function load() {
       setLoadingConcerts(true);
       try {
-        const data = await getAdminConcerts(0, 100, undefined, controller.signal);
+        const data = await getAdminConcerts(0, 100, undefined, controller.signal, apiScope);
         setConcerts(data.content);
         setSelectedConcertId((current) => current || data.content[0]?.id || '');
       } catch (requestError) {
@@ -110,7 +111,7 @@ export function AdminTicketTypesPage() {
     }
     void load();
     return () => controller.abort();
-  }, []);
+  }, [apiScope]);
 
   const loadTicketTypes = useCallback(async (signal?: AbortSignal) => {
     if (!selectedConcertId) {
@@ -120,7 +121,7 @@ export function AdminTicketTypesPage() {
     setLoadingTickets(true);
     setError('');
     try {
-      setTicketTypes(await getAdminTicketTypes(selectedConcertId, signal));
+      setTicketTypes(await getAdminTicketTypes(selectedConcertId, signal, apiScope));
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
         setError(requestError instanceof Error ? requestError.message : 'Không thể tải hạng vé.');
@@ -128,7 +129,7 @@ export function AdminTicketTypesPage() {
     } finally {
       if (!signal?.aborted) setLoadingTickets(false);
     }
-  }, [selectedConcertId]);
+  }, [apiScope, selectedConcertId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -172,10 +173,10 @@ export function AdminTicketTypesPage() {
     try {
       const payload = toPayload(form);
       if (editing) {
-        const result = await updateTicketType(editing.id, payload);
+        const result = await updateTicketType(editing.id, payload, apiScope);
         toast.success(commandMessage(result.message, 'Đã cập nhật hạng vé.'));
       } else {
-        const result = await createTicketType(selectedConcertId, payload);
+        const result = await createTicketType(selectedConcertId, payload, apiScope);
         toast.success(commandMessage(result.message, 'Đã tạo hạng vé.'));
       }
       setFormOpen(false);
@@ -190,7 +191,7 @@ export function AdminTicketTypesPage() {
   async function toggleStatus(ticketType: TicketTypeModel) {
     setBusyId(ticketType.id);
     try {
-      const result = await updateTicketTypeStatus(ticketType.id, !ticketType.isActive);
+      const result = await updateTicketTypeStatus(ticketType.id, !ticketType.isActive, apiScope);
       const fallback = ticketType.isActive ? 'Đã tạm ngưng hạng vé.' : 'Đã kích hoạt hạng vé.';
       toast.success(commandMessage(result.message, fallback));
       await loadTicketTypes();
@@ -205,7 +206,7 @@ export function AdminTicketTypesPage() {
     if (!deleteTarget) return;
     setBusyId(deleteTarget.id);
     try {
-      const result = await deleteTicketType(deleteTarget.id);
+      const result = await deleteTicketType(deleteTarget.id, apiScope);
       toast.success(commandMessage(result.message, 'Đã xóa hạng vé.'));
       setDeleteTarget(null);
       await loadTicketTypes();
