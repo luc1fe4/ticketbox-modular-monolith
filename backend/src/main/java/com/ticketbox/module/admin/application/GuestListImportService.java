@@ -9,15 +9,19 @@ import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 public class GuestListImportService {
 
@@ -320,5 +324,41 @@ public class GuestListImportService {
         String fileName = normalized.substring(normalized.lastIndexOf('/') + 1);
         String sanitized = fileName.replaceAll("[^A-Za-z0-9._-]", "_");
         return sanitized.isBlank() ? "guest-list.csv" : sanitized;
+    }
+
+    public void importAvailableFiles() {
+        try (Stream<Path> concertDirectories = java.nio.file.Files.list(fileStorage.incomingRoot())) {
+            concertDirectories.filter(java.nio.file.Files::isDirectory).forEach(this::processConcertDirectory);
+        } catch (IOException ex) {
+            log.error("Could not scan guest-list incoming directory", ex);
+        }
+    }
+
+    private void processConcertDirectory(Path directory) {
+        UUID concertId;
+        try {
+            concertId = UUID.fromString(directory.getFileName().toString());
+        } catch (IllegalArgumentException ex) {
+            log.warn("Ignoring guest-list directory with invalid concert id: {}", directory);
+            return;
+        }
+
+        Instant now = Instant.now();
+        try (Stream<Path> files = java.nio.file.Files.list(directory)) {
+            files.filter(path -> fileStorage.isStableCsv(path, now))
+                    .forEach(path -> claimAndSubmit(concertId, path));
+        } catch (IOException ex) {
+            log.error("Could not scan guest-list directory {}", directory, ex);
+        }
+    }
+
+    private void claimAndSubmit(UUID concertId, Path path) {
+        try {
+            String originalName = path.getFileName().toString();
+            Path claimed = fileStorage.claimScheduledFile(concertId, path);
+            submitScheduled(concertId, claimed, originalName, path);
+        } catch (Exception ex) {
+            log.error("Could not claim guest-list file {}", path, ex);
+        }
     }
 }

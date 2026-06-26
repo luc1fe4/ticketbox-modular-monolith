@@ -1,4 +1,17 @@
-import { AdminOverviewPage } from './admin/AdminOverviewPage';
+import { useState, useEffect } from 'react';
+import { api } from '../api/client';
+import type { ConcertSummary, Page } from '../api/concerts';
+import type { BatchLog } from '../api/admin';
+
+type PageResponse<T> = Page<T>;
+
+interface Guest {
+  id: string;
+  fullName: string;
+  phone: string;
+  ticketTypeName: string;
+  quantity: number;
+}
 
 interface BatchJobRunResponse {
   message?: string;
@@ -368,7 +381,7 @@ export function AdminDashboardPage() {
                           <td className="py-3">
                             <span
                               className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                                log.status === 'COMPLETED'
+                                log.status === 'SUCCESS'
                                   ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                                   : log.status === 'FAILED'
                                   ? 'bg-red-500/10 text-red-400 border border-red-500/20'
@@ -378,14 +391,14 @@ export function AdminDashboardPage() {
                               {log.status}
                             </span>
                           </td>
-                          <td className="py-3 font-mono font-bold">{log.readCount}</td>
-                          <td className="py-3 font-mono font-bold text-green-400">{log.writeCount}</td>
-                          <td className="py-3 font-mono font-bold text-yellow-400">{log.skipCount}</td>
+                          <td className="py-3 font-mono font-bold">{log.totalRows}</td>
+                          <td className="py-3 font-mono font-bold text-green-400">{log.successRows}</td>
+                          <td className="py-3 font-mono font-bold text-yellow-400">{log.errorRows}</td>
                           <td className="py-3 text-textMuted text-xs">
-                            {new Date(log.startTime).toLocaleTimeString()} - {log.endTime ? new Date(log.endTime).toLocaleTimeString() : '...'}
+                            {new Date(log.startedAt).toLocaleTimeString()} - {log.completedAt ? new Date(log.completedAt).toLocaleTimeString() : '...'}
                           </td>
                           <td className="py-3 text-right max-w-xs truncate text-red-400 font-mono text-xs">
-                            {log.errorMessage || '-'}
+                            {log.errorDetail || '-'}
                           </td>
                         </tr>
                       ))}
