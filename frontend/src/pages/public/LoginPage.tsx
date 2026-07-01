@@ -6,7 +6,7 @@ import { useAuth, type UserRole } from '../../features/auth/AuthContext';
 
 const roleHome: Record<UserRole, string> = {
   AUDIENCE: '/',
-  ORGANIZER: '/admin',
+  ORGANIZER: '/organizer',
   STAFF: '/profile',
   ADMIN: '/admin',
 };
