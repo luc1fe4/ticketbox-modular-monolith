@@ -42,6 +42,7 @@ export function App() {
             <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
             <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
             <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
+            <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
             <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
             <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
           </Route>
@@ -51,7 +52,7 @@ export function App() {
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER']}>
-                <AdminDashboardPage />
+                <OperationsLayout mode="admin" />
               </ProtectedRoute>
             }
           >

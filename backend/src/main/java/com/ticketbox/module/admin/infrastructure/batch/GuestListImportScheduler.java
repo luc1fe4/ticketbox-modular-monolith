@@ -32,38 +32,6 @@ public class GuestListImportScheduler {
             lockAtLeastFor = "PT5S",
             lockAtMostFor = "PT10M")
     public void importAvailableFiles() {
-        try (Stream<Path> concertDirectories = Files.list(fileStorage.incomingRoot())) {
-            concertDirectories.filter(Files::isDirectory).forEach(this::processConcertDirectory);
-        } catch (IOException ex) {
-            log.error("Could not scan guest-list incoming directory", ex);
-        }
-    }
-
-    private void processConcertDirectory(Path directory) {
-        UUID concertId;
-        try {
-            concertId = UUID.fromString(directory.getFileName().toString());
-        } catch (IllegalArgumentException ex) {
-            log.warn("Ignoring guest-list directory with invalid concert id: {}", directory);
-            return;
-        }
-
-        Instant now = Instant.now();
-        try (Stream<Path> files = Files.list(directory)) {
-            files.filter(path -> fileStorage.isStableCsv(path, now))
-                    .forEach(path -> claimAndSubmit(concertId, path));
-        } catch (IOException ex) {
-            log.error("Could not scan guest-list directory {}", directory, ex);
-        }
-    }
-
-    private void claimAndSubmit(UUID concertId, Path path) {
-        try {
-            String originalName = path.getFileName().toString();
-            Path claimed = fileStorage.claimScheduledFile(concertId, path);
-            importService.submitScheduled(concertId, claimed, originalName, path);
-        } catch (Exception ex) {
-            log.error("Could not claim guest-list file {}", path, ex);
-        }
+        importService.importAvailableFiles();
     }
 }
