@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useAuth, type UserRole } from '../../features/auth/AuthContext';
+
+const adminRoles = new Set<UserRole>(['ADMIN', 'ORGANIZER']);
 
 export function Logo() {
   return (
@@ -27,8 +29,11 @@ export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
+  const canOpenAdmin = user ? adminRoles.has(user.role) : false;
+
   function logOut() {
     setMenuOpen(false);
+    setMobileOpen(false);
     logout();
     navigate('/');
   }
@@ -42,13 +47,14 @@ export function PublicLayout() {
           <nav className="desktop-nav" aria-label="Primary navigation">
             <NavLink to="/">Discover</NavLink>
             <a href="/#events">Events</a>
-            {user ? <NavLink to="/my-tickets">My Tickets</NavLink> : null}
+            {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets">My Tickets</NavLink> : null}
+            {canOpenAdmin ? <NavLink to="/admin">Administration</NavLink> : null}
           </nav>
           <div className="header-actions">
             <label className="header-search">
               <span className="sr-only">Search events</span>
               <span aria-hidden="true">⌕</span>
-              <input type="search" name="event-search" autoComplete="off" placeholder="Search artists, events…" />
+              <input type="search" name="event-search" autoComplete="off" placeholder="Search artists, events..." />
             </label>
             {user ? (
               <div className="account-wrap">
@@ -65,10 +71,12 @@ export function PublicLayout() {
                 </button>
                 {menuOpen ? (
                   <div className="account-menu">
-                    <div><strong>{user.fullName}</strong><span>{user.email}</span></div>
+                    <div><strong>{user.fullName}</strong><span>{user.email}</span><span>{user.role}</span></div>
                     <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile & history</Link>
-                    <Link to="/my-tickets" onClick={() => setMenuOpen(false)}>My Tickets</Link>
-                    {user.role === 'ADMIN' ? (
+                    {user.role === 'AUDIENCE' ? (
+                      <Link to="/my-tickets" onClick={() => setMenuOpen(false)}>My Tickets</Link>
+                    ) : null}
+                    {canOpenAdmin ? (
                       <Link to="/admin" onClick={() => setMenuOpen(false)}>Administration</Link>
                     ) : null}
                     {user.role === 'ORGANIZER' ? (
@@ -103,7 +111,9 @@ export function PublicLayout() {
             <NavLink to="/" onClick={() => setMobileOpen(false)}>Discover</NavLink>
             <a href="/#events" onClick={() => setMobileOpen(false)}>Events</a>
             {user ? <NavLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavLink> : null}
-            {user ? <NavLink to="/my-tickets" onClick={() => setMobileOpen(false)}>My Tickets</NavLink> : null}
+            {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets" onClick={() => setMobileOpen(false)}>My Tickets</NavLink> : null}
+            {canOpenAdmin ? <NavLink to="/admin" onClick={() => setMobileOpen(false)}>Administration</NavLink> : null}
+            {user ? <button type="button" onClick={logOut}>Log out</button> : null}
           </nav>
         ) : null}
       </header>
@@ -133,7 +143,7 @@ function Footer() {
           <p className="footer-copy">Fresh drops and early access, delivered occasionally.</p>
           <form className="newsletter" onSubmit={(event) => event.preventDefault()}>
             <label className="sr-only" htmlFor="newsletter-email">Email address</label>
-            <input id="newsletter-email" type="email" name="email" autoComplete="email" spellCheck={false} placeholder="you@example.com…" />
+            <input id="newsletter-email" type="email" name="email" autoComplete="email" spellCheck={false} placeholder="you@example.com..." />
             <button type="submit" aria-label="Subscribe">→</button>
           </form>
         </div>

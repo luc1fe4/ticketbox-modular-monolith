@@ -13,6 +13,7 @@ import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
 import { CheckoutPage } from '../pages/customer/CheckoutPage';
 import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
+import { PaymentResultPage } from '../pages/customer/PaymentResultPage';
 import { ProfilePage } from '../pages/customer/ProfilePage';
 import { SeatSelectionPage } from '../pages/customer/SeatSelectionPage';
 import { ConcertDetailPage } from '../pages/public/ConcertDetailPage';
@@ -23,7 +24,11 @@ import { StaffOverviewPage } from '../pages/staff/StaffOverviewPage';
 import { OrganizerOverviewPage } from '../pages/organizer/OrganizerOverviewPage';
 import { OrganizerRevenuePage } from '../pages/organizer/OrganizerRevenuePage';
 
-const protectedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
+const audiencePage = (page: React.ReactNode) => (
+  <ProtectedRoute allowedRoles={['AUDIENCE']}>{page}</ProtectedRoute>
+);
+
+const authenticatedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
 
 export function App() {
   return (
@@ -34,11 +39,12 @@ export function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/concerts/:id" element={<ConcertDetailPage />} />
-            <Route path="/concerts/:id/seats" element={protectedPage(<SeatSelectionPage />)} />
-            <Route path="/checkout" element={protectedPage(<CheckoutPage />)} />
-            <Route path="/booking-confirmation" element={protectedPage(<BookingConfirmationPage />)} />
-            <Route path="/my-tickets" element={protectedPage(<MyTicketsPage />)} />
-            <Route path="/profile" element={protectedPage(<ProfilePage />)} />
+            <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
+            <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
+            <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
+            <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
+            <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
+            <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

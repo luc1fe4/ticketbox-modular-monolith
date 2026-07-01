@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
+
+export type UserRole = 'AUDIENCE' | 'ORGANIZER' | 'STAFF' | 'ADMIN';
 
 export interface UserSummary {
   id: string;
   email: string;
   fullName: string;
-  role: 'AUDIENCE' | 'ORGANIZER' | 'STAFF' | 'ADMIN';
+  role: UserRole;
 }
 
 interface AuthContextType {
@@ -15,21 +18,29 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<UserSummary>;
   register: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<UserSummary | null>;
+  updateUserSummary: (nextUser: UserSummary) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface TokenPayload {
-  sub: string; // userId
+  sub: string;
   email: string;
-  role: UserSummary['role'];
+  role: UserRole;
   fullName: string;
   exp: number;
+}
+
+interface LoginResponse {
+  accessToken: string;
+  user: UserSummary;
 }
 
 function decodeJwt(token: string): TokenPayload | null {
   try {
     const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(
       window
@@ -39,7 +50,7 @@ function decodeJwt(token: string): TokenPayload | null {
         .join('')
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -50,43 +61,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
+    let cancelled = false;
+
+    async function restoreSession() {
+      const storedToken = localStorage.getItem('token');
+      if (!storedToken) {
+        setLoading(false);
+        return;
+      }
+
       const decoded = decodeJwt(storedToken);
-      if (decoded && decoded.exp * 1000 > Date.now()) {
-        setToken(storedToken);
-        setUser({
-          id: decoded.sub,
-          email: decoded.email,
-          fullName: decoded.fullName,
-          role: decoded.role,
-        });
-      } else {
+      if (!decoded || decoded.exp * 1000 <= Date.now()) {
         localStorage.removeItem('token');
+        setLoading(false);
+        return;
+      }
+
+      setToken(storedToken);
+      setUser({
+        id: decoded.sub,
+        email: decoded.email,
+        fullName: decoded.fullName,
+        role: decoded.role,
+      });
+
+      try {
+        const currentUser = await api.get<unknown, UserSummary>('/api/auth/me');
+        if (!cancelled) setUser(currentUser);
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-    setLoading(false);
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<UserSummary> => {
-    try {
-      const data: any = await api.post('/api/auth/login', { email, password });
-      const { accessToken, user: userSummary } = data;
-      localStorage.setItem('token', accessToken);
-      setToken(accessToken);
-      setUser(userSummary);
-      return userSummary;
-    } catch (err: any) {
-      throw err;
-    }
+    const data = await api.post<unknown, LoginResponse>('/api/auth/login', { email, password });
+    localStorage.setItem('token', data.accessToken);
+    setToken(data.accessToken);
+    setUser(data.user);
+    return data.user;
   };
 
   const register = async (email: string, password: string, fullName: string, phone: string): Promise<void> => {
-    try {
-      await api.post('/api/auth/register', { email, password, fullName, phone });
-    } catch (err: any) {
-      throw err;
-    }
+    await api.post('/api/auth/register', { email, password, fullName, phone });
   };
 
   const logout = () => {
@@ -95,11 +124,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const refreshUser = async (): Promise<UserSummary | null> => {
+    if (!localStorage.getItem('token')) return null;
+    const currentUser = await api.get<unknown, UserSummary>('/api/auth/me');
+    setUser(currentUser);
+    return currentUser;
+  };
+
+  const updateUserSummary = (nextUser: UserSummary) => {
+    setUser(nextUser);
+  };
+
+  const value = useMemo(
+    () => ({ user, token, loading, login, register, logout, refreshUser, updateUserSummary }),
+    [user, token, loading],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

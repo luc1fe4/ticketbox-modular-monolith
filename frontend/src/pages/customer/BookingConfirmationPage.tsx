@@ -1,16 +1,21 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import type { Order } from '../../api/orders';
 import { RemoteImage } from '../../components/RemoteImage';
 import { eventDate, events } from '../../data/mockData';
-import type { CheckoutEvent } from './CheckoutPage';
+import type { CheckoutState } from './CheckoutPage';
+
+type ConfirmationState = Partial<CheckoutState> & {
+  order?: Order;
+};
 
 export function BookingConfirmationPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const failed = searchParams.get('status') === 'failed';
-  const stateEvent = (location.state as { event?: CheckoutEvent } | null)?.event;
+  const state = location.state as ConfirmationState | null;
   const mockEvent = events[0];
-  const event: CheckoutEvent = stateEvent ?? {
-    id: mockEvent.id,
+  const event = state?.event ?? {
+    id: String(mockEvent.id),
     title: mockEvent.title,
     venue: mockEvent.venue,
     date: mockEvent.date,
@@ -23,10 +28,14 @@ export function BookingConfirmationPage() {
         <div className="confirmation-mark failed">!</div>
         <p className="eyebrow"><span /> Payment unsuccessful</p>
         <h1>Your tickets are still <em>waiting.</em></h1>
-        <p>We could not complete the payment. No charge was made. Try again or choose another payment method.</p>
+        <p>We could not complete the payment. No charge was made. Try again or check your order history.</p>
         <div className="confirmation-actions">
-          <Link className="button button-primary" to="/checkout" state={{ event }}>Try payment again</Link>
-          <Link className="button button-secondary" to="/">Return home</Link>
+          {state?.selection?.length ? (
+            <Link className="button button-primary" to="/checkout" state={{ event, selection: state.selection }}>
+              Try payment again
+            </Link>
+          ) : null}
+          <Link className="button button-secondary" to="/profile">View orders</Link>
         </div>
       </section>
     );
@@ -37,11 +46,11 @@ export function BookingConfirmationPage() {
       <div className="confirmation-mark">✓</div>
       <p className="eyebrow"><span /> Booking confirmed</p>
       <h1>You’re going to <em>{event.title}.</em></h1>
-      <p>Your tickets are ready. We also sent a confirmation to minhquan@example.com.</p>
+      <p>Your payment is confirmed and your tickets are ready.</p>
       <div className="confirmation-ticket">
         <RemoteImage src={event.image ?? undefined} alt="" width="360" height="240" />
         <div>
-          <span>Order TBX-826401</span>
+          <span>{state?.order ? `Order ${state.order.id.slice(0, 8).toUpperCase()}` : 'Order confirmed'}</span>
           <h2>{event.title}</h2>
           <p>{eventDate.format(new Date(event.date))}</p>
           <p>{event.venue}</p>
