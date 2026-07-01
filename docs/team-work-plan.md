@@ -201,6 +201,9 @@ Giai đoạn frontend:
 | Sprint 5 | 18/06 - 19/06 | Frontend foundation, API integration, audience/auth UI, Expo scanner foundation |
 | Sprint 6 | 20/06 - 21/06 | Frontend purchase/admin, mobile scanner offline, second integration checkpoint |
 | Sprint 7 | 22/06 - 24/06 | Requirement acceptance, seed data, README, Docker full run, bug fixing, video, final submission |
+| Sprint 8 | 30/06 - 02/07 | Waiting room, shopping session 10 phút, giữ vé tạm khi bấm +/- |
+| Sprint 9 | 03/07 - 05/07 | Hoàn thiện các gap API/UI: notification UI, staff web, admin vận hành, MoMo scope |
+| Sprint 10 | 06/07 - 08/07 | Hardening, test bằng chứng, docs/video cuối theo implementation thật |
 
 ## 5. Sprint 1 - 04/06 Đến 06/06
 
@@ -427,4 +430,152 @@ Không nhận feature mới; chỉ sửa bug chặn requirement hoặc demo.
 | Trọng Quân | Seed support data | Seed guest list CSV sample, artist PDF job sample, batch_logs | Demo admin/CSV/AI có data thật |
 | Trọng Quân | Mobile README | Viết hướng dẫn chạy Expo scanner, tải dataset, test offline, reconnect/sync và tài khoản STAFF demo | Người chấm chạy và kiểm tra luồng offline mà không cần hỏi |
 | Trọng Quân | Video admin/check-in | Quay/cắt phần admin quản lý concert, mobile offline check-in, CSV scheduled import, AI bio | Clip admin và check-in có cảnh mất mạng rồi đồng bộ lại |
+
+## 13. Audit Sau Sprint 7 - 30/06
+
+Mục tiêu của phần bổ sung này là sửa các điểm còn thiếu hoặc chưa đúng sau khi đã merge nhiều PR vào `develop`. Các sprint mới kéo dài 3 ngày/sprint và ưu tiên hoàn thiện đúng yêu cầu môn học trước, sau đó mới mở rộng phần nhóm tự thiết kế.
+
+### 13.1. Đã có và tiếp tục giữ
+
+| Nhóm chức năng | Trạng thái hiện tại | Ghi chú |
+| --- | --- | --- |
+| Auth/RBAC | Đã có | Register/login/me, JWT, role AUDIENCE/ORGANIZER/STAFF/ADMIN, backend guard và FE guard cơ bản |
+| Concert public/admin | Đã có | Public list/detail/seat map, admin/organizer create/update/status/delete, upload poster |
+| Ticket type/availability | Đã có | CRUD ticket type, cache availability, polling ở FE |
+| Order/payment core | Đã có | Create order, giữ vé ở `AWAITING_PAYMENT`, idempotency key, expire order, mock payment, VNPAY adapter |
+| E-ticket/QR | Đã có | Payment success sinh ticket và QR; user xem vé |
+| Redis/RabbitMQ | Đã có | Token bucket cho purchase/payment, idempotency, cache, notification queue, email queue, DLQ |
+| Check-in backend/mobile | Đã có | Staff API, online scan, offline sync, Expo scanner, SQLite local dataset/log |
+| CSV guest list | Đã có | Upload/scheduled import, batch logs, staff lookup/list |
+| AI artist bio | Đã có | Upload PDF, extract text, AI provider/mock fallback, retry/apply |
+| Revenue report | Đã có | Organizer summary, zone revenue, sales trend, export CSV/PDF |
+
+### 13.2. Còn thiếu hoặc chưa đúng
+
+| Mức ưu tiên | Gap | Vì sao cần sửa |
+| --- | --- | --- |
+| P0 | Chưa có waiting room/queue | Đây là phần nhóm đã bàn để xử lý sale nóng và làm cho flow giữ vé theo lượt hợp lý hơn |
+| P0 | Chưa có shopping session 10 phút và giữ vé tạm khi bấm `+/-` | Flow hiện tại chỉ giữ vé khi tạo order ở checkout, UX bất lợi khi vé hết sát giờ |
+| P0 | Chưa có release hold rõ ràng khi user thoát, hết 10 phút, bấm `-`, hoặc không thanh toán | Nếu giữ vé tạm mà không release chuẩn sẽ tạo vé treo và làm sai inventory |
+| P0 | Docs/API có endpoint đã ghi nhưng chưa implement: queue, cancel/retry order, admin orders, admin tickets, admin users, admin notifications, manual reminder, admin check-in summary | Người chấm hoặc nhóm test theo docs sẽ gặp drift giữa tài liệu và code |
+| P1 | Notification UI/badge chưa rõ | Backend notification đã có nhưng user chưa có màn hình xem thông báo đúng nghĩa |
+| P1 | Staff web vẫn có route placeholder | Mobile scanner đã có, nhưng web staff flow chưa hoàn thiện nếu demo trên browser |
+| P1 | MoMo chỉ có trong enum/docs, chưa có adapter/webhook | Nếu giữ trong docs là requirement thì phải implement hoặc ghi rõ out-of-scope |
+| P1 | Circuit breaker VNPAY khó demo outage thật | Adapter hiện build redirect URL local, circuit breaker chưa chứng minh được lỗi network provider |
+| P2 | Mobile README và một số README cũ còn ghi future scope | Code đã vượt README, cần cập nhật để người chấm không hiểu nhầm |
+| P2 | Thiếu checklist PASS/FAIL có bằng chứng mới nhất | Cần bảng test cuối cùng theo code thật sau khi thêm waiting room/hold |
+
+## 14. Sprint 8 - 30/06 Đến 02/07
+
+Mục tiêu:
+
+```text
+Hoàn thiện waiting room và shopping session.
+Khi tới lượt mua, user có 10 phút để chọn vé.
+Bấm + giữ vé tạm trên server, bấm - release vé.
+Hết 10 phút, thoát flow, hoặc không thanh toán thì hệ thống tự trả vé.
+Khi bấm thanh toán, hold được convert thành order AWAITING_PAYMENT và bước thanh toán có 15 phút như hiện tại.
+```
+
+Quyết định thiết kế:
+
+```text
+Không tạo ticket QR khi bấm +.
+Không coi vé là đã mua khi đang chọn vé.
+Bấm + chỉ tạo hold/reservation tạm gắn với shopping session.
+Ticket thật chỉ sinh sau payment success.
+Popup hết vé chỉ là UX; backend vẫn phải chặn bot bằng token, rate limit, atomic update, TTL và giới hạn per-user.
+```
+
+| Người phụ trách | Module | Task | Output để note vào Sheet |
+| --- | --- | --- | --- |
+| Duy Khánh | Waiting room design | Chốt thiết kế Redis sorted set/list cho queue, access token vào phiên mua, TTL 10 phút, state WAITING/ADMITTED/EXPIRED | Có `blueprint/specs/waiting-room.md` hoặc section mới trong design, mô tả rõ flow và race condition |
+| Duy Khánh | Queue backend | Implement `POST /api/queue/concerts/{concertId}/join`, `GET /api/queue/concerts/{concertId}/status`, `POST /api/queue/concerts/{concertId}/leave` | User vào hàng chờ, thấy vị trí, tới lượt nhận quyền vào chọn vé |
+| Duy Khánh | Anti-spam | Gắn rate limit theo IP/user/session cho queue và reserve endpoint; log khi bị 429 | Bot spam join/status/reserve bị chặn ở backend, không phụ thuộc popup FE |
+| Công Phúc | Security | Thiết kế và implement `queueAccessToken` hoặc session token bắt buộc cho reserve/checkout; mỗi user/concert chỉ có 1 active shopping session | User chưa tới lượt không gọi được reserve; không mở nhiều session song song |
+| Công Phúc | Session lifecycle | Xử lý logout, leave, expired session, refresh trang, token hết hạn | Session không bị treo; reload trang vẫn khôi phục được nếu còn TTL |
+| Minh Quân | Reservation model | Tạo migration cho `reservation_sessions`/`reservation_items` hoặc `draft_orders`/`draft_order_items`; ghi rõ trạng thái ACTIVE/EXPIRED/CONVERTED/CANCELLED | Schema giữ vé tạm rõ ràng, không lẫn với order đã thanh toán |
+| Minh Quân | Reserve/release API | Implement API bấm `+/-`: reserve 1 vé, release 1 vé, atomic update `available_qty >= 1`, enforce `max_per_account` gồm PAID + AWAITING_PAYMENT + ACTIVE_HOLD | Không oversell, không vượt per-user limit, trả lỗi rõ khi hết vé |
+| Minh Quân | Convert hold to order | Khi user bấm thanh toán, convert active hold thành order `AWAITING_PAYMENT`, giữ timer thanh toán 15 phút hiện có | Checkout dùng order thật, payment flow cũ vẫn chạy |
+| Minh Quân | Cleanup job | Scheduled job expire shopping session và trả vé; idempotent nếu chạy lại | Vé được trả khi hết 10 phút hoặc session chết |
+| Trọng Quân | FE waiting room | Thêm màn waiting room trước chọn vé: join queue, poll status, show position/estimated status | User không vào selection nếu chưa tới lượt |
+| Trọng Quân | FE reserve UX | Đổi nút `+/-` ở seat selection sang gọi reserve/release API; show popup hết vé, show selected holds và loading từng zone | User biết ngay vé nào giữ được hoặc đã hết |
+| Trọng Quân | FE timers | Hiển thị timer chọn vé 10 phút và timer thanh toán 15 phút; cảnh báo khi gần hết giờ | Demo rõ luật 10 phút chọn vé + 15 phút thanh toán |
+
+Demo bắt buộc cuối Sprint 8:
+
+```text
+2 user cùng tranh vé cuối: chỉ 1 user reserve thành công.
+User tới lượt giữ vé bằng nút +, user khác thấy availability giảm.
+Bấm - trả vé lại.
+Hết 10 phút tự release vé.
+Convert hold sang order, thanh toán mock success sinh ticket.
+User chưa tới lượt gọi reserve API bị từ chối.
+```
+
+## 15. Sprint 9 - 03/07 Đến 05/07
+
+Mục tiêu:
+
+```text
+Đóng các gap còn lại giữa docs và code.
+Hoàn thiện các UI vận hành còn thiếu.
+Quyết định rõ MoMo: implement tối thiểu hoặc ghi out-of-scope nhất quán trong docs.
+```
+
+| Người phụ trách | Module | Task | Output để note vào Sheet |
+| --- | --- | --- | --- |
+| Duy Khánh | Notification UI | Tích hợp notification list, badge chưa đọc, mark-as-read vào PublicLayout/Profile hoặc một page riêng | User thấy app notification sau mua vé/reminder |
+| Duy Khánh | Admin notification ops | Implement hoặc cắt khỏi docs các endpoint `GET /api/admin/notifications`, retry notification, trigger reminder thủ công | Docs và code không còn lệch |
+| Duy Khánh | Docs drift audit | So toàn bộ `docs/api/api-endpoints.md` với controller thật; đánh dấu implemented/out-of-scope/deferred | Không còn endpoint "ảo" trong tài liệu nộp |
+| Công Phúc | Admin users | Implement admin user list/detail/change role/status hoặc xóa khỏi scope nếu không làm | Admin user management không còn chỉ nằm trong docs |
+| Công Phúc | RBAC tests | Viết test/Postman cho queue token, reserve token, admin/staff/audience boundary | Có bằng chứng audience không gọi được admin/staff/reserve trái phép |
+| Minh Quân | Order support | Implement cancel awaiting-payment order và retry payment nếu còn hợp lệ; cập nhật FE nếu cần | User có thể hủy order giữ vé và release inventory đúng |
+| Minh Quân | Admin order/ticket ops | Implement admin/organizer order list/detail và ticket status update nếu vẫn giữ trong docs | Organizer/admin hỗ trợ vận hành order/ticket |
+| Minh Quân | MoMo scope | Một trong hai: implement MoMo mock/sandbox adapter + webhook signature, hoặc cập nhật docs/README nói rõ project chỉ demo VNPAY + MOCK | Không còn enum/docs hứa MoMo nhưng code không có |
+| Trọng Quân | Staff web | Thay placeholder `/staff/check-in`, `/staff/guests`, `/staff/history` bằng UI gọi API staff thật hoặc redirect rõ sang mobile scanner | Staff web không còn là màn rỗng khi demo |
+| Trọng Quân | Mobile docs | Cập nhật `mobile-scanner/README.md` và README con đã lỗi thời: login, dataset, offline scan, auto sync, guest list | Người chấm chạy mobile không bị nhầm là future scope |
+| Trọng Quân | Admin check-in summary UI | Nếu endpoint summary được làm, thêm widget summary vào admin/organizer; nếu không, xóa khỏi docs | Check-in summary nhất quán giữa FE/API/docs |
+
+Demo bắt buộc cuối Sprint 9:
+
+```text
+Notification hiện trên UI sau payment success.
+Admin docs không còn endpoint chưa làm mà không ghi out-of-scope.
+Cancel order trả vé lại.
+Staff web không còn placeholder hoặc có hướng dẫn rõ dùng mobile scanner.
+MoMo được demo tối thiểu hoặc được loại khỏi phạm vi nộp một cách nhất quán.
+```
+
+## 16. Sprint 10 - 06/07 Đến 08/07
+
+Mục tiêu:
+
+```text
+Chốt bản nộp sau khi thêm waiting room/hold.
+Không nhận feature mới trừ bug P0/P1.
+Tạo bằng chứng test cho từng yêu cầu môn học và từng phần nhóm tự thiết kế.
+```
+
+| Người phụ trách | Module | Task | Output để note vào Sheet |
+| --- | --- | --- | --- |
+| Duy Khánh | Acceptance checklist | Lập bảng PASS/FAIL cuối cùng: auth, RBAC, waiting room, reserve hold, purchase, payment, notification, CSV, AI, mobile offline, Redis, RabbitMQ, Docker | Checklist có link file/log/screenshot/Postman tương ứng |
+| Duy Khánh | Full integration | Chạy Docker Compose full, kiểm tra frontend/backend/Postgres/Redis/RabbitMQ/MailHog; ghi lỗi còn lại | Một lệnh chạy được và có hướng dẫn fix nếu env thiếu |
+| Duy Khánh | Performance demo | Chuẩn bị script/demo tranh vé cuối, reserve race, rate limit, idempotency, queue admission | Có bằng chứng hệ thống không oversell |
+| Công Phúc | Security hardening | Test token hết hạn, user sai role, queue token giả, session hết hạn, admin-only endpoint | Không có bypass quyền cơ bản |
+| Công Phúc | README auth/RBAC | Cập nhật tài khoản demo, role matrix, route matrix, cách test RBAC | README đủ để người chấm tự kiểm tra |
+| Minh Quân | Payment/order hardening | Test create order, reserve-to-order, cancel, expire, retry, VNPAY/mock callback trùng, payment failed | Order/payment không sinh vé trùng và trả inventory đúng |
+| Minh Quân | Seed/data sanity | Kiểm tra seed 4 concert, ticket zones, availability, poster/seat map, demo user/order/ticket không conflict migration | DB trắng chạy Flyway xong demo được ngay |
+| Trọng Quân | Mobile E2E | Chạy Expo scanner: login staff, tải dataset, tắt mạng, scan, bật mạng, sync, conflict duplicate | Có ảnh/video/log chứng minh mobile offline thật |
+| Trọng Quân | FE polish | Kiểm tra responsive cho audience/admin/staff/waiting room/checkout/payment result; sửa text lỗi/mã hóa nếu còn | UI không vỡ ở desktop/mobile, không còn mojibake trong app |
+| Cả nhóm | Final video | Quay video theo script: waiting room -> giữ vé -> thanh toán -> QR -> mobile offline check-in -> notification/admin | Video thể hiện đúng phần khó nhất thay vì chỉ CRUD |
+
+Checklist khóa scope trước khi nộp:
+
+```text
+Nếu tính năng chưa implement thì không để trong docs như đã có.
+Nếu endpoint còn trong docs thì phải có controller hoặc ghi rõ deferred/out-of-scope.
+Nếu backend có logic quan trọng thì phải có Postman/curl/test chứng minh.
+Nếu demo cần env thật như VNPAY/AI/Cloudinary thì README phải nói rõ fallback local.
+```
 

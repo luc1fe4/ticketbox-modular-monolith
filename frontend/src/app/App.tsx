@@ -4,7 +4,6 @@ import { PublicLayout } from '../components/layout/PublicLayout';
 import { ToastProvider } from '../components/feedback/ToastProvider';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
-import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
 import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
 import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
@@ -14,6 +13,7 @@ import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
 import { CheckoutPage } from '../pages/customer/CheckoutPage';
 import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
+import { PaymentResultPage } from '../pages/customer/PaymentResultPage';
 import { ProfilePage } from '../pages/customer/ProfilePage';
 import { SeatSelectionPage } from '../pages/customer/SeatSelectionPage';
 import { ConcertDetailPage } from '../pages/public/ConcertDetailPage';
@@ -42,6 +42,7 @@ export function App() {
             <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
             <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
             <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
+            <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
             <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
             <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
           </Route>
@@ -51,7 +52,7 @@ export function App() {
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER']}>
-                <AdminDashboardPage />
+                <OperationsLayout mode="admin" />
               </ProtectedRoute>
             }
           >
