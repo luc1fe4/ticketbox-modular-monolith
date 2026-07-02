@@ -81,7 +81,7 @@ export function ConcertDetailPage() {
           <div className="booking-detail"><span>Date</span><strong>{eventDate.format(concertDate)}</strong></div>
           <div className="booking-detail"><span>Location</span><strong>{concert.venueAddress}</strong></div>
           <div className="booking-detail"><span>Admission</span><strong>Mobile ticket</strong></div>
-          {unavailable ? <button className="button button-disabled" type="button" disabled>{concert.status === 'SOLD_OUT' ? 'Sold out' : 'Not on sale'}</button> : <Link className="button button-primary button-block" to={`/concerts/${concert.id}/seats`}>View seat map <span aria-hidden="true">→</span></Link>}
+          {unavailable ? <button className="button button-disabled" type="button" disabled>{concert.status === 'SOLD_OUT' ? 'Sold out' : 'Not on sale'}</button> : <Link className="button button-primary button-block" to={`/concerts/${concert.id}/waiting-room`}>Buy now <span aria-hidden="true">→</span></Link>}
           <p className="secure-note">Secure checkout · Official ticket partner</p>
         </aside>
       </section>

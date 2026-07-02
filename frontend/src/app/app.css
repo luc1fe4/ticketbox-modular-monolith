@@ -1292,13 +1292,178 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
   min-height: 320px;
 }
 
+.waiting-room-page {
+  min-height: 760px;
+  padding-bottom: 110px;
+}
+
+.waiting-room-shell {
+  min-height: 512px;
+  display: grid;
+  place-items: center;
+  padding-block: 45px 32px;
+}
+
+.waiting-room-panel {
+  width: min(100%, 608px);
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  padding: clamp(20px, 3.2vw, 37px);
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 118, 95, .13), transparent 42%),
+    #101014;
+  text-align: center;
+}
+
+.waiting-room-event {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 620px;
+}
+
+.waiting-room-event > span {
+  color: var(--coral-light);
+  font: 800 10px/1 "Manrope", sans-serif;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.waiting-room-event strong {
+  color: var(--cream);
+  font: 800 clamp(24px, 3.4vw, 42px)/1.08 "Manrope", sans-serif;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+
+.waiting-room-event p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.queue-orbit {
+  position: relative;
+  width: min(100%, 312px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(255, 118, 95, .24), transparent 58%),
+    linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+  background-size: auto, 22px 22px, 22px 22px;
+}
+
+.queue-orbit span {
+  position: absolute;
+  inset: 22px;
+  border: 1px dashed rgba(255, 255, 255, .18);
+  border-radius: inherit;
+}
+
+.queue-orbit.is-waiting span {
+  animation: queue-spin 12s linear infinite;
+}
+
+.queue-orbit strong {
+  font: 900 clamp(75px, 11.2vw, 142px)/.86 "Manrope", sans-serif;
+  color: var(--cream);
+  letter-spacing: -.075em;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-status-copy {
+  text-align: center;
+}
+
+.queue-status-copy > span {
+  color: var(--coral-light);
+  font: 800 10px/1 "Manrope", sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.queue-status-copy h2 {
+  margin: 12px 0 10px;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.15;
+}
+
+.queue-status-copy p {
+  margin: 0 auto;
+  max-width: 430px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.waiting-room-error {
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 118, 95, .32);
+  background: rgba(255, 118, 95, .07);
+  color: var(--coral-light);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.queue-metrics {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line);
+}
+
+.queue-metrics div {
+  min-height: 60px;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  padding: 14px;
+  border-right: 1px solid var(--line);
+}
+
+.queue-metrics div:last-child {
+  border-right: 0;
+}
+
+.queue-metrics span {
+  color: #77747e;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.queue-metrics strong {
+  font: 800 19px/1.1 "Manrope", sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.waiting-room-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 @keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes queue-spin {
   to { transform: rotate(360deg); }
 }
 
 @media (max-width: 980px) {
   .profile-grid,
-  .ticket-history-grid {
+  .ticket-history-grid,
+  .waiting-room-shell {
     grid-template-columns: 1fr;
   }
 
@@ -1334,6 +1499,37 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
   .history-lines div {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .waiting-room-page {
+    padding-bottom: 88px;
+  }
+
+  .waiting-room-shell {
+    gap: 34px;
+    padding-block: 52px 20px;
+  }
+
+  .waiting-room-panel {
+    padding: 22px;
+  }
+
+  .queue-orbit {
+    width: min(100%, 248px);
+  }
+
+  .queue-metrics,
+  .waiting-room-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .queue-metrics div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .queue-metrics div:last-child {
+    border-bottom: 0;
   }
 }
 

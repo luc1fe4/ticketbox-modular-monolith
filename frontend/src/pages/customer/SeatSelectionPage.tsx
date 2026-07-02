@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { isRequestCanceled } from '../../api/client';
 import { getConcert, type ConcertDetail, type TicketType } from '../../api/concerts';
+import { clearStoredQueueAdmission, getStoredQueueAdmission } from '../../api/queue';
 import { ConcertSeatMap } from '../../components/ConcertSeatMap';
 import { currency, eventDate } from '../../data/mockData';
 import { useTicketAvailability } from '../../features/concert/useTicketAvailability';
@@ -18,6 +19,7 @@ export function SeatSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [inventoryNotice, setInventoryNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const queueAdmission = id ? getStoredQueueAdmission(id) : null;
   const {
     ticketTypes,
     loading: availabilityLoading,
@@ -25,6 +27,23 @@ export function SeatSelectionPage() {
     initialLoadFailed,
     lastUpdatedAt,
   } = useTicketAvailability(id, reloadKey);
+
+  useEffect(() => {
+    if (!id) return;
+    const admission = getStoredQueueAdmission(id);
+    if (!admission) {
+      navigate(`/concerts/${id}/waiting-room`, { replace: true });
+      return;
+    }
+
+    const expiresInMs = new Date(admission.sessionExpiresAt).getTime() - Date.now();
+    const timeoutId = window.setTimeout(() => {
+      clearStoredQueueAdmission();
+      navigate(`/concerts/${id}/waiting-room`, { replace: true });
+    }, Math.max(0, expiresInMs));
+
+    return () => window.clearTimeout(timeoutId);
+  }, [id, navigate]);
 
   useEffect(() => {
     if (!id) return;
@@ -116,6 +135,8 @@ export function SeatSelectionPage() {
       state: {
         event: { id: concert.id, title: concert.title, venue: concert.venueName, date: concert.eventDate, image: concert.posterUrl },
         selection,
+        queueAccessToken: queueAdmission?.queueAccessToken,
+        sessionExpiresAt: queueAdmission?.sessionExpiresAt,
       },
     });
   }
@@ -174,8 +195,8 @@ export function SeatSelectionPage() {
           </div>
           <div className="selection-summary">
             <div><span>{ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}</span><strong>{currency.format(subtotal)}</strong></div>
-            <p>Availability refreshes every 4 seconds. Your order will be reserved securely at checkout.</p>
-            <button className="button button-primary button-block" type="button" disabled={!ticketCount} onClick={continueToCheckout}>Continue to checkout <span aria-hidden="true">→</span></button>
+            <p>Availability refreshes every 4 seconds. Your queue session stays active until {queueAdmission ? new Date(queueAdmission.sessionExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'the timer ends'}.</p>
+            <button className="button button-primary button-block" type="button" disabled={!ticketCount || !queueAdmission} onClick={continueToCheckout}>Continue to checkout <span aria-hidden="true">→</span></button>
           </div>
         </aside>
       </div>

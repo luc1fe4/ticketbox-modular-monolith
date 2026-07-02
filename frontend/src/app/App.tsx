@@ -16,6 +16,7 @@ import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
 import { PaymentResultPage } from '../pages/customer/PaymentResultPage';
 import { ProfilePage } from '../pages/customer/ProfilePage';
 import { SeatSelectionPage } from '../pages/customer/SeatSelectionPage';
+import { WaitingRoomPage } from '../pages/customer/WaitingRoomPage';
 import { ConcertDetailPage } from '../pages/public/ConcertDetailPage';
 import { HomePage } from '../pages/public/HomePage';
 import { LoginPage } from '../pages/public/LoginPage';
@@ -39,6 +40,7 @@ export function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/concerts/:id" element={<ConcertDetailPage />} />
+            <Route path="/concerts/:id/waiting-room" element={audiencePage(<WaitingRoomPage />)} />
             <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
             <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
             <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />

@@ -9,6 +9,7 @@ import {
   type Order,
   type PaymentProvider,
 } from '../../api/orders';
+import { clearStoredQueueAdmission, getStoredQueueAdmission } from '../../api/queue';
 import { RemoteImage } from '../../components/RemoteImage';
 import { currency } from '../../data/mockData';
 import type { CheckoutSelection } from './SeatSelectionPage';
@@ -24,6 +25,8 @@ export type CheckoutEvent = {
 export type CheckoutState = {
   event: CheckoutEvent;
   selection: CheckoutSelection[];
+  queueAccessToken?: string;
+  sessionExpiresAt?: string;
 };
 
 export const PENDING_PAYMENT_STORAGE_KEY = 'ticketbox.pending-payment';
@@ -70,6 +73,8 @@ export function CheckoutPage() {
   }
 
   const { event, selection } = state;
+  const storedAdmission = getStoredQueueAdmission(event.id);
+  const queueAccessToken = state.queueAccessToken ?? storedAdmission?.queueAccessToken;
   const displayedTotal = selection.reduce((total, item) => total + item.price * item.quantity, 0);
 
   async function waitForPaidOrder(orderId: string): Promise<Order> {
@@ -87,11 +92,20 @@ export function CheckoutPage() {
     setError(null);
     setProcessing(true);
 
+    if (!queueAccessToken) {
+      clearStoredQueueAdmission();
+      setError('Your shopping session expired. Returning you to the waiting room.');
+      window.setTimeout(() => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }), 900);
+      setProcessing(false);
+      return;
+    }
+
     try {
       const order = createdOrder.current ?? await createOrder(
           event.id,
           selection.map((item) => ({ ticketTypeId: item.id, quantity: item.quantity })),
           idempotencyKey.current,
+          queueAccessToken,
         );
       createdOrder.current = order;
       const pendingPayment = { event, selection, orderId: order.id };
@@ -122,6 +136,14 @@ export function CheckoutPage() {
         state: { event, selection, order: paidOrder },
       });
     } catch (requestError) {
+      if (requestError instanceof ApiClientError && requestError.status === 403) {
+        clearStoredQueueAdmission();
+        setError('Your shopping session expired. Returning you to the waiting room.');
+        window.setTimeout(() => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }), 900);
+        setProcessing(false);
+        return;
+      }
+
       setError(
         requestError instanceof ApiClientError && requestError.status === 409
           ? 'Ticket availability changed before your order was created. Return to ticket selection and review the latest inventory.'
