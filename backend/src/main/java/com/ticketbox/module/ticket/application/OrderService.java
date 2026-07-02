@@ -17,6 +17,7 @@ import com.ticketbox.module.ticket.web.dto.CreateOrderRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemResponse;
 import com.ticketbox.module.ticket.web.dto.OrderResponse;
+import com.ticketbox.module.queue.QueueAccessPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.DuplicateIdempotencyKeyException;
 import com.ticketbox.shared.exception.ErrorCode;
@@ -50,6 +51,7 @@ public class OrderService {
     private final StringRedisTemplate redisTemplate;
     private final TicketRepository ticketRepository;
     private final IdempotencyService idempotencyService;
+    private final QueueAccessPort queueAccessPort;
 
     private static final RedisScript<Long> RELEASE_LOCK_SCRIPT = RedisScript.of(
             "if redis.call('get', KEYS[1]) == ARGV[1] then " +
@@ -63,7 +65,7 @@ public class OrderService {
     private static final int EXPIRED_ORDER_BATCH_SIZE = 100;
 
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request, UUID userId, String idempotencyKey) {
+    public OrderResponse createOrder(CreateOrderRequest request, UUID userId, String idempotencyKey, String queueAccessToken) {
         IdempotencyService.IdempotencyClaim claim =
                 idempotencyService.claimOrder(userId, idempotencyKey);
 
@@ -76,7 +78,7 @@ public class OrderService {
                         throw new DuplicateIdempotencyKeyException(claim.clientKey());
                     });
 
-            return createOrderInsideClaim(request, userId, claim);
+            return createOrderInsideClaim(request, userId, claim, queueAccessToken);
         } catch (RuntimeException ex) {
             idempotencyService.release(claim);
             throw ex;
@@ -86,7 +88,8 @@ public class OrderService {
     private OrderResponse createOrderInsideClaim(
             CreateOrderRequest request,
             UUID userId,
-            IdempotencyService.IdempotencyClaim claim
+            IdempotencyService.IdempotencyClaim claim,
+            String queueAccessToken
     ) {
         String lockKey = "lock:user:" + userId;
         String lockToken = UUID.randomUUID().toString();
@@ -103,6 +106,8 @@ public class OrderService {
         if (!"ON_SALE".equals(concert.status())) {
             throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
         }
+
+        queueAccessPort.validateAccess(request.concertId(), userId, queueAccessToken);
 
         List<UUID> ticketTypeIds = request.items().stream()
                 .map(OrderItemRequest::ticketTypeId)

@@ -196,6 +196,11 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .timer, .secure-label { color: var(--muted); font-size: 12px; }
 .timer span { color: var(--coral); }
 .timer.delayed { color: var(--coral-light); }
+.countdown-timer { min-width: 172px; display: grid; justify-items: end; gap: 4px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.countdown-timer span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.countdown-timer strong { color: var(--cream); font: 800 20px/1 "Manrope"; letter-spacing: 0; }
+.countdown-timer.warning strong, .countdown-timer.warning span { color: var(--coral-light); }
+.countdown-timer.expired strong, .countdown-timer.expired span { color: #ff5f57; }
 .selection-page, .checkout-page { padding-bottom: 110px; }
 .selection-header { padding: 70px 0 36px; }
 .selection-header h1 { margin-bottom: 12px; font-size: 46px; }
@@ -245,8 +250,9 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .inventory-notice button { flex: none; width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); font-size: 18px; }
 .inventory-notice button:hover, .inventory-notice button:focus-visible { color: var(--cream); }
 .zone-list { flex: 1; }
-.zone-item { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; padding: 20px 28px; border-top: 1px solid var(--line); }
+.zone-item { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; padding: 20px 28px; border-top: 1px solid var(--line); }
 .zone-item.focused { background: rgba(255,255,255,.035); }
+.zone-item-loading { background: rgba(255,118,95,.035); }
 .zone-focus { min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: inherit; text-align: left; }
 .zone-focus i { flex: none; width: 9px; height: 38px; border-radius: 2px; }
 .zone-focus span { min-width: 0; display: grid; gap: 5px; }
@@ -259,11 +265,24 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .quantity-control button { width: 30px; height: 30px; border: 0; background: transparent; color: var(--cream); }
 .quantity-control button:disabled { color: #49474e; cursor: not-allowed; }
 .quantity-control span { width: 22px; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+.quantity-control[aria-busy="true"] { border-color: rgba(255,118,95,.45); }
+.quantity-control[aria-busy="true"] span { color: var(--coral-light); }
+.zone-hold-status { position: absolute; right: 28px; bottom: 5px; color: var(--coral-light); font: 700 8px/1 "Manrope"; letter-spacing: .12em; text-transform: uppercase; }
 .selection-summary { padding: 24px 28px 28px; border-top: 1px solid var(--line); background: #16161b; }
 .selection-summary > div { display: flex; justify-content: space-between; }
 .selection-summary > div span { color: var(--muted); font-size: 11px; }
 .selection-summary > div strong { font-size: 18px; }
 .selection-summary p { color: #77747e; font-size: 9px; }
+.hold-timer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.08); border-bottom: 1px solid rgba(255,255,255,.08); font-variant-numeric: tabular-nums; }
+.hold-timer span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.hold-timer strong { color: var(--cream); font: 800 22px/1 "Manrope"; letter-spacing: 0; }
+.hold-timer.warning span, .hold-timer.warning strong { color: var(--coral-light); }
+.hold-timer.expired span, .hold-timer.expired strong { color: #ff5f57; }
+.timer-warning-copy { margin: 10px 0 0!important; color: var(--coral-light)!important; font-size: 10px!important; line-height: 1.5; }
+.held-ticket-list { display: grid; gap: 8px; margin: 16px 0 14px; padding: 0; list-style: none; }
+.held-ticket-list li { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; }
+.held-ticket-list span { min-width: 0; color: var(--muted); overflow-wrap: anywhere; }
+.held-ticket-list strong { flex: none; color: var(--cream); font-size: 11px; }
 
 .checkout-heading { padding: 72px 0 42px; }
 .checkout-heading h1 { margin-bottom: 12px; font-size: 54px; }
@@ -286,6 +305,7 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .payment-options { display: grid; gap: 10px; }
 .payment-option { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line); background: #101014; cursor: pointer; }
 .payment-option.selected { border-color: var(--coral); background: rgba(255,118,95,.05); }
+.payment-option:has(input:disabled) { opacity: .58; cursor: not-allowed; }
 .payment-option input { accent-color: var(--coral); }
 .payment-option > span:last-child { display: grid; gap: 4px; }
 .payment-option strong { font-size: 13px; }
@@ -295,6 +315,14 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .payment-vnpay { background: #1268b3; }
 .payment-mock { background: #393740; color: var(--coral-light); }
 .payment-explainer { margin: 18px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.payment-timer-card { display: grid; gap: 8px; margin-bottom: 18px; padding: 18px; border: 1px solid var(--line); background: #101014; font-variant-numeric: tabular-nums; }
+.payment-timer-card span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.payment-timer-card strong { color: var(--cream); font: 800 36px/1 "Manrope"; letter-spacing: 0; }
+.payment-timer-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.payment-timer-card.warning { border-color: rgba(255,118,95,.45); background: rgba(255,118,95,.07); }
+.payment-timer-card.warning span, .payment-timer-card.warning strong { color: var(--coral-light); }
+.payment-timer-card.expired { border-color: rgba(255,95,87,.5); background: rgba(255,95,87,.08); }
+.payment-timer-card.expired span, .payment-timer-card.expired strong { color: #ff5f57; }
 .card-fields { display: grid; gap: 18px; margin-top: 18px; padding: 20px; background: var(--surface); }
 .order-summary { position: sticky; top: 105px; padding: 24px; border: 1px solid var(--line); background: var(--surface); }
 .order-event { display: grid; grid-template-columns: 110px 1fr; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
@@ -313,6 +341,7 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .summary-total span { color: var(--muted); font-size: 11px; }
 .summary-total strong { font: 800 24px/1 "Manrope"; }
 .failure-preview { width: 100%; margin-top: 14px; border: 0; background: transparent; color: #77747e; font-size: 9px; text-decoration: underline; }
+.checkout-restart-link { display: inline-flex; justify-content: center; width: 100%; margin-top: 14px; text-align: center; }
 
 .confirmation-page { min-height: 750px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-block: 90px; text-align: center; }
 .confirmation-mark { width: 70px; height: 70px; display: grid; place-items: center; margin-bottom: 28px; border: 1px solid #61d6a0; border-radius: 50%; color: #61d6a0; font-size: 25px; box-shadow: 0 0 50px rgba(97,214,160,.12); }
@@ -861,7 +890,8 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
   .zone-3 { top: 385px; left: 5%; width: 90%; }
   .zone-4 { top: 490px; }
   .map-console { top: 405px; }
-  .zone-item { grid-template-columns: minmax(0,1fr) auto; padding: 18px; }
+  .zone-item { grid-template-columns: minmax(0,1fr) auto; padding: 18px 18px 24px; }
+  .zone-hold-status { right: 18px; bottom: 7px; }
   .zone-price { display: none; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .field:first-child { grid-column: auto; }

@@ -26,10 +26,12 @@ public class OrderController {
             @Valid @RequestBody CreateOrderRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false)
             String idempotencyKey,
+            @RequestHeader(value = "Queue-Access-Token", required = false)
+            String queueAccessToken,
             Authentication authentication
     ) {
         UUID userId = UUID.fromString(authentication.getName());
-        OrderResponse response = orderService.createOrder(request, userId, idempotencyKey);
+        OrderResponse response = orderService.createOrder(request, userId, idempotencyKey, queueAccessToken);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(response));
     }
