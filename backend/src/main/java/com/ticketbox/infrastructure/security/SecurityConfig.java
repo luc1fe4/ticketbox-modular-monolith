@@ -64,6 +64,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "ORGANIZER")
                 .requestMatchers("/api/organizer/**").hasRole("ORGANIZER")
+                .requestMatchers("/api/queue/**").hasRole("AUDIENCE")
                 .requestMatchers(HttpMethod.GET, "/api/staff/concerts/*/checkins").hasAnyRole("STAFF", "ORGANIZER", "ADMIN")
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
                 .requestMatchers("/api/orders/**").hasRole("AUDIENCE")
@@ -87,7 +88,7 @@ public class SecurityConfig {
                 "http://127.0.0.1:8081"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "Queue-Access-Token"));
         configuration.setExposedHeaders(List.of("Content-Disposition"));
         configuration.setAllowCredentials(true);
 

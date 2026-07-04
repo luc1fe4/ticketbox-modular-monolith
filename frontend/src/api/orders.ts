@@ -42,11 +42,17 @@ export function createOrder(
   concertId: string,
   items: Array<{ ticketTypeId: string; quantity: number }>,
   idempotencyKey: string,
+  queueAccessToken?: string,
 ) {
   return api.post<unknown, Order>(
     '/api/orders',
     { concertId, items },
-    { headers: { 'Idempotency-Key': idempotencyKey } },
+    {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+        ...(queueAccessToken ? { 'Queue-Access-Token': queueAccessToken } : {}),
+      },
+    },
   );
 }
 

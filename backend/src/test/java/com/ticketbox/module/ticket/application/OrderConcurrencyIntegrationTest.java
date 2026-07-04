@@ -11,6 +11,7 @@ import com.ticketbox.module.ticket.domain.OrderItemRepository;
 import com.ticketbox.module.ticket.domain.OrderRepository;
 import com.ticketbox.module.ticket.web.dto.CreateOrderRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
+import com.ticketbox.module.queue.application.WaitingRoomService;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +47,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         properties = {
         "spring.task.scheduling.enabled=false",
         "spring.rabbitmq.listener.simple.auto-startup=false",
-        "spring.batch.jdbc.initialize-schema=always"
+        "spring.batch.jdbc.initialize-schema=always",
+        "ticketbox.queue.admission-capacity=100"
         }
 )
 @ActiveProfiles("test")
@@ -77,6 +79,9 @@ class OrderConcurrencyIntegrationTest {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private WaitingRoomService waitingRoomService;
 
     @Autowired
     private UserRepository userRepository;
@@ -251,7 +256,8 @@ class OrderConcurrencyIntegrationTest {
         );
 
         try {
-            orderService.createOrder(request, userId, idempotencyKey);
+            String queueAccessToken = waitingRoomService.join(fixture.concert().getId(), userId).queueAccessToken();
+            orderService.createOrder(request, userId, idempotencyKey, queueAccessToken);
             return AttemptResult.succeeded();
         } catch (AppException exception) {
             return AttemptResult.failed(exception.getErrorCode());

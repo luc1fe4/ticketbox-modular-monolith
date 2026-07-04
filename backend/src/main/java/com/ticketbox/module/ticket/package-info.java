@@ -24,5 +24,5 @@
  * <p>Note: No longer depends on {@code payment} directly.
  * PaymentCompletedEvent lives in {@code shared.event} to break the former circular dependency.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = {"concert", "shared"})
+@org.springframework.modulith.ApplicationModule(allowedDependencies = {"concert", "queue", "shared"})
 package com.ticketbox.module.ticket;

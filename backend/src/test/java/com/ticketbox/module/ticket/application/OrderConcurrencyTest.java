@@ -11,6 +11,7 @@ import com.ticketbox.module.ticket.domain.OrderItemRepository;
 import com.ticketbox.module.ticket.domain.OrderRepository;
 import com.ticketbox.module.ticket.web.dto.CreateOrderRequest;
 import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
+import com.ticketbox.module.queue.QueueAccessPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -61,6 +62,9 @@ public class OrderConcurrencyTest {
 
     @Mock
     private IdempotencyService idempotencyService;
+
+    @Mock
+    private QueueAccessPort queueAccessPort;
 
     @InjectMocks
     private OrderService orderService;
@@ -151,7 +155,7 @@ public class OrderConcurrencyTest {
                             concertId,
                             List.of(new OrderItemRequest(ticketTypeId, 1))
                     );
-                    orderService.createOrder(request, UUID.randomUUID(), UUID.randomUUID().toString());
+                    orderService.createOrder(request, UUID.randomUUID(), UUID.randomUUID().toString(), "queue-token");
                     successCount.incrementAndGet();
                 } catch (AppException e) {
                     if (e.getErrorCode() == ErrorCode.TICKET_SOLD_OUT) {
@@ -219,7 +223,7 @@ public class OrderConcurrencyTest {
                             concertId,
                             List.of(new OrderItemRequest(ticketTypeId, 1))
                     );
-                    orderService.createOrder(request, singleUserId, UUID.randomUUID().toString());
+                    orderService.createOrder(request, singleUserId, UUID.randomUUID().toString(), "queue-token");
                     successCount.incrementAndGet();
                 } catch (AppException e) {
                     if (e.getErrorCode() == ErrorCode.INVALID_REQUEST && e.getMessage().contains("processed")) {
