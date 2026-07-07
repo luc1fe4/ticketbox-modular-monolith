@@ -14,6 +14,7 @@ import com.ticketbox.module.ticket.web.dto.OrderItemRequest;
 import com.ticketbox.module.queue.QueueAccessPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
+import com.ticketbox.module.ticket.domain.TicketHoldRepository;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,9 @@ public class OrderConcurrencyTest {
     @Mock
     private QueueAccessPort queueAccessPort;
 
+    @Mock
+    private TicketHoldRepository ticketHoldRepository;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -108,6 +112,7 @@ public class OrderConcurrencyTest {
         // Mock basic concert and ticket type lookups
         when(concertOrderPort.findConcertById(concertId)).thenReturn(Optional.of(concertView));
         when(concertOrderPort.findTicketTypesByIds(anyList())).thenReturn(List.of(ticketTypeView));
+        when(ticketHoldRepository.findByUserIdAndConcertId(any(), any())).thenReturn(Collections.emptyList());
 
         // Mock idempotency claiming to return valid dummy claims
         when(idempotencyService.claimOrder(any(), anyString())).thenAnswer(invocation -> {
@@ -189,6 +194,7 @@ public class OrderConcurrencyTest {
 
         when(concertOrderPort.findConcertById(concertId)).thenReturn(Optional.of(concertView));
         when(concertOrderPort.findTicketTypesByIds(anyList())).thenReturn(List.of(ticketTypeView));
+        when(ticketHoldRepository.findByUserIdAndConcertId(any(), any())).thenReturn(Collections.emptyList());
         when(concertOrderPort.reserveInventory(eq(ticketTypeId), anyInt())).thenReturn(true);
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

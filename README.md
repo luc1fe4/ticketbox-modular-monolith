@@ -75,32 +75,102 @@ Do not commit real `.env` files, real secrets, API keys, payment credentials, or
 
 ## Demo Accounts
 
-Seed data creates these primary demo users:
+The database seed data automatically creates these primary credentials for demo and testing purposes:
 
-| Role | Email | Password | Main use |
+| Role | Email | Password | Main Use Cases & Permissions |
 | --- | --- | --- | --- |
-| Audience | `audience@ticketbox.com` | `password123` | Browse concerts, buy tickets, view profile/orders/e-tickets |
-| Organizer | `organizer@ticketbox.com` | `password123` | Open admin dashboard, guest-list import, batch logs, reports |
-| Admin | `admin@ticketbox.com` | `password123` | Admin-level dashboard and operations endpoints |
-| Staff | `staff@ticketbox.com` | `password123` | Staff check-in APIs and mobile scanner flow |
+| **Audience** | `audience@ticketbox.com` | `password123` | Browse concerts, reserve tickets, complete purchases, view orders/e-tickets |
+| **Organizer**| `organizer@ticketbox.com`| `password123` | Open admin dashboard, view logs, import guest lists, review revenue reports |
+| **Admin**    | `admin@ticketbox.com`    | `password123` | Full access to operations dashboard, user role management, status updates, check-ins |
+| **Staff**    | `staff@ticketbox.com`    | `password123` | Check-in attendees, search guests, use mobile ticket scanner flows |
 
-Additional `.vn` test accounts may exist for backend tests, but the `.com` accounts above are the intended demo accounts.
+---
 
-## RBAC Summary
+## Role-Based Access Control (RBAC) Matrix
 
-Backend security and frontend route guards are aligned around these roles:
+### 1. Route & Component Matrices
 
-| Area | Roles |
-| --- | --- |
-| Public concert list/detail/availability | Public |
-| Register/login | Public |
-| Profile | Any authenticated user |
-| Purchase, checkout, mock payment, my orders, my tickets | `AUDIENCE` |
-| Admin web, concert operations, guest-list import, batch logs | `ORGANIZER`, `ADMIN` |
-| Staff check-in dataset, scan, offline sync, guest lookup | `STAFF` |
-| Organizer revenue reports | `ORGANIZER` |
+#### Frontend Web Route Matrix
+| Path / Page | Public | Audience | Staff | Organizer | Admin | Action on Unauthorized |
+| --- | :---: | :---: | :---: | :---: | :---: | --- |
+| `/` (Homepage) | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
+| `/login`, `/register` | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
+| `/concerts/:id` | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
+| `/profile` | ❌ | ✅ | ✅ | ✅ | ✅ | Redirect to `/login` |
+| `/tickets`, `/orders` | ❌ | ✅ | ❌ | ❌ | ❌ | Redirect to `/` |
+| `/admin` (Dashboard) | ❌ | ❌ | ❌ | ✅ | ✅ | Redirect to `/` |
+| `/admin/users` (User Management) | ❌ | ❌ | ❌ | ❌ | ✅ | Redirect to `/` |
+| `/staff/checkin` (Gate Check-in) | ❌ | ❌ | ✅ | ❌ | ✅ | Redirect to `/` |
 
-If a signed-in user opens a frontend route outside their role, the UI shows an access-limited state instead of silently mixing permissions.
+#### Backend REST API Route Matrix
+| API Endpoint | HTTP Method | Public | `AUDIENCE` | `STAFF` | `ORGANIZER` | `ADMIN` | Expected Unauthorized Status |
+| --- | --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `/api/auth/login`, `/register` | POST | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed |
+| `/api/concerts/**` (View catalog) | GET | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed |
+| `/api/profile/**` | GET/PUT | ❌ | ✅ | ✅ | ✅ | ✅ | `401 Unauthorized` |
+| `/api/reservations/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
+| `/api/orders/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
+| `/api/checkin/**` | POST/GET | ❌ | ❌ | ✅ | ❌ | ✅ | `403 Forbidden` |
+| `/api/organizer/**` | GET/POST | ❌ | ❌ | ❌ | ✅ | ✅ | `403 Forbidden` |
+| `/api/admin/users/**` | GET/PUT | ❌ | ❌ | ❌ | ❌ | ✅ | `403 Forbidden` |
+
+---
+
+## How to Test & Verify RBAC
+
+### Method A: Manual Testing via Frontend Web UI
+
+1. **Test User Isolation (Audience vs Admin/Organizer)**:
+   - Log in with `audience@ticketbox.com`.
+   - Attempt to manually enter the admin URL in your browser: `http://localhost:5173/admin` or `http://localhost:5173/admin/users`.
+   - **Verification**: You will be immediately redirected to the homepage `/`. The admin navigation menu is completely hidden from the sidebar.
+
+2. **Test Admin-Only Management (Admin vs Organizer)**:
+   - Log in with `organizer@ticketbox.com`. Go to `/admin`.
+   - Notice that you can import guest lists and view reports, but the **"User Management"** tab in the sidebar is hidden/disabled.
+   - Attempt to manually navigate to `http://localhost:5173/admin/users`.
+   - **Verification**: You will be redirected back, protecting admin-only screens from organizer users.
+   - Log out, then log in with `admin@ticketbox.com`. You can now view and access the `/admin/users` page, modify roles, and activate/deactivate users.
+
+3. **Test Staff Gate Check-in Restriction**:
+   - Log in with `audience@ticketbox.com` or `organizer@ticketbox.com`.
+   - Try accessing `http://localhost:5173/staff/checkin`.
+   - **Verification**: Access is blocked and redirects to the homepage. Only accounts with `STAFF` or `ADMIN` roles can load the gate check-in page.
+
+---
+
+### Method B: REST API Security Testing (Backend Verification)
+
+We have verified security hardening using Spring integration tests (under `SecurityHardeningTest` and `SecurityRbacTest`). You can perform manual API checks using `curl`:
+
+1. **Access Admin-Only Endpoints with No Token**:
+   ```bash
+   curl -i http://localhost:8080/api/admin/users
+   ```
+   *Expected Response*: `401 Unauthorized`
+
+2. **Access Admin-Only Endpoints with Audience Role**:
+   - Perform a POST to `/api/auth/login` using `audience@ticketbox.com` to get a Bearer token.
+   - Request the admin users list:
+     ```bash
+     curl -i -H "Authorization: Bearer <AUDIENCE_TOKEN>" http://localhost:8080/api/admin/users
+     ```
+   *Expected Response*: `403 Forbidden`
+
+3. **Access Admin-Only Endpoints with Admin Role**:
+   - Login with `admin@ticketbox.com` to get the token.
+   - Request:
+     ```bash
+     curl -i -H "Authorization: Bearer <ADMIN_TOKEN>" http://localhost:8080/api/admin/users
+     ```
+   *Expected Response*: `200 OK` with the JSON list of registered users.
+
+4. **Verify Queue Security Token Enforcement**:
+   - Attempting to reserve a ticket:
+     ```bash
+     curl -i -X POST -H "Authorization: Bearer <AUDIENCE_TOKEN>" -H "Content-Type: application/json" -d '{"quantity": 2}' http://localhost:8080/api/reservations/concerts/<CONCERT_ID>/ticket-types/<TICKET_TYPE_ID>/reserve
+     ```
+   - **Verification**: If no `Queue-Access-Token` is supplied in the headers, or if a fake/invalid/expired token is passed, the backend immediately rejects the request with a `403 Forbidden` or validation error, preventing queue bypass.
 
 ## Payment Demo
 

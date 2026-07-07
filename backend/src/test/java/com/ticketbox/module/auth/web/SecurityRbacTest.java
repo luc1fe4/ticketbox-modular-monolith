@@ -86,11 +86,20 @@ class TestAudienceProtectedController {
     }
 }
 
+@RestController
+class TestReservationController {
+    @GetMapping("/api/reservations/concerts/11111111-1111-1111-1111-111111111111/holds")
+    public String holds() {
+        return "holds-ok";
+    }
+}
+
 @WebMvcTest(controllers = {
     TestAdminController.class,
     TestStaffController.class,
     TestOrganizerController.class,
-    TestAudienceProtectedController.class
+    TestAudienceProtectedController.class,
+    TestReservationController.class
 })
 @Import(SecurityConfig.class)
 class SecurityRbacTest {
@@ -235,5 +244,25 @@ class SecurityRbacTest {
     void mockPayment_WithoutToken_Returns401() throws Exception {
         mockMvc.perform(post("/api/mock-payments/11111111-1111-1111-1111-111111111111/success"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void reservationsEndpoint_WithoutToken_Returns401() throws Exception {
+        mockMvc.perform(get("/api/reservations/concerts/11111111-1111-1111-1111-111111111111/holds"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void reservationsEndpoint_WithAudience_Returns200() throws Exception {
+        mockMvc.perform(get("/api/reservations/concerts/11111111-1111-1111-1111-111111111111/holds")
+                        .with(authentication(createAuthToken(User.Role.AUDIENCE))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void reservationsEndpoint_WithStaff_Returns403() throws Exception {
+        mockMvc.perform(get("/api/reservations/concerts/11111111-1111-1111-1111-111111111111/holds")
+                        .with(authentication(createAuthToken(User.Role.STAFF))))
+                .andExpect(status().isForbidden());
     }
 }

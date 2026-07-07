@@ -119,6 +119,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    const raw = sessionStorage.getItem('ticketbox.queue-admission');
+    if (raw) {
+      try {
+        const admission = JSON.parse(raw);
+        if (admission && admission.concertId) {
+          api.post(`/api/queue/concerts/${encodeURIComponent(admission.concertId)}/leave`).catch(() => {});
+        }
+      } catch (e) {}
+    }
+    sessionStorage.removeItem('ticketbox.queue-admission');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
