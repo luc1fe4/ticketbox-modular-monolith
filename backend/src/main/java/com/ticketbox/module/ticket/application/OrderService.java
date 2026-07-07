@@ -52,6 +52,7 @@ public class OrderService {
     private final TicketRepository ticketRepository;
     private final IdempotencyService idempotencyService;
     private final QueueAccessPort queueAccessPort;
+    private final com.ticketbox.module.ticket.domain.TicketHoldRepository ticketHoldRepository;
 
     private static final RedisScript<Long> RELEASE_LOCK_SCRIPT = RedisScript.of(
             "if redis.call('get', KEYS[1]) == ARGV[1] then " +
@@ -117,6 +118,10 @@ public class OrderService {
         Map<UUID, TicketTypeView> typeMap = ticketTypes.stream()
                 .collect(Collectors.toMap(TicketTypeView::id, t -> t));
 
+        List<com.ticketbox.module.ticket.domain.TicketHold> userHolds = ticketHoldRepository.findByUserIdAndConcertId(userId, request.concertId());
+        Map<UUID, Integer> holdMap = userHolds.stream()
+                .collect(Collectors.toMap(com.ticketbox.module.ticket.domain.TicketHold::getTicketTypeId, com.ticketbox.module.ticket.domain.TicketHold::getQuantity));
+
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
         OffsetDateTime now = OffsetDateTime.now();
@@ -158,6 +163,9 @@ public class OrderService {
                     type.id(),
                     ACTIVE_STATUSES
             );
+
+            int heldQty = holdMap.getOrDefault(type.id(), 0);
+
             if (alreadyOrdered + itemRequest.quantity() > type.maxPerAccount()) {
                 throw new AppException(
                         ErrorCode.TICKET_LIMIT_EXCEEDED,
@@ -166,12 +174,20 @@ public class OrderService {
                 );
             }
 
-            boolean reserved = concertOrderPort.reserveInventory(type.id(), itemRequest.quantity());
-            if (!reserved) {
-                throw new AppException(
-                        ErrorCode.TICKET_SOLD_OUT,
-                        "Tickets are sold out for zone: " + type.name()
-                );
+            if (itemRequest.quantity() <= heldQty) {
+                int surplus = heldQty - itemRequest.quantity();
+                if (surplus > 0) {
+                    concertOrderPort.releaseInventory(type.id(), surplus);
+                }
+            } else {
+                int needed = itemRequest.quantity() - heldQty;
+                boolean reserved = concertOrderPort.reserveInventory(type.id(), needed);
+                if (!reserved) {
+                    throw new AppException(
+                            ErrorCode.TICKET_SOLD_OUT,
+                            "Tickets are sold out for zone: " + type.name()
+                    );
+                }
             }
 
             BigDecimal unitPrice = type.price();
@@ -185,6 +201,8 @@ public class OrderService {
             orderItem.setSubtotal(subtotal);
             orderItems.add(orderItem);
         }
+
+        ticketHoldRepository.deleteByUserIdAndConcertId(userId, request.concertId());
 
         Order order = new Order();
         order.setUserId(userId);

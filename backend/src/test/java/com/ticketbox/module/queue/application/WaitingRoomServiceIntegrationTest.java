@@ -50,7 +50,8 @@ class WaitingRoomServiceIntegrationTest {
         when(concertOrderPort.findConcertById(CONCERT_ID))
                 .thenReturn(Optional.of(new ConcertView(CONCERT_ID, "Demo Concert", "ON_SALE", OffsetDateTime.now().plusDays(1))));
 
-        service = new WaitingRoomService(redisTemplate, concertOrderPort, new TokenBucketRateLimiter(redisTemplate));
+        org.springframework.context.ApplicationEventPublisher eventPublisher = mock(org.springframework.context.ApplicationEventPublisher.class);
+        service = new WaitingRoomService(redisTemplate, concertOrderPort, new TokenBucketRateLimiter(redisTemplate), eventPublisher);
         ReflectionTestUtils.setField(service, "admissionCapacity", 1);
         ReflectionTestUtils.setField(service, "sessionTtl", Duration.ofMillis(450));
         ReflectionTestUtils.setField(service, "estimatedServiceSeconds", 30L);

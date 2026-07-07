@@ -67,6 +67,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/queue/**").hasRole("AUDIENCE")
                 .requestMatchers(HttpMethod.GET, "/api/staff/concerts/*/checkins").hasAnyRole("STAFF", "ORGANIZER", "ADMIN")
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
+                .requestMatchers("/api/reservations/**").hasRole("AUDIENCE")
                 .requestMatchers("/api/orders/**").hasRole("AUDIENCE")
                 .requestMatchers("/api/tickets/**").hasRole("AUDIENCE")
                 .requestMatchers("/api/mock-payments/**").hasRole("AUDIENCE")

@@ -106,6 +106,7 @@ public class WaitingRoomService implements QueueAccessPort {
     private final StringRedisTemplate redisTemplate;
     private final ConcertOrderPort concertOrderPort;
     private final TokenBucketRateLimiter rateLimiter;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Value("${ticketbox.queue.admission-capacity:1}")
     private int admissionCapacity;
@@ -142,6 +143,7 @@ public class WaitingRoomService implements QueueAccessPort {
                 userId.toString(),
                 Long.toString(RedisKeyConstants.TTL_QUEUE_LEFT_MARKER.toMillis())
         );
+        eventPublisher.publishEvent(new com.ticketbox.shared.event.UserLeftQueueEvent(concertId, userId));
         return new QueueStatusResponse(QueueStatus.LEFT, null, null, null, null, null);
     }
 
