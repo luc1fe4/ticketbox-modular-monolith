@@ -39,8 +39,8 @@ const adminNavigation: NavigationItem[] = [
 
 const staffNavigation: NavigationItem[] = [
   { to: '/staff', label: 'Ca làm việc', icon: ClipboardCheck, end: true },
-  { to: '/staff/check-in', label: 'Quét vé', icon: ScanLine },
-  { to: '/staff/guests', label: 'Tra cứu khách', icon: Users },
+  { to: '/staff/check-in', label: 'Check-in QR', icon: ScanLine },
+  { to: '/staff/guests', label: 'Tra khách', icon: Users },
   { to: '/staff/history', label: 'Lịch sử vào cổng', icon: FileClock },
 ];
 
@@ -108,7 +108,7 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
         <div className="operations-sidebar-footer">
           <Link to="/">
             <ArrowLeft aria-hidden="true" size={17} />
-            Trở về TicketBox
+            Về TicketBox
           </Link>
           <button type="button" onClick={logOut}>
             <LogOut aria-hidden="true" size={17} />
