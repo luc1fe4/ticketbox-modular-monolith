@@ -29,7 +29,7 @@ export type Order = {
   items: OrderItem[];
 };
 
-export type PaymentProvider = 'MOCK' | 'VNPAY';
+export type PaymentProvider = 'MOCK' | 'VNPAY' | 'MOMO';
 
 export type PaymentInitiation = {
   orderId: string;
@@ -69,4 +69,8 @@ export function initiatePayment(orderId: string, provider: PaymentProvider) {
 
 export function completeMockPayment(paymentUrl: string) {
   return api.post<unknown, void>(paymentUrl);
+}
+
+export function cancelOrder(orderId: string) {
+  return api.delete<unknown, Order>(`/api/orders/${encodeURIComponent(orderId)}`);
 }

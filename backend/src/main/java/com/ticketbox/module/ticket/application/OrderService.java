@@ -368,6 +368,44 @@ public class OrderService {
         return orderMapper.toResponse(order, itemResponses, concert.title());
     }
 
+    @Transactional
+    public OrderResponse cancelOrder(UUID orderId, UUID userId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+
+        if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Only AWAITING_PAYMENT orders can be cancelled. Current status: " + order.getStatus());
+        }
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            concertOrderPort.releaseInventory(item.getTicketTypeId(), item.getQuantity());
+        }
+
+        order.setStatus(Order.Status.CANCELLED);
+        orderRepository.save(order);
+        log.info("Order {} cancelled by user {}, released {} item type(s) back to inventory",
+                orderId, userId, items.size());
+
+        Set<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).collect(Collectors.toSet());
+        List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
+        Map<UUID, String> ticketTypeNames = ticketTypes.stream()
+                .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
+
+        ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+
+        List<OrderItemResponse> itemResponses = items.stream()
+                .map(item -> {
+                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type");
+                    return orderMapper.toItemResponse(item, typeName);
+                })
+                .toList();
+
+        return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
     @Scheduled(fixedDelayString = "${ticketbox.orders.expiration.fixed-delay-ms:60000}")
     @Transactional
     public void expireAwaitingPaymentOrders() {

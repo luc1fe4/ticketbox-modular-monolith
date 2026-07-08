@@ -54,4 +54,14 @@ public class OrderController {
         OrderResponse response = orderService.getOrderDetail(id, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        OrderResponse response = orderService.cancelOrder(id, userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
