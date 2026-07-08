@@ -385,24 +385,16 @@ export function AdminOrdersPage() {
           {/* Stats */}
           <div className="admin-inline-stats" style={{ marginBottom: 24 }}>
             <div>
-              <div>
-                <span>Tổng đơn</span>
-                <strong>{stats.total}</strong>
-              </div>
-              <Receipt size={22} style={{ color: 'var(--coral)', opacity: .7 }} />
+              <span>Tổng đơn</span>
+              <strong>{stats.total}</strong>
             </div>
             <div>
-              <div>
-                <span>Đã thanh toán</span>
-                <strong>{stats.paid}</strong>
-              </div>
-              <Ticket size={22} style={{ color: '#61d6a0', opacity: .8 }} />
+              <span>Đã thanh toán</span>
+              <strong>{stats.paid}</strong>
             </div>
             <div>
-              <div>
-                <span>Doanh thu</span>
-                <strong style={{ fontSize: 18 }}>{fmt(stats.revenue)}</strong>
-              </div>
+              <span>Doanh thu</span>
+              <strong>{fmt(stats.revenue)}</strong>
             </div>
           </div>
 

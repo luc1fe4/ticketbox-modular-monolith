@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiClientError } from '../../api/client';
 import { useAuth, type UserRole, type UserSummary } from '../../features/auth/AuthContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface UserProfile {
   id: string;
@@ -318,27 +319,123 @@ function OrderHistory({ orders }: { orders: OrderResponse[] }) {
   return (
     <section className="history-list" aria-label="Order history">
       {orders.map((order) => (
-        <article className="history-item" key={order.id}>
-          <div className="history-topline">
-            <span>Order {order.id.slice(0, 8).toUpperCase()}</span>
-            <span className={`status-chip status-${order.status.toLowerCase().replace('_', '-')}`}>{orderLabels[order.status]}</span>
-          </div>
-          <h2>{order.concertTitle}</h2>
-          <div className="history-lines">
-            {order.items.map((item) => (
-              <div key={item.ticketTypeId}>
-                <span>{item.ticketTypeName} x{item.quantity}</span>
-                <strong>{money.format(item.subtotal || item.unitPrice * item.quantity)}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="history-total">
-            <span>{dateTime.format(new Date(order.createdAt))}</span>
-            <strong>{money.format(order.totalAmount)}</strong>
-          </div>
-        </article>
+        <OrderHistoryItem key={order.id} order={order} />
       ))}
     </section>
+  );
+}
+
+function OrderHistoryItem({ order }: { order: OrderResponse }) {
+  const [provider, setProvider] = useState<'MOCK' | 'VNPAY' | 'MOMO'>('MOCK');
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleRetryPayment() {
+    setProcessing(true);
+    setError(null);
+    try {
+      // 1. Lưu session-storage tạm để trang Payment Result khôi phục context nếu cần
+      const pendingPayment = {
+        orderId: order.id,
+        selection: order.items.map(item => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
+        event: { id: order.concertId, title: order.concertTitle }
+      };
+      sessionStorage.setItem('ticketbox_pending_payment', JSON.stringify(pendingPayment));
+
+      // 2. Gọi initiate payment
+      const payment = await api.post<unknown, { paymentUrl: string }>(
+        `/api/payments/${encodeURIComponent(order.id)}/initiate`,
+        { provider }
+      );
+
+      if (!payment.paymentUrl) {
+        throw new Error('Cổng thanh toán không trả về URL giao dịch.');
+      }
+
+      if (provider === 'VNPAY' || provider === 'MOMO') {
+        window.location.assign(payment.paymentUrl);
+        return;
+      }
+
+      // Đối với MOCK, complete trực tiếp luôn
+      await api.post<unknown, void>(payment.paymentUrl);
+      window.location.reload();
+    } catch (err) {
+      setError(errorMessage(err, 'Thanh toán thất bại. Vui lòng thử lại.'));
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <article className="history-item" style={{ position: 'relative' }}>
+      <div className="history-topline">
+        <span>Order {order.id.slice(0, 8).toUpperCase()}</span>
+        <span className={`status-chip status-${order.status.toLowerCase().replace('_', '-')}`}>{orderLabels[order.status]}</span>
+      </div>
+      <h2>{order.concertTitle}</h2>
+      <div className="history-lines">
+        {order.items.map((item) => (
+          <div key={item.ticketTypeId}>
+            <span>{item.ticketTypeName} x{item.quantity}</span>
+            <strong>{money.format(item.subtotal || item.unitPrice * item.quantity)}</strong>
+          </div>
+        ))}
+      </div>
+      
+      {order.status === 'AWAITING_PAYMENT' && (
+        <div style={{
+          marginTop: 14,
+          padding: '12px 14px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid var(--line)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Phương thức thanh toán</label>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as 'MOCK' | 'VNPAY' | 'MOMO')}
+              disabled={processing}
+              style={{
+                height: 34,
+                padding: '0 28px 0 8px',
+                background: '#111115',
+                border: '1px solid var(--line)',
+                color: 'var(--cream)',
+                fontSize: 12
+              }}
+            >
+              <option value="MOCK">Thẻ Test (Mock)</option>
+              <option value="VNPAY">VNPAY Sandbox</option>
+              <option value="MOMO">MoMo Sandbox</option>
+            </select>
+          </div>
+          <button
+            className="button button-primary"
+            style={{ minHeight: 34, padding: '0 16px', fontSize: 12 }}
+            onClick={handleRetryPayment}
+            disabled={processing}
+          >
+            {processing ? 'Đang mở...' : 'Thanh toán ngay'}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ color: 'var(--coral-light)', fontSize: 11, marginTop: 8 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="history-total">
+        <span>{dateTime.format(new Date(order.createdAt))}</span>
+        <strong>{money.format(order.totalAmount)}</strong>
+      </div>
+    </article>
   );
 }
 
@@ -356,11 +453,16 @@ function TicketHistory({ tickets }: { tickets: TicketResponse[] }) {
             <span className={`status-chip status-${ticket.status.toLowerCase()}`}>{ticketLabels[ticket.status]}</span>
           </div>
           <h2>{ticket.concertTitle}</h2>
-          <p>{ticket.ticketTypeName} · {money.format(ticket.price)}</p>
-          <p>{ticket.ownerFullName} · {ticket.ownerPhone}</p>
+          <p style={{ fontWeight: 600, color: 'var(--cream)' }}>{ticket.ticketTypeName}</p>
           {ticket.status === 'VALID' || ticket.status === 'UNUSED' ? (
-            <div className="profile-qr">
-              <div>{ticket.qrCode}</div>
+            <div className="profile-qr" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <QRCodeSVG
+                value={ticket.qrCode}
+                size={140}
+                level="M"
+                marginSize={2}
+                style={{ background: '#fff', padding: 6, borderRadius: 3 }}
+              />
               <span>Xuất trình mã QR tại cửa soát vé</span>
             </div>
           ) : null}
