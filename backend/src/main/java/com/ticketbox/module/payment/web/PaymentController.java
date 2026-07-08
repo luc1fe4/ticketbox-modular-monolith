@@ -46,12 +46,18 @@ public class PaymentController {
                 ));
         PaymentService.WebhookHandleResult result =
                 paymentService.handleWebhook(PaymentLog.Provider.MOMO, params);
+        
+        int momoResultCode = 99;
+        if ("00".equals(result.responseCode()) || "02".equals(result.responseCode())) {
+            momoResultCode = 0;
+        }
+
         return ResponseEntity.ok(Map.of(
                 "partnerCode",  params.getOrDefault("partnerCode", ""),
                 "orderId",      params.getOrDefault("orderId", ""),
                 "requestId",    params.getOrDefault("requestId", ""),
-                "responseTime", String.valueOf(System.currentTimeMillis()),
-                "resultCode",   result.responseCode(),
+                "responseTime", System.currentTimeMillis(),
+                "resultCode",   momoResultCode,
                 "message",      result.message()
         ));
     }
