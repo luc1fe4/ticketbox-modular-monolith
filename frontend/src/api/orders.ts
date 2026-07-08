@@ -29,7 +29,7 @@ export type Order = {
   items: OrderItem[];
 };
 
-export type PaymentProvider = 'MOCK' | 'VNPAY';
+export type PaymentProvider = 'MOCK' | 'VNPAY' | 'MOMO';
 
 export type PaymentInitiation = {
   orderId: string;

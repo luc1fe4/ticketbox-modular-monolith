@@ -23,8 +23,10 @@ export function PaymentResultPage() {
   const navigate = useNavigate();
   const [message, setMessage] = useState('Confirming your payment with TicketBox…');
   const [pendingPayment] = useState(readPendingPayment);
-  const orderId = searchParams.get('vnp_TxnRef') ?? pendingPayment?.orderId;
-  const providerReportedFailure = searchParams.has('vnp_ResponseCode') && searchParams.get('vnp_ResponseCode') !== '00';
+  const orderId = searchParams.get('orderId') ?? searchParams.get('vnp_TxnRef') ?? pendingPayment?.orderId;
+  const isVnpayFailure = searchParams.has('vnp_ResponseCode') && searchParams.get('vnp_ResponseCode') !== '00';
+  const isMomoFailure = searchParams.has('resultCode') && searchParams.get('resultCode') !== '0';
+  const providerReportedFailure = isVnpayFailure || isMomoFailure;
 
   useEffect(() => {
     if (!orderId || !pendingPayment) return;

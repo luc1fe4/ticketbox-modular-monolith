@@ -51,6 +51,12 @@ const paymentOptions: Array<{
     copy: 'Continue securely to the VNPAY sandbox payment page.',
     badge: 'VNPAY',
   },
+  {
+    value: 'MOMO',
+    title: 'MoMo',
+    copy: 'Continue securely to the MoMo sandbox payment page.',
+    badge: 'MoMo',
+  },
 ];
 
 export function CheckoutPage() {
@@ -193,7 +199,7 @@ export function CheckoutPage() {
         throw new Error('The payment gateway did not return a payment URL.');
       }
 
-      if (provider === 'VNPAY') {
+      if (provider === 'VNPAY' || provider === 'MOMO') {
         window.location.assign(payment.paymentUrl);
         return;
       }
@@ -303,10 +309,12 @@ export function CheckoutPage() {
             {creatingOrder
               ? 'Creating order...'
               : processing
-                ? provider === 'VNPAY' ? 'Opening VNPAY...' : 'Completing payment...'
+                ? provider === 'MOCK'
+                  ? 'Completing payment...'
+                  : `Opening ${provider}...`
                 : paymentCountdown.isExpired
                   ? 'Payment time expired'
-                  : `Continue with ${provider === 'MOCK' ? 'demo payment' : 'VNPAY'}`}
+                  : `Continue with ${provider === 'MOCK' ? 'demo payment' : provider}`}
           </button>
           {paymentCountdown.isExpired ? (
             <Link className="text-link checkout-restart-link" to={`/concerts/${event.id}/seats`}>Return to ticket selection</Link>
