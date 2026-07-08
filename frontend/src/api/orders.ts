@@ -70,3 +70,7 @@ export function initiatePayment(orderId: string, provider: PaymentProvider) {
 export function completeMockPayment(paymentUrl: string) {
   return api.post<unknown, void>(paymentUrl);
 }
+
+export function cancelOrder(orderId: string) {
+  return api.delete<unknown, Order>(`/api/orders/${encodeURIComponent(orderId)}`);
+}
