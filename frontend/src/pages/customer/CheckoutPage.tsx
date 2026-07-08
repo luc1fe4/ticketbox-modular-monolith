@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiClientError } from '../../api/client';
 import {
+  cancelOrder,
   completeMockPayment,
   createOrder,
   getOrder,
@@ -64,6 +65,7 @@ export function CheckoutPage() {
   const queueAccessToken = state?.queueAccessToken ?? storedAdmission?.queueAccessToken;
   const [provider, setProvider] = useState<PaymentProvider>('MOCK');
   const [processing, setProcessing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -224,7 +226,22 @@ export function CheckoutPage() {
     }
   }
 
-  const paymentDisabled = processing || creatingOrder || !createdOrder || paymentCountdown.isExpired;
+  const paymentDisabled = processing || cancelling || creatingOrder || !createdOrder || paymentCountdown.isExpired;
+
+  async function handleCancel() {
+    if (!createdOrder || cancelling) return;
+    if (!window.confirm('Cancel this order? Your held tickets will be released.')) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      await cancelOrder(createdOrder.id);
+      clearStoredQueueAdmission();
+      navigate(event ? `/concerts/${event.id}` : '/', { replace: true });
+    } catch {
+      setError('Could not cancel the order. Please try again or wait for it to expire.');
+      setCancelling(false);
+    }
+  }
 
   return (
     <div className="checkout-page page-width">
@@ -310,6 +327,16 @@ export function CheckoutPage() {
           </button>
           {paymentCountdown.isExpired ? (
             <Link className="text-link checkout-restart-link" to={`/concerts/${event.id}/seats`}>Return to ticket selection</Link>
+          ) : null}
+          {createdOrder && !paymentCountdown.isExpired ? (
+            <button
+              className="button button-secondary button-block"
+              type="button"
+              disabled={cancelling || processing}
+              onClick={() => void handleCancel()}
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel order'}
+            </button>
           ) : null}
           <p className="secure-note">The backend calculates the authoritative total and payment expiry.</p>
         </aside>
