@@ -178,7 +178,8 @@ function TicketTab({ concerts }: { concerts: ConcertDetail[] }) {
     setSavingId(ticketId);
     setNotice(null);
     try {
-      const updated = await updateAdminTicketStatus(ticketId, newStatus);
+      const result = await updateAdminTicketStatus(ticketId, newStatus);
+      const updated = result.data;
       setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       setNotice({ type: 'success', msg: 'Cập nhật trạng thái vé thành công.' });
     } catch {
