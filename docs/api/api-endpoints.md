@@ -249,7 +249,7 @@ docs/api/order-payment-concurrency-test-guide.md
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
 | GET | `/orders` | AUDIENCE | List current user's orders. |
 | GET | `/orders/{orderId}` | AUDIENCE | Get current user's order detail. |
-| POST | `/orders/{orderId}/cancel` | AUDIENCE | Cancel an awaiting-payment order and release held tickets. |
+| DELETE | `/orders/{orderId}` | AUDIENCE | Cancel an awaiting-payment order and release held tickets. |
 | POST | `/orders/{orderId}/retry-payment` | AUDIENCE | Create a new payment attempt for an awaiting-payment or failed order if allowed. |
 | GET | `/admin/orders` | ORGANIZER/ADMIN | List orders for admin reporting/support. |
 | GET | `/admin/orders/{orderId}` | ORGANIZER/ADMIN | Get order detail for admin. |
