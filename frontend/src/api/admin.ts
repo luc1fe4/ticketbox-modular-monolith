@@ -38,6 +38,47 @@ export type StaffConcert = {
   posterUrl: string | null;
 };
 
+export type StaffScanTicketRequest = {
+  qrCode: string;
+  concertId: string;
+  deviceId: string;
+  gate?: string;
+};
+
+export type StaffScanTicketResponse = {
+  ticketId: string | null;
+  concertId: string;
+  status: 'SUCCESS' | 'FAILED';
+  message: string;
+  checkAt: string;
+};
+
+export type StaffGuestLookup = {
+  found: boolean;
+  guestId: string | null;
+  concertId: string | null;
+  phone: string | null;
+  fullName: string | null;
+  category: string | null;
+  sponsorName: string | null;
+  notes: string | null;
+};
+
+export type StaffCheckinHistory = {
+  id: string;
+  ticketId: string;
+  concertId: string;
+  staffId: string;
+  deviceId: string;
+  checkedAt: string;
+  syncAt: string | null;
+  offline: boolean;
+  gate: string | null;
+  notes: string | null;
+  qrCode: string | null;
+  ticketStatus: string | null;
+};
+
 export type BatchLogStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
 export type BatchLogSource = 'UPLOAD' | 'SCHEDULED';
 
@@ -212,6 +253,33 @@ export function getStaffConcerts(
 ) {
   const params = new URLSearchParams({ status, page: '0', size: '20' });
   return apiGet<Page<StaffConcert>>(`/api/staff/concerts?${params}`, signal);
+}
+
+export function scanStaffTicket(payload: StaffScanTicketRequest) {
+  return apiCommand<StaffScanTicketResponse>('post', '/api/staff/checkins/scan', payload);
+}
+
+export function lookupStaffGuest(concertId: string, phone: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ concert_id: concertId, phone });
+  return apiGet<StaffGuestLookup>(`/api/staff/guestlist?${params}`, signal);
+}
+
+export function getStaffGuestList(concertId: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ concert_id: concertId });
+  return apiGet<StaffGuestLookup[]>(`/api/staff/guestlist/list?${params}`, signal);
+}
+
+export function getStaffCheckinHistory(
+  concertId: string,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return apiGet<Page<StaffCheckinHistory>>(
+    `/api/staff/concerts/${encodeURIComponent(concertId)}/checkins?${params}`,
+    signal,
+  );
 }
 
 export function importGuestList(
