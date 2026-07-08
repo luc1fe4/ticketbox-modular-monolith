@@ -1,5 +1,7 @@
 import { apiCommand, apiGet, apiMultipartCommand } from './client';
 import type { ConcertDetail, ConcertStatus, Page, TicketType } from './concerts';
+import type { Order, OrderStatus } from './orders';
+import type { Ticket } from './tickets';
 
 export type ManagementApiScope = 'admin' | 'organizer';
 
@@ -298,4 +300,27 @@ export function applyArtistBioJob(jobId: string, overwrite = false, scope: Manag
     'post',
     `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}/apply?${params}`,
   );
+}
+
+// ---- Admin Order & Ticket Management ----
+
+export function getAdminOrders(params?: { concertId?: string; status?: OrderStatus }) {
+  const query = new URLSearchParams();
+  if (params?.concertId) query.set('concertId', params.concertId);
+  if (params?.status) query.set('status', params.status);
+  const qs = query.toString();
+  return apiGet<Order[]>(`/api/admin/orders${qs ? `?${qs}` : ''}`);
+}
+
+export function getAdminOrderDetail(orderId: string) {
+  return apiGet<Order>(`/api/admin/orders/${encodeURIComponent(orderId)}`);
+}
+
+export function getAdminConcertTickets(concertId: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiGet<Ticket[]>(`/api/admin/concerts/${encodeURIComponent(concertId)}/tickets${qs}`);
+}
+
+export function updateAdminTicketStatus(ticketId: string, status: string) {
+  return apiCommand<Ticket>('patch', `/api/admin/tickets/${encodeURIComponent(ticketId)}/status`, { status });
 }

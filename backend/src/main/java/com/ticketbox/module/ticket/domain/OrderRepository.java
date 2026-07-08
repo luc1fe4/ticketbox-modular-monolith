@@ -37,4 +37,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     );
 
     Optional<Order> findByUserIdAndIdempotencyKey(UUID userId, String idempotencyKey);
+
+    List<Order> findAllByOrderByCreatedAtDesc();
+
+    List<Order> findByConcertIdOrderByCreatedAtDesc(UUID concertId);
+
+    @Query("SELECT o FROM Order o WHERE o.status = :status ORDER BY o.createdAt DESC")
+    List<Order> findByStatusOrderByCreatedAtDesc(@Param("status") Order.Status status);
 }

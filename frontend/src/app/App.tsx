@@ -7,6 +7,7 @@ import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
 import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
 import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
+import { AdminOrdersPage } from '../pages/admin/AdminOrdersPage';
 import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage';
 import { AdminRoutePlaceholderPage } from '../pages/admin/AdminRoutePlaceholderPage';
 import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
@@ -63,6 +64,7 @@ export function App() {
             <Route path="artist-bio" element={<AdminArtistBioPage />} />
             <Route path="ticket-types" element={<AdminTicketTypesPage />} />
             <Route path="guests" element={<AdminGuestImportsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="batch-logs" element={<Navigate to="/admin/guests" replace />} />
           </Route>
           <Route
@@ -79,6 +81,7 @@ export function App() {
             <Route path="guests" element={<AdminGuestImportsPage apiScope="organizer" uploadMode="scheduled" />} />
             <Route path="artist-bio" element={<AdminArtistBioPage apiScope="organizer" />} />
             <Route path="revenue" element={<OrganizerRevenuePage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
           </Route>
           <Route
             path="/staff"

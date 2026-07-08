@@ -68,6 +68,9 @@ The default `.env.example` is suitable for local demo. Important values:
 | `VNPAY_RETURN_URL` | Browser return URL after VNPAY | `http://localhost:5173/payment/result` |
 | `VNPAY_IPN_URL` | Public backend webhook URL for VNPAY IPN | Replace with an ngrok/cloudflared URL for real sandbox callback |
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPAY sandbox merchant credentials | Replace with real sandbox credentials |
+| `MOMO_RETURN_URL` | Browser return URL after MoMo | `http://localhost:5173/payment/result` |
+| `MOMO_IPN_URL` | Public backend webhook URL for MoMo IPN | Replace with an ngrok URL for real sandbox callback |
+| `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY` | MoMo sandbox merchant credentials | Replace with real sandbox credentials |
 | `GUEST_LIST_IMPORT_CRON` | Scheduled guest-list import interval | Every 5 minutes |
 | `ARTIST_BIO_AI_PROVIDER`, `ARTIST_BIO_AI_API_KEY` | AI artist bio provider config | `auto`, empty key uses local mock fallback |
 

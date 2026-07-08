@@ -9,6 +9,7 @@ import {
   FileClock,
   LogOut,
   Menu,
+  Receipt,
   ScanLine,
   Settings,
   Sparkles,
@@ -31,6 +32,7 @@ const adminNavigation: NavigationItem[] = [
   { to: '/admin', label: 'Tổng quan', icon: BarChart3, end: true },
   { to: '/admin/concerts', label: 'Concert', icon: CalendarDays },
   { to: '/admin/ticket-types', label: 'Hạng vé', icon: Ticket },
+  { to: '/admin/orders', label: 'Đơn hàng & Vé', icon: Receipt },
   { to: '/admin/guests', label: 'Khách mời', icon: Users },
   { to: '/admin/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
 ];
@@ -46,6 +48,7 @@ const organizerNavigation: NavigationItem[] = [
   { to: '/organizer', label: 'Tổng quan', icon: BarChart3, end: true },
   { to: '/organizer/concerts', label: 'Concert', icon: CalendarDays },
   { to: '/organizer/ticket-types', label: 'Hạng vé', icon: Ticket },
+  { to: '/organizer/orders', label: 'Đơn hàng & Vé', icon: Receipt },
   { to: '/organizer/guests', label: 'Khách mời', icon: Users },
   { to: '/organizer/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
   { to: '/organizer/revenue', label: 'Doanh thu', icon: CircleDollarSign },
