@@ -44,6 +44,18 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
     }
 
     @Override
+    public List<UUID> findConcertIdsOwnedBy(UUID organizerId) {
+        return concertRepository.findByCreatedBy(organizerId).stream()
+                .map(concert -> concert.getId())
+                .toList();
+    }
+
+    @Override
+    public boolean isConcertOwnedBy(UUID concertId, UUID organizerId) {
+        return concertRepository.findByIdAndCreatedBy(concertId, organizerId).isPresent();
+    }
+
+    @Override
     public List<TicketTypeView> findTicketTypesByIds(Collection<UUID> ticketTypeIds) {
         return ticketTypeRepository.findAllById(ticketTypeIds).stream()
                 .map(t -> new TicketTypeView(

@@ -340,7 +340,7 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
         selection: order.items.map(item => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
         event: { id: order.concertId, title: order.concertTitle }
       };
-      sessionStorage.setItem('ticketbox_pending_payment', JSON.stringify(pendingPayment));
+      sessionStorage.setItem('ticketbox.pending-payment', JSON.stringify(pendingPayment));
 
       // 2. Gọi initiate payment
       const payment = await api.post<unknown, { paymentUrl: string }>(

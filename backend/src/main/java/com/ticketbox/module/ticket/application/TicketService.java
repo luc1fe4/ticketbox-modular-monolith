@@ -77,6 +77,18 @@ public class TicketService {
     // ---- Admin / Organizer ----
 
     public List<TicketResponse> listConcertTickets(UUID concertId, String status) {
+        return listConcertTickets(concertId, status, null, true);
+    }
+
+    public List<TicketResponse> listConcertTickets(
+            UUID concertId,
+            String status,
+            UUID requesterId,
+            boolean admin) {
+        if (!admin) {
+            requireOwnedConcert(concertId, requesterId);
+        }
+
         List<Ticket> tickets;
         if (status != null) {
             tickets = ticketRepository.findByConcertIdAndStatus(concertId, Ticket.Status.valueOf(status));
@@ -109,8 +121,20 @@ public class TicketService {
 
     @Transactional
     public TicketResponse updateTicketStatus(UUID ticketId, String newStatus) {
+        return updateTicketStatus(ticketId, newStatus, null, true);
+    }
+
+    @Transactional
+    public TicketResponse updateTicketStatus(
+            UUID ticketId,
+            String newStatus,
+            UUID requesterId,
+            boolean admin) {
         Ticket t = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new AppException(ErrorCode.TICKET_NOT_FOUND, "Ticket not found"));
+        if (!admin) {
+            requireOwnedConcert(t.getConcertId(), requesterId);
+        }
 
         t.setStatus(Ticket.Status.valueOf(newStatus));
         ticketRepository.save(t);
@@ -132,5 +156,11 @@ public class TicketService {
                 t.getStatus().name(),
                 t.getIssuedAt()
         );
+    }
+
+    private void requireOwnedConcert(UUID concertId, UUID organizerId) {
+        if (!concertOrderPort.isConcertOwnedBy(concertId, organizerId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not manage this concert");
+        }
     }
 }

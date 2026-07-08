@@ -372,23 +372,34 @@ export function applyArtistBioJob(jobId: string, overwrite = false, scope: Manag
 
 // ---- Admin Order & Ticket Management ----
 
-export function getAdminOrders(params?: { concertId?: string; status?: OrderStatus }) {
+export function getAdminOrders(
+  params?: { concertId?: string; status?: OrderStatus },
+  scope: ManagementApiScope = 'admin',
+) {
   const query = new URLSearchParams();
   if (params?.concertId) query.set('concertId', params.concertId);
   if (params?.status) query.set('status', params.status);
   const qs = query.toString();
-  return apiGet<Order[]>(`/api/admin/orders${qs ? `?${qs}` : ''}`);
+  return apiGet<Order[]>(`${managementBase(scope)}/orders${qs ? `?${qs}` : ''}`);
 }
 
-export function getAdminOrderDetail(orderId: string) {
-  return apiGet<Order>(`/api/admin/orders/${encodeURIComponent(orderId)}`);
+export function getAdminOrderDetail(orderId: string, scope: ManagementApiScope = 'admin') {
+  return apiGet<Order>(`${managementBase(scope)}/orders/${encodeURIComponent(orderId)}`);
 }
 
-export function getAdminConcertTickets(concertId: string, status?: string) {
+export function getAdminConcertTickets(
+  concertId: string,
+  status?: string,
+  scope: ManagementApiScope = 'admin',
+) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-  return apiGet<Ticket[]>(`/api/admin/concerts/${encodeURIComponent(concertId)}/tickets${qs}`);
+  return apiGet<Ticket[]>(`${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/tickets${qs}`);
 }
 
-export function updateAdminTicketStatus(ticketId: string, status: string) {
-  return apiCommand<Ticket>('patch', `/api/admin/tickets/${encodeURIComponent(ticketId)}/status`, { status });
+export function updateAdminTicketStatus(
+  ticketId: string,
+  status: string,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<Ticket>('patch', `${managementBase(scope)}/tickets/${encodeURIComponent(ticketId)}/status`, { status });
 }

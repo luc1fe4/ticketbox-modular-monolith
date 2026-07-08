@@ -79,6 +79,7 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .text-link { color: var(--cream); font-size: 13px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.35); padding-bottom: 4px; }
 .text-link:hover { border-color: var(--coral); color: var(--coral-light); }
 .back-link { color: var(--muted); font-size: 13px; }
+button.back-link { border: 0; padding: 0; background: transparent; cursor: pointer; font: inherit; }
 .back-link:hover { color: var(--cream); }
 
 .hero { position: relative; min-height: 690px; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid var(--line); }

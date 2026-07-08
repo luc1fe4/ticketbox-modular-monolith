@@ -49,3 +49,10 @@ export function getCurrentHolds(concertId: string, queueAccessToken?: string, si
     { headers: queueHeaders(queueAccessToken), signal },
   );
 }
+
+export function releaseAllHolds(concertId: string, queueAccessToken?: string) {
+  return api.delete<unknown, void>(
+    `/api/reservations/concerts/${encodeURIComponent(concertId)}/holds`,
+    { headers: queueHeaders(queueAccessToken) },
+  );
+}

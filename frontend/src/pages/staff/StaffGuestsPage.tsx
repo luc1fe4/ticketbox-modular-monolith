@@ -1,9 +1,8 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { RefreshCw, Search, UserCheck, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   getStaffConcerts,
-  getStaffGuestList,
   lookupStaffGuest,
   type StaffConcert,
   type StaffGuestLookup,
@@ -20,21 +19,7 @@ export function StaffGuestsPage() {
   const [phone, setPhone] = useState('');
   const [lookupResult, setLookupResult] = useState<StaffGuestLookup | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [guestList, setGuestList] = useState<StaffGuestLookup[]>([]);
-  const [guestSearch, setGuestSearch] = useState('');
-  const [loadingGuests, setLoadingGuests] = useState(false);
   const [error, setError] = useState('');
-
-  const filteredGuests = useMemo(() => {
-    const query = guestSearch.trim().toLowerCase();
-    if (!query) return guestList;
-    return guestList.filter((guest) =>
-      guest.fullName?.toLowerCase().includes(query) ||
-      guest.phone?.includes(query) ||
-      guest.category?.toLowerCase().includes(query) ||
-      guest.sponsorName?.toLowerCase().includes(query)
-    );
-  }, [guestList, guestSearch]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,26 +42,6 @@ export function StaffGuestsPage() {
     return () => controller.abort();
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!selectedConcertId) return;
-    const controller = new AbortController();
-    async function loadGuests() {
-      setLoadingGuests(true);
-      setError('');
-      try {
-        setGuestList(await getStaffGuestList(selectedConcertId, controller.signal));
-      } catch (requestError) {
-        if (!isRequestCanceled(requestError)) {
-          setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách khách mời.');
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoadingGuests(false);
-      }
-    }
-    void loadGuests();
-    return () => controller.abort();
-  }, [selectedConcertId]);
-
   async function submitLookup(event: FormEvent) {
     event.preventDefault();
     if (!selectedConcertId || !phone.trim()) return;
@@ -97,7 +62,7 @@ export function StaffGuestsPage() {
       <AdminPageHeader
         eyebrow="Guest desk"
         title="Tra cứu khách mời"
-        description="Tìm khách mời VIP theo concert và số điện thoại, hoặc xem nhanh danh sách guest list đã import cho cổng vào."
+        description="Xác minh khách mời tại cổng theo concert và số điện thoại. Danh sách import đầy đủ thuộc workspace admin/organizer."
       />
 
       {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
@@ -170,41 +135,6 @@ export function StaffGuestsPage() {
               <UserCheck aria-hidden="true" size={28} />
               <h2>Sẵn sàng tra cứu</h2>
               <p>Nhập số điện thoại của khách mời để xác nhận thông tin trước khi cho vào cổng.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="staff-list-section">
-        <div className="guest-log-header">
-          <div>
-            <span>Guest list</span>
-            <h2>Danh sách khách mời</h2>
-          </div>
-          <label className="staff-search-field">
-            <Search aria-hidden="true" size={16} />
-            <input
-              placeholder="Tìm tên, SĐT, hạng khách..."
-              value={guestSearch}
-              onChange={(event) => setGuestSearch(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="admin-data-panel">
-          {loadingGuests ? (
-            <div className="admin-row-skeleton" aria-label="Đang tải guest list" aria-live="polite">
-              {[1, 2, 3].map((item) => <span key={item} />)}
-            </div>
-          ) : filteredGuests.length ? (
-            <div className="staff-guest-grid">
-              {filteredGuests.map((guest) => <GuestCard key={guest.guestId ?? `${guest.phone}-${guest.fullName}`} guest={guest} />)}
-            </div>
-          ) : (
-            <div className="admin-empty-state">
-              <Users aria-hidden="true" size={28} />
-              <h2>Chưa có khách mời</h2>
-              <p>Guest list sẽ hiển thị sau khi admin hoặc organizer import dữ liệu cho concert này.</p>
             </div>
           )}
         </div>

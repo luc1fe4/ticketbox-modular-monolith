@@ -13,6 +13,7 @@ import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
 import { CheckoutPage } from '../pages/customer/CheckoutPage';
 import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
+import { NotificationsPage } from '../pages/customer/NotificationsPage';
 import { PaymentResultPage } from '../pages/customer/PaymentResultPage';
 import { ProfilePage } from '../pages/customer/ProfilePage';
 import { SeatSelectionPage } from '../pages/customer/SeatSelectionPage';
@@ -49,6 +50,7 @@ export function App() {
               <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
               <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
               <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
+              <Route path="/notifications" element={authenticatedPage(<NotificationsPage />)} />
               <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
             </Route>
             <Route path="/login" element={<LoginPage />} />
@@ -83,7 +85,7 @@ export function App() {
               <Route path="guests" element={<AdminGuestImportsPage apiScope="organizer" uploadMode="scheduled" />} />
               <Route path="artist-bio" element={<AdminArtistBioPage apiScope="organizer" />} />
               <Route path="revenue" element={<OrganizerRevenuePage />} />
-              <Route path="orders" element={<AdminOrdersPage />} />
+              <Route path="orders" element={<AdminOrdersPage apiScope="organizer" />} />
             </Route>
             <Route
               path="/staff"

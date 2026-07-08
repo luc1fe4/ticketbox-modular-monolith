@@ -62,4 +62,15 @@ public class ReservationController {
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @DeleteMapping("/concerts/{concertId}/holds")
+    public ResponseEntity<ApiResponse<Void>> releaseAllHolds(
+            @PathVariable UUID concertId,
+            @RequestHeader(value = "Queue-Access-Token", required = false) String queueAccessToken,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        reservationService.releaseAllCurrentHolds(concertId, userId, queueAccessToken);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

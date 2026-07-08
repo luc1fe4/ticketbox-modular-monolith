@@ -251,8 +251,14 @@ docs/api/order-payment-concurrency-test-guide.md
 | GET | `/orders/{orderId}` | AUDIENCE | Get current user's order detail. |
 | DELETE | `/orders/{orderId}` | AUDIENCE | Cancel an awaiting-payment order and release held tickets. |
 | POST | `/orders/{orderId}/retry-payment` | AUDIENCE | Create a new payment attempt for an awaiting-payment or failed order if allowed. |
-| GET | `/admin/orders` | ORGANIZER/ADMIN | List orders for admin reporting/support. |
-| GET | `/admin/orders/{orderId}` | ORGANIZER/ADMIN | Get order detail for admin. |
+| POST | `/reservations/concerts/{concertId}/ticket-types/{ticketTypeId}/reserve` | AUDIENCE | Reserve a ticket quantity during seat/category selection after queue admission. |
+| POST | `/reservations/concerts/{concertId}/ticket-types/{ticketTypeId}/release` | AUDIENCE | Release part of the current selection hold. |
+| GET | `/reservations/concerts/{concertId}/holds` | AUDIENCE | List current user's active selection holds for a concert. |
+| DELETE | `/reservations/concerts/{concertId}/holds` | AUDIENCE | Release all current selection holds for a concert, for example when leaving the selection screen. |
+| GET | `/admin/orders` | ADMIN | List all orders for system reporting/support. |
+| GET | `/admin/orders/{orderId}` | ADMIN | Get any order detail for system support. |
+| GET | `/organizer/manage/orders` | ORGANIZER | List orders only for concerts owned by the authenticated organizer. |
+| GET | `/organizer/manage/orders/{orderId}` | ORGANIZER | Get owned-concert order detail. |
 
 Important headers for `POST /orders`:
 
@@ -367,8 +373,10 @@ If duplicate webhook, return OK without double-processing.
 | GET | `/tickets` | AUDIENCE | List current user's e-tickets. |
 | GET | `/tickets/{ticketId}` | AUDIENCE | Get current user's ticket detail. |
 | GET | `/tickets/{ticketId}/qr` | AUDIENCE | Get QR payload or QR image for e-ticket. |
-| GET | `/admin/concerts/{concertId}/tickets` | ORGANIZER/ADMIN | List tickets for a concert. |
-| PATCH | `/admin/tickets/{ticketId}/status` | ORGANIZER/ADMIN | Cancel or update ticket status when needed. |
+| GET | `/admin/concerts/{concertId}/tickets` | ADMIN | List tickets for any concert. |
+| PATCH | `/admin/tickets/{ticketId}/status` | ADMIN | Cancel or update ticket status for any concert when needed. |
+| GET | `/organizer/manage/concerts/{concertId}/tickets` | ORGANIZER | List tickets only for an owned concert. |
+| PATCH | `/organizer/manage/tickets/{ticketId}/status` | ORGANIZER | Cancel or update ticket status only for an owned concert. |
 
 ## Check-In
 

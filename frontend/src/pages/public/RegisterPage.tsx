@@ -5,8 +5,8 @@ import { AuthLayout } from './LoginPage';
 
 const roleHome: Record<UserRole, string> = {
   AUDIENCE: '/',
-  ORGANIZER: '/admin',
-  STAFF: '/profile',
+  ORGANIZER: '/organizer',
+  STAFF: '/staff',
   ADMIN: '/admin',
 };
 

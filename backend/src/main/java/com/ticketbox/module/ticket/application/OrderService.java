@@ -324,6 +324,45 @@ public class OrderService {
             orders = orderRepository.findAllByOrderByCreatedAtDesc();
         }
 
+        return toOrderResponses(orders);
+    }
+
+    public List<OrderResponse> listManagedOrders(
+            UUID concertId,
+            String status,
+            UUID requesterId,
+            boolean admin) {
+        if (admin) {
+            return listAllOrders(concertId, status);
+        }
+
+        List<UUID> ownedConcertIds = concertOrderPort.findConcertIdsOwnedBy(requesterId);
+        if (ownedConcertIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Order> orders;
+        if (concertId != null) {
+            requireOwnedConcert(concertId, requesterId);
+            orders = orderRepository.findByConcertIdOrderByCreatedAtDesc(concertId);
+            if (status != null) {
+                Order.Status orderStatus = Order.Status.valueOf(status);
+                orders = orders.stream()
+                        .filter(order -> order.getStatus() == orderStatus)
+                        .toList();
+            }
+        } else if (status != null) {
+            orders = orderRepository.findByConcertIdInAndStatusOrderByCreatedAtDesc(
+                    ownedConcertIds,
+                    Order.Status.valueOf(status));
+        } else {
+            orders = orderRepository.findByConcertIdInOrderByCreatedAtDesc(ownedConcertIds);
+        }
+
+        return toOrderResponses(orders);
+    }
+
+    private List<OrderResponse> toOrderResponses(List<Order> orders) {
         if (orders.isEmpty()) return Collections.emptyList();
 
         List<UUID> orderIds = orders.stream().map(Order::getId).toList();
@@ -366,6 +405,38 @@ public class OrderService {
                 .toList();
 
         return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
+    public OrderResponse getManagedOrderDetail(UUID orderId, UUID requesterId, boolean admin) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+        if (!admin) {
+            requireOwnedConcert(order.getConcertId(), requesterId);
+        }
+        return toOrderResponse(order);
+    }
+
+    private OrderResponse toOrderResponse(Order order) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+
+        ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+
+        List<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).toList();
+        Map<UUID, String> ticketTypeNames = concertOrderPort.findTicketTypesByIds(ticketTypeIds).stream()
+                .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
+
+        List<OrderItemResponse> itemResponses = items.stream()
+                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                .toList();
+
+        return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
+    private void requireOwnedConcert(UUID concertId, UUID organizerId) {
+        if (!concertOrderPort.isConcertOwnedBy(concertId, organizerId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not manage this concert");
+        }
     }
 
     @Transactional

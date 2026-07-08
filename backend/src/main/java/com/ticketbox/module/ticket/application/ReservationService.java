@@ -121,6 +121,12 @@ public class ReservationService {
         return ticketHoldRepository.findByUserIdAndConcertId(userId, concertId);
     }
 
+    @Transactional
+    public void releaseAllCurrentHolds(UUID concertId, UUID userId, String queueAccessToken) {
+        queueAccessPort.validateAccess(concertId, userId, queueAccessToken);
+        releaseAllHoldsForUserAndConcert(userId, concertId);
+    }
+
     @Scheduled(fixedDelay = 10000)
     @Transactional
     public void cleanupExpiredHolds() {

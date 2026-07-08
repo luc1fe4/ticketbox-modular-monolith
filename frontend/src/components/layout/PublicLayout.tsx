@@ -48,6 +48,7 @@ export function PublicLayout() {
             <NavLink to="/">Discover</NavLink>
             <a href="/#events">Events</a>
             {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets">My Tickets</NavLink> : null}
+            {user ? <NavLink to="/notifications">Notifications</NavLink> : null}
             {canOpenAdmin ? <NavLink to="/admin">Administration</NavLink> : null}
           </nav>
           <div className="header-actions">
@@ -73,6 +74,7 @@ export function PublicLayout() {
                   <div className="account-menu">
                     <div><strong>{user.fullName}</strong><span>{user.email}</span><span>{user.role}</span></div>
                     <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile & history</Link>
+                    <Link to="/notifications" onClick={() => setMenuOpen(false)}>Notifications</Link>
                     {user.role === 'AUDIENCE' ? (
                       <Link to="/my-tickets" onClick={() => setMenuOpen(false)}>My Tickets</Link>
                     ) : null}
@@ -111,6 +113,7 @@ export function PublicLayout() {
             <NavLink to="/" onClick={() => setMobileOpen(false)}>Discover</NavLink>
             <a href="/#events" onClick={() => setMobileOpen(false)}>Events</a>
             {user ? <NavLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavLink> : null}
+            {user ? <NavLink to="/notifications" onClick={() => setMobileOpen(false)}>Notifications</NavLink> : null}
             {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets" onClick={() => setMobileOpen(false)}>My Tickets</NavLink> : null}
             {canOpenAdmin ? <NavLink to="/admin" onClick={() => setMobileOpen(false)}>Administration</NavLink> : null}
             {user ? <button type="button" onClick={logOut}>Log out</button> : null}
