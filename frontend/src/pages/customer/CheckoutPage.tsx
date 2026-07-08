@@ -138,6 +138,7 @@ export function CheckoutPage() {
     return () => {
       active = false;
       window.clearTimeout(timeoutId);
+      creationStarted.current = false;
     };
   }, [event, navigate, queueAccessToken, selection]);
 
