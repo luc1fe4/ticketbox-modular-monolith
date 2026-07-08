@@ -527,6 +527,14 @@ h1 em, h2 em { color: var(--coral-light); font-family: "Playfair Display", serif
 .admin-notice { margin-bottom: 16px; padding: 13px 15px; border: 1px solid; font-size: 12px; line-height: 1.5; }
 .admin-notice.success { border-color: rgba(97,214,160,.28); background: rgba(97,214,160,.07); color: #83dfb2; }
 .admin-notice.error { border-color: rgba(255,118,95,.3); background: rgba(255,118,95,.07); color: var(--coral-light); }
+.status-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 2px; font: 700 10px/1 "Manrope",sans-serif; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.badge-success { background: rgba(97,214,160,.12); color: #83dfb2; border: 1px solid rgba(97,214,160,.22); }
+.badge-warning { background: rgba(251,188,4,.1); color: #fbbc04; border: 1px solid rgba(251,188,4,.2); }
+.badge-error { background: rgba(255,118,95,.1); color: var(--coral-light); border: 1px solid rgba(255,118,95,.2); }
+.badge-info { background: rgba(100,181,246,.1); color: #90caf9; border: 1px solid rgba(100,181,246,.2); }
+.badge-muted { background: rgba(255,255,255,.05); color: #77747e; border: 1px solid var(--line); }
+.spin { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .toast-viewport { position: fixed; z-index: 220; top: 22px; right: 22px; width: min(380px,calc(100vw - 32px)); display: grid; gap: 10px; pointer-events: none; }
 .toast-item { min-height: 64px; display: grid; grid-template-columns: 22px minmax(0,1fr) 36px; align-items: center; gap: 11px; padding: 11px 10px 11px 16px; border: 1px solid var(--line); background: #17171b; box-shadow: 0 22px 60px rgba(0,0,0,.42); pointer-events: auto; animation: toast-enter .24s ease-out both; }
 .toast-item > svg { color: #83dfb2; }

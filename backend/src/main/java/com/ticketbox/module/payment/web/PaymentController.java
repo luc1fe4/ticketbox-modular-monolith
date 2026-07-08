@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -34,5 +35,30 @@ public class PaymentController {
         PaymentService.WebhookHandleResult result =
                 paymentService.handleWebhook(PaymentLog.Provider.VNPAY, params);
         return ResponseEntity.ok(new VnpayIpnResponse(result.responseCode(), result.message()));
+    }
+
+    @PostMapping("/webhooks/momo")
+    public ResponseEntity<Map<String, Object>> handleMomoIpn(@RequestBody Map<String, Object> body) {
+        Map<String, String> params = body.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue() != null ? e.getValue().toString() : ""
+                ));
+        PaymentService.WebhookHandleResult result =
+                paymentService.handleWebhook(PaymentLog.Provider.MOMO, params);
+        
+        int momoResultCode = 99;
+        if ("00".equals(result.responseCode()) || "02".equals(result.responseCode())) {
+            momoResultCode = 0;
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "partnerCode",  params.getOrDefault("partnerCode", ""),
+                "orderId",      params.getOrDefault("orderId", ""),
+                "requestId",    params.getOrDefault("requestId", ""),
+                "responseTime", System.currentTimeMillis(),
+                "resultCode",   momoResultCode,
+                "message",      result.message()
+        ));
     }
 }

@@ -7,6 +7,7 @@ import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
 import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
 import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
+import { AdminOrdersPage } from '../pages/admin/AdminOrdersPage';
 import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage';
 import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
@@ -39,6 +40,65 @@ export function App() {
       <ToastProvider>
         <BrowserRouter>
           <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/concerts/:id" element={<ConcertDetailPage />} />
+            <Route path="/concerts/:id/waiting-room" element={audiencePage(<WaitingRoomPage />)} />
+            <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
+            <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
+            <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
+            <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
+            <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
+            <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
+          </Route>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <OperationsLayout mode="admin" />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="concerts" element={<AdminConcertsPage />} />
+            <Route path="artist-bio" element={<AdminArtistBioPage />} />
+            <Route path="ticket-types" element={<AdminTicketTypesPage />} />
+            <Route path="guests" element={<AdminGuestImportsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="batch-logs" element={<Navigate to="/admin/guests" replace />} />
+          </Route>
+          <Route
+            path="/organizer"
+            element={
+              <ProtectedRoute allowedRoles={['ORGANIZER']}>
+                <OperationsLayout mode="organizer" />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<OrganizerOverviewPage />} />
+            <Route path="concerts" element={<AdminConcertsPage apiScope="organizer" />} />
+            <Route path="ticket-types" element={<AdminTicketTypesPage apiScope="organizer" />} />
+            <Route path="guests" element={<AdminGuestImportsPage apiScope="organizer" uploadMode="scheduled" />} />
+            <Route path="artist-bio" element={<AdminArtistBioPage apiScope="organizer" />} />
+            <Route path="revenue" element={<OrganizerRevenuePage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+          </Route>
+          <Route
+            path="/staff"
+            element={
+              <ProtectedRoute allowedRoles={['STAFF']}>
+                <OperationsLayout mode="staff" />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<StaffOverviewPage />} />
+            <Route path="check-in" element={<AdminRoutePlaceholderPage title="Quét vé tại cổng" description="Route dành cho online scan và đồng bộ check-in ngoại tuyến." />} />
+            <Route path="guests" element={<AdminRoutePlaceholderPage title="Tra cứu khách mời" description="Route dành cho staff tra cứu khách theo concert và số điện thoại." />} />
+            <Route path="history" element={<AdminRoutePlaceholderPage title="Lịch sử check-in" description="Route hiển thị các lượt vào cổng theo concert." />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/concerts/:id" element={<ConcertDetailPage />} />

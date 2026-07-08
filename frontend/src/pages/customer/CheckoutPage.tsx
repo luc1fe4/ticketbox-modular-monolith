@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiClientError } from '../../api/client';
 import {
+  cancelOrder,
   completeMockPayment,
   createOrder,
   getOrder,
@@ -51,6 +52,12 @@ const paymentOptions: Array<{
     copy: 'Continue securely to the VNPAY sandbox payment page.',
     badge: 'VNPAY',
   },
+  {
+    value: 'MOMO',
+    title: 'MoMo',
+    copy: 'Continue securely to the MoMo sandbox payment page.',
+    badge: 'MoMo',
+  },
 ];
 
 export function CheckoutPage() {
@@ -64,6 +71,7 @@ export function CheckoutPage() {
   const queueAccessToken = state?.queueAccessToken ?? storedAdmission?.queueAccessToken;
   const [provider, setProvider] = useState<PaymentProvider>('MOCK');
   const [processing, setProcessing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +138,7 @@ export function CheckoutPage() {
     return () => {
       active = false;
       window.clearTimeout(timeoutId);
+      creationStarted.current = false;
     };
   }, [event, navigate, queueAccessToken, selection]);
 
@@ -193,7 +202,7 @@ export function CheckoutPage() {
         throw new Error('The payment gateway did not return a payment URL.');
       }
 
-      if (provider === 'VNPAY') {
+      if (provider === 'VNPAY' || provider === 'MOMO') {
         window.location.assign(payment.paymentUrl);
         return;
       }
@@ -224,7 +233,22 @@ export function CheckoutPage() {
     }
   }
 
-  const paymentDisabled = processing || creatingOrder || !createdOrder || paymentCountdown.isExpired;
+  const paymentDisabled = processing || cancelling || creatingOrder || !createdOrder || paymentCountdown.isExpired;
+
+  async function handleCancel() {
+    if (!createdOrder || cancelling) return;
+    if (!window.confirm('Cancel this order? Your held tickets will be released.')) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      await cancelOrder(createdOrder.id);
+      clearStoredQueueAdmission();
+      navigate(event ? `/concerts/${event.id}` : '/', { replace: true });
+    } catch {
+      setError('Could not cancel the order. Please try again or wait for it to expire.');
+      setCancelling(false);
+    }
+  }
 
   return (
     <div className="checkout-page page-width">
@@ -303,13 +327,25 @@ export function CheckoutPage() {
             {creatingOrder
               ? 'Creating order...'
               : processing
-                ? provider === 'VNPAY' ? 'Opening VNPAY...' : 'Completing payment...'
+                ? provider === 'MOCK'
+                  ? 'Completing payment...'
+                  : `Opening ${provider}...`
                 : paymentCountdown.isExpired
                   ? 'Payment time expired'
-                  : `Continue with ${provider === 'MOCK' ? 'demo payment' : 'VNPAY'}`}
+                  : `Continue with ${provider === 'MOCK' ? 'demo payment' : provider}`}
           </button>
           {paymentCountdown.isExpired ? (
             <Link className="text-link checkout-restart-link" to={`/concerts/${event.id}/seats`}>Return to ticket selection</Link>
+          ) : null}
+          {createdOrder && !paymentCountdown.isExpired ? (
+            <button
+              className="button button-secondary button-block"
+              type="button"
+              disabled={cancelling || processing}
+              onClick={() => void handleCancel()}
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel order'}
+            </button>
           ) : null}
           <p className="secure-note">The backend calculates the authoritative total and payment expiry.</p>
         </aside>

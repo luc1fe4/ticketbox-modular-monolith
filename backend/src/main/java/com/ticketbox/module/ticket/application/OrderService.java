@@ -305,6 +305,107 @@ public class OrderService {
         return orderMapper.toResponse(order, itemResponses, concert.title());
     }
 
+    // ---- Admin / Organizer ----
+
+    public List<OrderResponse> listAllOrders(UUID concertId, String status) {
+        List<Order> orders;
+
+        if (concertId != null && status != null) {
+            Order.Status orderStatus = Order.Status.valueOf(status);
+            orders = orderRepository.findByConcertIdOrderByCreatedAtDesc(concertId)
+                    .stream()
+                    .filter(o -> o.getStatus() == orderStatus)
+                    .toList();
+        } else if (concertId != null) {
+            orders = orderRepository.findByConcertIdOrderByCreatedAtDesc(concertId);
+        } else if (status != null) {
+            orders = orderRepository.findByStatusOrderByCreatedAtDesc(Order.Status.valueOf(status));
+        } else {
+            orders = orderRepository.findAllByOrderByCreatedAtDesc();
+        }
+
+        if (orders.isEmpty()) return Collections.emptyList();
+
+        List<UUID> orderIds = orders.stream().map(Order::getId).toList();
+        List<OrderItem> allItems = orderItemRepository.findByOrderIdIn(orderIds);
+        Map<UUID, List<OrderItem>> itemsByOrderId = allItems.stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+
+        Set<UUID> concertIds = orders.stream().map(Order::getConcertId).collect(Collectors.toSet());
+        Map<UUID, String> concertTitles = concertOrderPort.findConcertsByIds(concertIds).stream()
+                .collect(Collectors.toMap(ConcertView::id, ConcertView::title));
+
+        Set<UUID> ticketTypeIds = allItems.stream().map(OrderItem::getTicketTypeId).collect(Collectors.toSet());
+        Map<UUID, String> ticketTypeNames = concertOrderPort.findTicketTypesByIds(ticketTypeIds).stream()
+                .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
+
+        return orders.stream().map(order -> {
+            List<OrderItem> items = itemsByOrderId.getOrDefault(order.getId(), Collections.emptyList());
+            List<OrderItemResponse> itemResponses = items.stream()
+                    .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                    .toList();
+            return orderMapper.toResponse(order, itemResponses, concertTitles.getOrDefault(order.getConcertId(), "Unknown Concert"));
+        }).toList();
+    }
+
+    public OrderResponse getAdminOrderDetail(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+
+        ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+
+        List<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).toList();
+        Map<UUID, String> ticketTypeNames = concertOrderPort.findTicketTypesByIds(ticketTypeIds).stream()
+                .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
+
+        List<OrderItemResponse> itemResponses = items.stream()
+                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                .toList();
+
+        return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(UUID orderId, UUID userId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+
+        if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Only AWAITING_PAYMENT orders can be cancelled. Current status: " + order.getStatus());
+        }
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            concertOrderPort.releaseInventory(item.getTicketTypeId(), item.getQuantity());
+        }
+
+        order.setStatus(Order.Status.CANCELLED);
+        orderRepository.save(order);
+        log.info("Order {} cancelled by user {}, released {} item type(s) back to inventory",
+                orderId, userId, items.size());
+
+        Set<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).collect(Collectors.toSet());
+        List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
+        Map<UUID, String> ticketTypeNames = ticketTypes.stream()
+                .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
+
+        ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+
+        List<OrderItemResponse> itemResponses = items.stream()
+                .map(item -> {
+                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type");
+                    return orderMapper.toItemResponse(item, typeName);
+                })
+                .toList();
+
+        return orderMapper.toResponse(order, itemResponses, concert.title());
+    }
+
     @Scheduled(fixedDelayString = "${ticketbox.orders.expiration.fixed-delay-ms:60000}")
     @Transactional
     public void expireAwaitingPaymentOrders() {
