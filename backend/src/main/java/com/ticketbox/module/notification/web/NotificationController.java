@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,6 +45,12 @@ public class NotificationController {
     ) {
         NotificationResponse notification = notificationService.markAsRead(currentUserId(authentication), notificationId);
         return ResponseEntity.ok(ApiResponse.success(notification));
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> unreadCount(Authentication authentication) {
+        long count = notificationService.countUnreadAppNotifications(currentUserId(authentication));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("count", count)));
     }
 
     private UUID currentUserId(Authentication authentication) {

@@ -2,6 +2,8 @@ import { apiCommand, apiGet, apiMultipartCommand } from './client';
 import type { ConcertDetail, ConcertStatus, Page, TicketType } from './concerts';
 import type { Order, OrderStatus } from './orders';
 import type { Ticket } from './tickets';
+import type { UserRole } from '../features/auth/AuthContext';
+import type { NotificationItem } from './notifications';
 
 export type ManagementApiScope = 'admin' | 'organizer';
 
@@ -147,6 +149,30 @@ export type ArtistBioJobFilters = {
   status?: ArtistBioJobStatus;
   page?: number;
   size?: number;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  phone: string | null;
+  fullName: string;
+  role: UserRole;
+  active: boolean;
+  isActive?: boolean;
+};
+
+export type CheckinSummary = {
+  concertId: string;
+  totalTickets: number;
+  validTickets: number;
+  usedTickets: number;
+  cancelledTickets: number;
+  transferredTickets: number;
+  checkedIn: number;
+  onlineCheckins: number;
+  offlineCheckins: number;
+  latestCheckedAt: string | null;
+  datasetUpdatedAt: string | null;
 };
 
 export function getAdminConcerts(
@@ -368,6 +394,38 @@ export function applyArtistBioJob(jobId: string, overwrite = false, scope: Manag
     'post',
     `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}/apply?${params}`,
   );
+}
+
+// ---- Admin User Management ----
+
+export function getAdminUsers(page = 0, size = 20, signal?: AbortSignal) {
+  return apiGet<Page<AdminUser>>(`/api/admin/users?page=${page}&size=${size}`, signal);
+}
+
+export function updateAdminUserRole(userId: string, role: UserRole) {
+  return apiCommand<AdminUser>('put', `/api/admin/users/${encodeURIComponent(userId)}/role`, { role });
+}
+
+export function updateAdminUserStatus(userId: string, isActive: boolean) {
+  return apiCommand<AdminUser>('put', `/api/admin/users/${encodeURIComponent(userId)}/status`, { isActive });
+}
+
+// ---- Admin Notification Operations ----
+
+export function getAdminNotifications(page = 0, size = 20, signal?: AbortSignal) {
+  return apiGet<Page<NotificationItem>>(`/api/admin/notifications?page=${page}&size=${size}`, signal);
+}
+
+export function retryAdminNotification(notificationId: string) {
+  return apiCommand<NotificationItem>('post', `/api/admin/notifications/${encodeURIComponent(notificationId)}/retry`);
+}
+
+export function sendAdminConcertReminder(concertId: string) {
+  return apiCommand<{ recipients: number }>('post', `/api/admin/concerts/${encodeURIComponent(concertId)}/reminders/send`);
+}
+
+export function getAdminCheckinSummary(concertId: string, signal?: AbortSignal) {
+  return apiGet<CheckinSummary>(`/api/admin/concerts/${encodeURIComponent(concertId)}/checkin-summary`, signal);
 }
 
 // ---- Admin Order & Ticket Management ----

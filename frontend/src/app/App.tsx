@@ -7,9 +7,11 @@ import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
 import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
+import { AdminNotificationsPage } from '../pages/admin/AdminNotificationsPage';
 import { AdminOrdersPage } from '../pages/admin/AdminOrdersPage';
 import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage';
 import { AdminTicketTypesPage } from '../pages/admin/AdminTicketTypesPage';
+import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { BookingConfirmationPage } from '../pages/customer/BookingConfirmationPage';
 import { CheckoutPage } from '../pages/customer/CheckoutPage';
 import { MyTicketsPage } from '../pages/customer/MyTicketsPage';
@@ -69,6 +71,8 @@ export function App() {
               <Route path="ticket-types" element={<AdminTicketTypesPage />} />
               <Route path="guests" element={<AdminGuestImportsPage />} />
               <Route path="orders" element={<AdminOrdersPage />} />
+              <Route path="notifications" element={<AdminNotificationsPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
               <Route path="batch-logs" element={<Navigate to="/admin/guests" replace />} />
             </Route>
             <Route

@@ -74,3 +74,7 @@ export function completeMockPayment(paymentUrl: string) {
 export function cancelOrder(orderId: string) {
   return api.delete<unknown, Order>(`/api/orders/${encodeURIComponent(orderId)}`);
 }
+
+export function retryOrderPayment(orderId: string) {
+  return api.post<unknown, Order>(`/api/orders/${encodeURIComponent(orderId)}/retry-payment`);
+}

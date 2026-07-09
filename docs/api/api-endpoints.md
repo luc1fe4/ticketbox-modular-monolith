@@ -110,8 +110,8 @@ Example login response data:
 | PATCH | `/users/me/password` | AUTHENTICATED | Change current user password. |
 | GET | `/admin/users` | ADMIN | List users with filters. |
 | GET | `/admin/users/{userId}` | ADMIN | Get user detail. |
-| PATCH | `/admin/users/{userId}/status` | ADMIN | Activate or deactivate user. |
-| PATCH | `/admin/users/{userId}/role` | ADMIN | Change user role. |
+| PUT | `/admin/users/{userId}/status` | ADMIN | Activate or deactivate user. |
+| PUT | `/admin/users/{userId}/role` | ADMIN | Change user role. |
 
 ## Public Concerts
 
@@ -247,7 +247,7 @@ docs/api/order-payment-concurrency-test-guide.md
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
-| GET | `/orders` | AUDIENCE | List current user's orders. |
+| GET | `/orders/my` | AUDIENCE | List current user's orders. |
 | GET | `/orders/{orderId}` | AUDIENCE | Get current user's order detail. |
 | DELETE | `/orders/{orderId}` | AUDIENCE | Cancel an awaiting-payment order and release held tickets. |
 | POST | `/orders/{orderId}/retry-payment` | AUDIENCE | Create a new payment attempt for an awaiting-payment or failed order if allowed. |
@@ -386,7 +386,7 @@ If duplicate webhook, return OK without double-processing.
 | POST | `/staff/checkins/scan` | STAFF | Online scan and check-in one QR code. |
 | POST | `/staff/checkins/sync` | STAFF | Batch sync offline check-in logs from mobile scanner. |
 | GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER/ADMIN | List check-in logs for a concert. |
-| GET | `/admin/concerts/{concertId}/checkin-summary` | ORGANIZER/ADMIN | Get check-in count and conflict summary. |
+| GET | `/admin/concerts/{concertId}/checkin-summary` | ADMIN | Get ticket/check-in count summary for operations. |
 
 Check-in history pagination:
 
@@ -464,10 +464,11 @@ An inactive or unknown guest returns HTTP 200 with `"found": false`.
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | GET | `/notifications` | AUTHENTICATED | List current user's notifications. |
+| GET | `/notifications/unread-count` | AUTHENTICATED | Count unread in-app notifications for the current user. |
 | PATCH | `/notifications/{notificationId}/read` | AUTHENTICATED | Mark notification as read if read state is implemented. |
-| GET | `/admin/notifications` | ORGANIZER/ADMIN | List notification records for operations/debug. |
-| POST | `/admin/notifications/{notificationId}/retry` | ORGANIZER/ADMIN | Retry failed notification. |
-| POST | `/admin/concerts/{concertId}/reminders/send` | ORGANIZER/ADMIN | Trigger concert reminder notifications. |
+| GET | `/admin/notifications` | ADMIN | List notification records for operations/debug. |
+| POST | `/admin/notifications/{notificationId}/retry` | ADMIN | Retry a failed email notification. |
+| POST | `/admin/concerts/{concertId}/reminders/send` | ADMIN | Trigger concert reminder notifications manually. |
 
 Async design:
 

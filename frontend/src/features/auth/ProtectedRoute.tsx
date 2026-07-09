@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type UserRole } from './AuthContext';
+import { getRoleHome, getRoleHomeLabel } from './roleRoutes';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -25,6 +26,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    const homePath = getRoleHome(user.role);
+    const homeLabel = getRoleHomeLabel(user.role);
+
     return (
       <main className="route-forbidden page-width">
         <div className="state-panel" role="alert">
@@ -34,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
             This area is reserved for {allowedRoles.join(' / ')} accounts. You are signed in as {user.role}.
           </p>
           <div className="forbidden-actions">
-            <Link className="button button-primary" to="/">Back to events</Link>
+            <Link className="button button-primary" to={homePath}>{homeLabel}</Link>
             <Link className="button button-secondary" to="/profile">View profile</Link>
           </div>
         </div>

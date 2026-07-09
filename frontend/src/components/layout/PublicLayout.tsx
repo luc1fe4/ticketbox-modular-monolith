@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth, type UserRole } from '../../features/auth/AuthContext';
+import { getUnreadNotificationCount } from '../../api/notifications';
+import { useAuth } from '../../features/auth/AuthContext';
+import { getRoleHome, getRoleHomeLabel } from '../../features/auth/roleRoutes';
 
-const adminRoles = new Set<UserRole>(['ADMIN', 'ORGANIZER']);
-
-export function Logo() {
+export function Logo({ to = '/', label = 'TicketBox home' }: { to?: string; label?: string }) {
   return (
-    <Link className="logo" to="/" aria-label="TicketBox home">
+    <Link className="logo" to={to} aria-label={label}>
       <span className="logo-mark" aria-hidden="true">T</span>
       <span>ticket<span>box</span></span>
     </Link>
@@ -23,33 +23,61 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function NotificationLabel({ count }: { count: number }) {
+  return (
+    <span className="notification-link-label">
+      Notifications
+      {count > 0 ? <span className="notification-badge" aria-label={`${count} unread notifications`}>{count > 99 ? '99+' : count}</span> : null}
+    </span>
+  );
+}
+
 export function PublicLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const navigate = useNavigate();
 
-  const canOpenAdmin = user ? adminRoles.has(user.role) : false;
+  const homePath = getRoleHome(user?.role);
+  const homeLabel = getRoleHomeLabel(user?.role);
 
   function logOut() {
     setMenuOpen(false);
     setMobileOpen(false);
+    setUnreadNotifications(0);
     logout();
     navigate('/');
   }
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    const controller = new AbortController();
+    getUnreadNotificationCount(controller.signal)
+      .then((result) => setUnreadNotifications(result.count))
+      .catch(() => setUnreadNotifications(0));
+
+    return () => controller.abort();
+  }, [user?.id]);
 
   return (
     <div className="site-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="site-header">
         <div className="header-inner">
-          <Logo />
+          <Logo to={homePath} label={homeLabel} />
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <NavLink to="/">Discover</NavLink>
-            <a href="/#events">Events</a>
+            {user?.role !== 'STAFF' ? <NavLink to="/">Discover</NavLink> : null}
+            {user?.role !== 'STAFF' ? <a href="/#events">Events</a> : null}
             {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets">My Tickets</NavLink> : null}
-            {user ? <NavLink to="/notifications">Notifications</NavLink> : null}
-            {canOpenAdmin ? <NavLink to="/admin">Administration</NavLink> : null}
+            {user ? <NavLink to="/notifications"><NotificationLabel count={unreadNotifications} /></NavLink> : null}
+            {user?.role === 'ADMIN' ? <NavLink to="/admin">Administration</NavLink> : null}
+            {user?.role === 'ORGANIZER' ? <NavLink to="/organizer">Organizer studio</NavLink> : null}
+            {user?.role === 'STAFF' ? <NavLink to="/staff">Gate operations</NavLink> : null}
           </nav>
           <div className="header-actions">
             <label className="header-search">
@@ -74,11 +102,11 @@ export function PublicLayout() {
                   <div className="account-menu">
                     <div><strong>{user.fullName}</strong><span>{user.email}</span><span>{user.role}</span></div>
                     <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile & history</Link>
-                    <Link to="/notifications" onClick={() => setMenuOpen(false)}>Notifications</Link>
+                    <Link to="/notifications" onClick={() => setMenuOpen(false)}><NotificationLabel count={unreadNotifications} /></Link>
                     {user.role === 'AUDIENCE' ? (
                       <Link to="/my-tickets" onClick={() => setMenuOpen(false)}>My Tickets</Link>
                     ) : null}
-                    {canOpenAdmin ? (
+                    {user.role === 'ADMIN' ? (
                       <Link to="/admin" onClick={() => setMenuOpen(false)}>Administration</Link>
                     ) : null}
                     {user.role === 'ORGANIZER' ? (
@@ -110,28 +138,30 @@ export function PublicLayout() {
         </div>
         {mobileOpen ? (
           <nav className="mobile-nav" aria-label="Mobile navigation">
-            <NavLink to="/" onClick={() => setMobileOpen(false)}>Discover</NavLink>
-            <a href="/#events" onClick={() => setMobileOpen(false)}>Events</a>
+            {user?.role !== 'STAFF' ? <NavLink to="/" onClick={() => setMobileOpen(false)}>Discover</NavLink> : null}
+            {user?.role !== 'STAFF' ? <a href="/#events" onClick={() => setMobileOpen(false)}>Events</a> : null}
             {user ? <NavLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavLink> : null}
-            {user ? <NavLink to="/notifications" onClick={() => setMobileOpen(false)}>Notifications</NavLink> : null}
+            {user ? <NavLink to="/notifications" onClick={() => setMobileOpen(false)}><NotificationLabel count={unreadNotifications} /></NavLink> : null}
             {user?.role === 'AUDIENCE' ? <NavLink to="/my-tickets" onClick={() => setMobileOpen(false)}>My Tickets</NavLink> : null}
-            {canOpenAdmin ? <NavLink to="/admin" onClick={() => setMobileOpen(false)}>Administration</NavLink> : null}
+            {user?.role === 'ADMIN' ? <NavLink to="/admin" onClick={() => setMobileOpen(false)}>Administration</NavLink> : null}
+            {user?.role === 'ORGANIZER' ? <NavLink to="/organizer" onClick={() => setMobileOpen(false)}>Organizer studio</NavLink> : null}
+            {user?.role === 'STAFF' ? <NavLink to="/staff" onClick={() => setMobileOpen(false)}>Gate operations</NavLink> : null}
             {user ? <button type="button" onClick={logOut}>Log out</button> : null}
           </nav>
         ) : null}
       </header>
       <main id="main-content"><Outlet /></main>
-      <Footer />
+      <Footer homePath={homePath} homeLabel={homeLabel} />
     </div>
   );
 }
 
-function Footer() {
+function Footer({ homePath, homeLabel }: { homePath: string; homeLabel: string }) {
   return (
     <footer className="site-footer">
       <div className="footer-grid page-width">
         <div className="footer-brand">
-          <Logo />
+          <Logo to={homePath} label={homeLabel} />
           <p>Unforgettable nights, one ticket away.</p>
           <div className="social-row" aria-label="Social media">
             <a href="#instagram" aria-label="Instagram">ig</a>

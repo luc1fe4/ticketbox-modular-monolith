@@ -27,6 +27,10 @@ public class NotificationService {
                 .map(NotificationResponse::from);
     }
 
+    public long countUnreadAppNotifications(UUID userId) {
+        return notificationRepository.countByUserIdAndChannelAndReadAtIsNull(userId, Notification.Channel.APP);
+    }
+
     @Transactional
     public NotificationResponse markAsRead(UUID userId, UUID notificationId) {
         Notification notification = notificationRepository.findByIdAndUserId(notificationId, userId)

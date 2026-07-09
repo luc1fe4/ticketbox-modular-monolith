@@ -2,14 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from '../../components/layout/PublicLayout';
 import { events } from '../../data/mockData';
-import { useAuth, type UserRole } from '../../features/auth/AuthContext';
-
-const roleHome: Record<UserRole, string> = {
-  AUDIENCE: '/',
-  ORGANIZER: '/organizer',
-  STAFF: '/staff',
-  ADMIN: '/admin',
-};
+import { useAuth } from '../../features/auth/AuthContext';
+import { getRoleHome } from '../../features/auth/roleRoutes';
 
 export function LoginPage() {
   const { login, user, loading } = useAuth();
@@ -21,7 +15,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(roleHome[user.role], { replace: true });
+      navigate(getRoleHome(user.role), { replace: true });
     }
   }, [loading, navigate, user]);
 
@@ -33,7 +27,7 @@ export function LoginPage() {
     try {
       const loggedInUser = await login(String(data.get('email')), String(data.get('password')));
       const requestedPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-      navigate(requestedPath ?? roleHome[loggedInUser.role], { replace: true });
+      navigate(requestedPath ?? getRoleHome(loggedInUser.role), { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Email or password is incorrect.');
     } finally {

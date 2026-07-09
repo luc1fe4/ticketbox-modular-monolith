@@ -7,6 +7,7 @@ import com.ticketbox.module.checkin.domain.CheckinLogRepository;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse;
 import com.ticketbox.module.checkin.web.dto.CheckinDatasetResponse.TicketDatasetEntry;
 import com.ticketbox.module.checkin.web.dto.CheckinHistoryResponse;
+import com.ticketbox.module.checkin.web.dto.CheckinSummaryResponse;
 import com.ticketbox.module.checkin.web.dto.ScanTicketRequest;
 import com.ticketbox.module.checkin.web.dto.ScanTicketResponse;
 import com.ticketbox.module.checkin.web.dto.StaffConcertOverviewResponse;
@@ -61,6 +62,28 @@ public class CheckinService {
                 stats.cancelled(),
                 stats.transferred(),
                 checkinLogRepository.countByConcertId(concertId),
+                stats.datasetUpdatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public CheckinSummaryResponse getCheckinSummary(UUID concertId) {
+        getConcert(concertId);
+        TicketCheckinStats stats = ticketCheckinPort.getStats(concertId);
+        long checkedIn = checkinLogRepository.countByConcertId(concertId);
+        long offline = checkinLogRepository.countOfflineByConcertId(concertId);
+
+        return new CheckinSummaryResponse(
+                concertId,
+                stats.total(),
+                stats.valid(),
+                stats.used(),
+                stats.cancelled(),
+                stats.transferred(),
+                checkedIn,
+                Math.max(0, checkedIn - offline),
+                offline,
+                checkinLogRepository.findLatestCheckedAtByConcertId(concertId),
                 stats.datasetUpdatedAt()
         );
     }

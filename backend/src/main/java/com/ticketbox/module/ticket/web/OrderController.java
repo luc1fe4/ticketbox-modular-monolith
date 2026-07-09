@@ -64,4 +64,14 @@ public class OrderController {
         OrderResponse response = orderService.cancelOrder(id, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PostMapping("/{id}/retry-payment")
+    public ResponseEntity<ApiResponse<OrderResponse>> retryPayment(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        OrderResponse response = orderService.retryPayment(id, userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

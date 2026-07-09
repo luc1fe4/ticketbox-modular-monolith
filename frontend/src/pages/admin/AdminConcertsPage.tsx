@@ -17,11 +17,13 @@ import { useSearchParams } from 'react-router-dom';
 import {
   createConcert,
   deleteConcert,
+  getAdminCheckinSummary,
   getAdminConcerts,
   removeConcertPoster,
   uploadConcertPoster,
   updateConcert,
   updateConcertStatus,
+  type CheckinSummary,
   type ConcertMutation,
   type ManagementApiScope,
 } from '../../api/admin';
@@ -126,6 +128,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
   const [saving, setSaving] = useState(false);
   const [removingPoster, setRemovingPoster] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [checkinSummaries, setCheckinSummaries] = useState<Record<string, CheckinSummary>>({});
 
   const loadConcerts = useCallback(
     async (signal?: AbortSignal) => {
@@ -155,6 +158,26 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
     void loadConcerts(controller.signal);
     return () => controller.abort();
   }, [loadConcerts]);
+
+  useEffect(() => {
+    if (apiScope !== 'admin' || !pageData?.content.length) {
+      setCheckinSummaries({});
+      return;
+    }
+
+    const controller = new AbortController();
+    Promise.allSettled(pageData.content.map((concert) => getAdminCheckinSummary(concert.id, controller.signal)))
+      .then((results) => {
+        if (controller.signal.aborted) return;
+        const next: Record<string, CheckinSummary> = {};
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') next[result.value.concertId] = result.value;
+        });
+        setCheckinSummaries(next);
+      });
+
+    return () => controller.abort();
+  }, [apiScope, pageData?.content]);
 
   useEffect(() => {
     if (searchParams.get('create') === '1') {
@@ -341,6 +364,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
               <thead>
                 <tr>
                   <th>Concert</th>
+                  {apiScope === 'admin' ? <th>Check-in</th> : null}
                   <th>Thời gian</th>
                   <th>Trạng thái</th>
                   <th>Điều phối</th>
@@ -361,6 +385,22 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                         </div>
                       </div>
                     </td>
+                    {apiScope === 'admin' ? (
+                      <td>
+                        {checkinSummaries[concert.id] ? (
+                          <>
+                            <strong className="admin-table-primary">
+                              {checkinSummaries[concert.id].checkedIn} / {checkinSummaries[concert.id].totalTickets}
+                            </strong>
+                            <span className="admin-table-secondary">
+                              Online {checkinSummaries[concert.id].onlineCheckins} · Offline {checkinSummaries[concert.id].offlineCheckins}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="admin-table-secondary">Đang tổng hợp</span>
+                        )}
+                      </td>
+                    ) : null}
                     <td>
                       <strong className="admin-table-primary">{dateTime.format(new Date(concert.eventDate))}</strong>
                       <span className="admin-table-secondary">{concert.venueAddress}</span>

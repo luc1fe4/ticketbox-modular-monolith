@@ -439,6 +439,22 @@ public class OrderService {
         }
     }
 
+    public OrderResponse retryPayment(UUID orderId, UUID userId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+
+        if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Only AWAITING_PAYMENT orders can be retried. Current status: " + order.getStatus());
+        }
+
+        if (order.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order payment window has expired");
+        }
+
+        return toOrderResponse(order);
+    }
+
     @Transactional
     public OrderResponse cancelOrder(UUID orderId, UUID userId) {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)

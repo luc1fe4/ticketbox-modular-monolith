@@ -21,6 +21,10 @@ export function getNotifications(page = 0, size = 20, signal?: AbortSignal) {
   return apiGet<Page<NotificationItem>>(`/api/notifications?page=${page}&size=${size}`, signal);
 }
 
+export function getUnreadNotificationCount(signal?: AbortSignal) {
+  return apiGet<{ count: number }>('/api/notifications/unread-count', signal);
+}
+
 export function markNotificationRead(notificationId: string) {
   return apiCommand<NotificationItem>('patch', `/api/notifications/${encodeURIComponent(notificationId)}/read`);
 }

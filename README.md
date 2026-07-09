@@ -101,9 +101,10 @@ The database seed data automatically creates these primary credentials for demo 
 | `/concerts/:id` | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
 | `/profile` | ❌ | ✅ | ✅ | ✅ | ✅ | Redirect to `/login` |
 | `/tickets`, `/orders` | ❌ | ✅ | ❌ | ❌ | ❌ | Redirect to `/` |
-| `/admin` (Dashboard) | ❌ | ❌ | ❌ | ✅ | ✅ | Redirect to `/` |
+| `/admin` (Dashboard) | ❌ | ❌ | ❌ | ❌ | ✅ | Redirect to role home |
+| `/organizer` (Organizer Studio) | ❌ | ❌ | ❌ | ✅ | ❌ | Redirect to role home |
 | `/admin/users` (User Management) | ❌ | ❌ | ❌ | ❌ | ✅ | Redirect to `/` |
-| `/staff/checkin` (Gate Check-in) | ❌ | ❌ | ✅ | ❌ | ✅ | Redirect to `/` |
+| `/staff/check-in` (Gate Check-in) | ❌ | ❌ | ✅ | ❌ | ❌ | Redirect to role home |
 
 #### Backend REST API Route Matrix
 | API Endpoint | HTTP Method | Public | `AUDIENCE` | `STAFF` | `ORGANIZER` | `ADMIN` | Expected Unauthorized Status |
@@ -114,7 +115,7 @@ The database seed data automatically creates these primary credentials for demo 
 | `/api/reservations/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
 | `/api/orders/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
 | `/api/checkin/**` | POST/GET | ❌ | ❌ | ✅ | ❌ | ✅ | `403 Forbidden` |
-| `/api/organizer/**` | GET/POST | ❌ | ❌ | ❌ | ✅ | ✅ | `403 Forbidden` |
+| `/api/organizer/**` | GET/POST | ❌ | ❌ | ❌ | ✅ | ❌ | `403 Forbidden` |
 | `/api/admin/users/**` | GET/PUT | ❌ | ❌ | ❌ | ❌ | ✅ | `403 Forbidden` |
 
 ---
@@ -129,8 +130,8 @@ The database seed data automatically creates these primary credentials for demo 
    - **Verification**: You will be immediately redirected to the homepage `/`. The admin navigation menu is completely hidden from the sidebar.
 
 2. **Test Admin-Only Management (Admin vs Organizer)**:
-   - Log in with `organizer@ticketbox.com`. Go to `/admin`.
-   - Notice that you can import guest lists and view reports, but the **"User Management"** tab in the sidebar is hidden/disabled.
+   - Log in with `organizer@ticketbox.com`. Go to `/organizer`.
+   - Notice that organizer has its own workspace and cannot access the admin-only user management page.
    - Attempt to manually navigate to `http://localhost:5173/admin/users`.
    - **Verification**: You will be redirected back, protecting admin-only screens from organizer users.
    - Log out, then log in with `admin@ticketbox.com`. You can now view and access the `/admin/users` page, modify roles, and activate/deactivate users.

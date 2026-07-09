@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarDays, Sparkles, Ticket, Users } from 'lucide-react';
+import { ArrowUpRight, Bell, CalendarDays, Sparkles, Ticket, UserCog, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
@@ -27,6 +27,18 @@ const workspaces = [
     title: 'AI Artist Bio',
     copy: 'Tải press-kit PDF, review bio do AI tạo và áp dụng vào concert.',
     icon: Sparkles,
+  },
+  {
+    to: '/admin/notifications',
+    title: 'Thông báo',
+    copy: 'Theo dõi notification, retry email lỗi và gửi reminder thủ công.',
+    icon: Bell,
+  },
+  {
+    to: '/admin/users',
+    title: 'Người dùng',
+    copy: 'Đổi vai trò, khóa hoặc mở tài khoản để kiểm thử ma trận RBAC.',
+    icon: UserCog,
   },
 ];
 

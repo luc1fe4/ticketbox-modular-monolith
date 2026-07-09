@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { api, ApiClientError } from '../../api/client';
+import { retryOrderPayment } from '../../api/orders';
 import { useAuth, type UserRole, type UserSummary } from '../../features/auth/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -343,6 +344,8 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
       sessionStorage.setItem('ticketbox.pending-payment', JSON.stringify(pendingPayment));
 
       // 2. Gọi initiate payment
+      await retryOrderPayment(order.id);
+
       const payment = await api.post<unknown, { paymentUrl: string }>(
         `/api/payments/${encodeURIComponent(order.id)}/initiate`,
         { provider }

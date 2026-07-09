@@ -8,6 +8,8 @@ import com.ticketbox.module.notification.domain.Notification;
 import com.ticketbox.module.notification.domain.NotificationRepository;
 import com.ticketbox.module.notification.infrastructure.EmailNotificationPublisher;
 import com.ticketbox.module.ticket.TicketReminderRecipientPort;
+import com.ticketbox.shared.exception.AppException;
+import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -71,6 +73,16 @@ public class ConcertReminderScheduler {
                 }
             }
         }
+    }
+
+    public int sendReminderForConcert(UUID concertId) {
+        ConcertReminderView concert = concertReminderPort.findReminderConcertById(concertId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found or not eligible for reminders"));
+        List<UUID> userIds = ticketReminderRecipientPort.findDistinctUserIdsByConcertId(concert.id());
+        for (UUID userId : userIds) {
+            processReminder(concert, userId);
+        }
+        return userIds.size();
     }
 
     @Transactional

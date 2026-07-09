@@ -8,6 +8,7 @@ import com.ticketbox.module.payment.web.dto.VnpayIpnResponse;
 import com.ticketbox.shared.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -28,6 +29,15 @@ public class PaymentController {
         String provider = request == null ? null : request.provider();
         PaymentInitiationResponse response = paymentService.initiatePayment(orderId, provider);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{orderId}/status")
+    public ResponseEntity<ApiResponse<PaymentService.PaymentStatusResponse>> getPaymentStatus(
+            @PathVariable UUID orderId,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(paymentService.getPaymentStatus(orderId, userId)));
     }
 
     @GetMapping("/webhooks/vnpay")

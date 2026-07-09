@@ -17,6 +17,12 @@ public interface CheckinLogRepository extends JpaRepository<CheckinLog, UUID> {
     Page<CheckinLog> findByConcertId(UUID concertId, Pageable pageable);
 
     long countByConcertId(UUID concertId);
+
+    @Query("select count(c) from CheckinLog c where c.concertId = :concertId and c.isOffline = true")
+    long countOfflineByConcertId(@Param("concertId") UUID concertId);
+
+    @Query("select max(c.checkedAt) from CheckinLog c where c.concertId = :concertId")
+    OffsetDateTime findLatestCheckedAtByConcertId(@Param("concertId") UUID concertId);
 	
     @Modifying
     @Query(value = """

@@ -6,7 +6,6 @@ out/
 *.jar
 *.war
 *.ear
-.mvn/
 
 # Frontend / Node
 frontend/node_modules/
