@@ -10,6 +10,9 @@ public record QueueStatusResponse(
         Integer peopleAhead,
         Long estimatedWaitSeconds,
         String queueAccessToken,
-        OffsetDateTime sessionExpiresAt
+        OffsetDateTime sessionExpiresAt,
+        Long waitingRoomCount,
+        Long queueSize,
+        Long activeShoppers
 ) {
 }

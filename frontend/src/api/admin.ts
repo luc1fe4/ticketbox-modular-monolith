@@ -18,6 +18,8 @@ export type ConcertMutation = {
   venueAddress: string;
   eventDate: string;
   doorsOpenAt: string | null;
+  saleStartAt: string;
+  saleEndAt: string | null;
   seatMapSvg: string | null;
 };
 
@@ -26,8 +28,6 @@ export type TicketTypeMutation = {
   price: number;
   totalQuantity: number;
   maxPerAccount: number;
-  saleStartAt: string;
-  saleEndAt: string | null;
   zoneColor: string;
 };
 
@@ -66,6 +66,8 @@ export type StaffGuestLookup = {
   category: string | null;
   sponsorName: string | null;
   notes: string | null;
+  checkedInAt: string | null;
+  checkinGate: string | null;
 };
 
 export type StaffCheckinHistory = {
@@ -108,6 +110,21 @@ export type GuestListImportResponse = {
   batchLogId: string;
   status: BatchLogStatus;
   statusUrl: string;
+};
+
+export type GuestListEntry = {
+  id: string;
+  concertId: string;
+  phone: string;
+  fullName: string;
+  category: string | null;
+  sponsorName: string | null;
+  notes: string | null;
+  active: boolean;
+  importedAt: string | null;
+  batchFile: string | null;
+  checkedInAt: string | null;
+  checkinGate: string | null;
 };
 
 export type BatchLogFilters = {
@@ -185,6 +202,14 @@ export function getAdminConcerts(
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
   return apiGet<Page<ConcertDetail>>(`${managementBase(scope)}/concerts?${params}`, signal);
+}
+
+export function getManagedConcert(
+  concertId: string,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<ConcertDetail>(`${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}`, signal);
 }
 
 export function createConcert(payload: ConcertMutation, scope: ManagementApiScope = 'admin') {
@@ -297,6 +322,14 @@ export function getStaffGuestList(concertId: string, signal?: AbortSignal) {
   return apiGet<StaffGuestLookup[]>(`/api/staff/guestlist/list?${params}`, signal);
 }
 
+export function checkInStaffGuest(guestId: string, concertId: string, gate = 'VIP') {
+  return apiCommand<StaffGuestLookup>(
+    'post',
+    `/api/staff/guestlist/${encodeURIComponent(guestId)}/check-in`,
+    { concertId, gate },
+  );
+}
+
 export function getStaffCheckinHistory(
   concertId: string,
   page = 0,
@@ -325,6 +358,19 @@ export function importGuestList(
     'post',
     path,
     data,
+  );
+}
+
+export function getConcertGuestList(
+  concertId: string,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<Page<GuestListEntry>>(
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/guest-lists?page=${page}&size=${size}`,
+    signal,
   );
 }
 
@@ -364,6 +410,18 @@ export function submitArtistBioJob(concertId: string, file: File, scope: Managem
   );
 }
 
+export function composeArtistBioDraft(
+  concertId: string,
+  sourceJobIds: string[],
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<ArtistBioJob>(
+    'post',
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/artist-bio-jobs/compose`,
+    { sourceJobIds },
+  );
+}
+
 export function getArtistBioJobs(filters: ArtistBioJobFilters = {}, signal?: AbortSignal, scope: ManagementApiScope = 'admin') {
   const params = new URLSearchParams({
     page: String(filters.page ?? 0),
@@ -393,6 +451,18 @@ export function applyArtistBioJob(jobId: string, overwrite = false, scope: Manag
   return apiCommand<ArtistBioJob>(
     'post',
     `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}/apply?${params}`,
+  );
+}
+
+export function publishConcertArtistBio(
+  concertId: string,
+  artistBio: string,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<void>(
+    'put',
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/artist-bio`,
+    { artistBio },
   );
 }
 
@@ -426,6 +496,17 @@ export function sendAdminConcertReminder(concertId: string) {
 
 export function getAdminCheckinSummary(concertId: string, signal?: AbortSignal) {
   return apiGet<CheckinSummary>(`/api/admin/concerts/${encodeURIComponent(concertId)}/checkin-summary`, signal);
+}
+
+export function getManagedCheckinSummary(
+  concertId: string,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<CheckinSummary>(
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/checkin-summary`,
+    signal,
+  );
 }
 
 // ---- Admin Order & Ticket Management ----

@@ -1,10 +1,14 @@
 package com.ticketbox.module.ai.web;
 
 import com.ticketbox.module.ai.application.ArtistBioJobService;
+import com.ticketbox.module.ai.application.ArtistBioComposerService;
 import com.ticketbox.module.ai.domain.ArtistPdfJob;
 import com.ticketbox.module.ai.web.dto.ArtistBioJobResponse;
 import com.ticketbox.module.ai.web.dto.ArtistBioJobSubmissionResponse;
+import com.ticketbox.module.ai.web.dto.UpdateArtistBioRequest;
+import com.ticketbox.module.ai.web.dto.ComposeArtistBioRequest;
 import com.ticketbox.shared.response.ApiResponse;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.springframework.http.MediaType;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,9 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class ArtistBioJobController {
 
     private final ArtistBioJobService jobService;
+    private final ArtistBioComposerService composerService;
 
-    public ArtistBioJobController(ArtistBioJobService jobService) {
+    public ArtistBioJobController(ArtistBioJobService jobService, ArtistBioComposerService composerService) {
         this.jobService = jobService;
+        this.composerService = composerService;
     }
 
     @PostMapping(
@@ -99,6 +107,31 @@ public class ArtistBioJobController {
                 userId(authentication),
                 isAdmin(authentication),
                 overwrite));
+    }
+
+    @PostMapping("/concerts/{concertId}/artist-bio-jobs/compose")
+    public ApiResponse<ArtistBioJobResponse> compose(
+            @PathVariable UUID concertId,
+            @Valid @RequestBody ComposeArtistBioRequest request,
+            Authentication authentication) {
+        return ApiResponse.success(ArtistBioJobResponse.from(composerService.compose(
+                concertId,
+                request.sourceJobIds(),
+                userId(authentication),
+                isAdmin(authentication))));
+    }
+
+    @PutMapping("/concerts/{concertId}/artist-bio")
+    public ApiResponse<Void> publishReviewedBio(
+            @PathVariable UUID concertId,
+            @Valid @RequestBody UpdateArtistBioRequest request,
+            Authentication authentication) {
+        jobService.publishReviewedBio(
+                concertId,
+                request.artistBio(),
+                userId(authentication),
+                isAdmin(authentication));
+        return ApiResponse.success(null);
     }
 
     private ArtistBioJobSubmissionResponse submission(ArtistPdfJob job, HttpServletRequest request) {

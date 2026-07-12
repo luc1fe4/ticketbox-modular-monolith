@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiClientError, isRequestCanceled } from '../../api/client';
 import { getConcert, type ConcertDetail, type TicketType } from '../../api/concerts';
-import { clearStoredQueueAdmission, getStoredQueueAdmission } from '../../api/queue';
+import { clearStoredQueueAdmission, getStoredQueueAdmission, leaveQueue } from '../../api/queue';
 import { releaseAllHolds, releaseTicket, reserveTicket } from '../../api/reservations';
 import { ConcertSeatMap } from '../../components/ConcertSeatMap';
 import { useToast } from '../../components/feedback/toast-context';
@@ -152,6 +152,12 @@ export function SeatSelectionPage() {
       }
 
       if (requestError.status === 409) {
+        if (requestError.message.toLowerCase().includes('limit')) {
+          const message = 'You have reached the per-account limit for this ticket type.';
+          setInventoryNotice(message);
+          toast.error(message);
+          return;
+        }
         setInventoryNotice('This ticket type just sold out or no longer has enough tickets.');
         toast.error('This ticket type just sold out or no longer has enough tickets.');
         refresh();
@@ -176,7 +182,12 @@ export function SeatSelectionPage() {
     }
 
     const currentQuantity = heldQuantities[ticketType.id] ?? 0;
-    if (delta > 0 && currentQuantity >= ticketType.maxPerAccount) return;
+    if (delta > 0 && currentQuantity >= ticketType.maxPerAccount) {
+      const message = `Maximum ${ticketType.maxPerAccount} tickets per account for ${ticketType.name}.`;
+      setInventoryNotice(message);
+      toast.error(message);
+      return;
+    }
     if (delta > 0 && ticketType.availableQty <= 0) {
       setInventoryNotice('This ticket type just sold out or no longer has enough tickets.');
       toast.error('This ticket type just sold out or no longer has enough tickets.');
@@ -232,6 +243,11 @@ export function SeatSelectionPage() {
       } catch {
         // The hold cleanup job will release expired holds if the explicit release misses.
       }
+    }
+    try {
+      await leaveQueue(id);
+    } catch {
+      // The backend session still expires by TTL if the explicit leave request misses.
     }
     clearStoredQueueAdmission();
     setHeldQuantities({});

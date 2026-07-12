@@ -30,14 +30,14 @@ WITH concert_seed (
         (9, 'Hue Imperial Soundscape', 'Traditional instruments meet contemporary composition in a dramatic heritage setting.', 'A cross-generational ensemble reimagines the musical identity of Hue through light, movement, and live orchestration.', 'Ngo Mon Square', 'Hue Imperial City, Hue', '2026-12-05 19:30:00+07'::timestamptz, '2026-12-05 18:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1468359601543-843bfaef291a?auto=format&fit=crop&w=1800&q=85', 650000::numeric),
         (10, 'Vietnam Hip Hop Festival', 'A full-day celebration of rap, dance crews, beatmakers, and street culture.', 'Leading and emerging Vietnamese hip-hop artists share a festival stage designed for cyphers, battles, and headline sets.', 'Gia Dinh Park', 'Go Vap District, Ho Chi Minh City', '2026-12-19 15:00:00+07'::timestamptz, '2026-12-19 13:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1524650359799-842906ca1c06?auto=format&fit=crop&w=1800&q=85', 750000::numeric),
         (11, 'New Year Countdown Hanoi 2027', 'A city-center countdown featuring live artists, visual projections, and a midnight celebration.', 'Vietnamese pop performers and DJs welcome the new year with a large public production in the heart of Hanoi.', 'August Revolution Square', 'Hoan Kiem District, Hanoi', '2026-12-31 20:00:00+07'::timestamptz, '2026-12-31 18:00:00+07'::timestamptz, 'SOLD_OUT', 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85', 900000::numeric),
-        (12, 'Spring Bloom Music Festival', 'A joyful spring festival with pop, folk-inspired stages, food, and outdoor experiences.', 'Spring Bloom welcomes the new season through contemporary Vietnamese music and colorful cultural collaborations.', 'Yen So Park', 'Hoang Mai District, Hanoi', '2027-02-20 16:00:00+07'::timestamptz, '2027-02-20 14:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1800&q=85', 600000::numeric),
-        (13, 'Women in Music Vietnam', 'A showcase of women shaping Vietnam''s current music landscape across genres and generations.', 'Vocalists, producers, instrumentalists, and songwriters lead an evening centered on artistry and creative independence.', 'Hoa Binh Theater', 'District 10, Ho Chi Minh City', '2027-03-13 19:30:00+07'::timestamptz, '2027-03-13 18:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1488841714725-bb4c32d1ac94?auto=format&fit=crop&w=1800&q=85', 850000::numeric),
+        (12, 'Spring Bloom Music Festival', 'A joyful spring festival with pop, folk-inspired stages, food, and outdoor experiences.', 'Spring Bloom welcomes the new season through contemporary Vietnamese music and colorful cultural collaborations.', 'Yen So Park', 'Hoang Mai District, Hanoi', '2027-02-20 16:00:00+07'::timestamptz, '2027-02-20 14:00:00+07'::timestamptz, 'DRAFT', 'https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1800&q=85', 600000::numeric),
+        (13, 'Women in Music Vietnam', 'A showcase of women shaping Vietnam''s current music landscape across genres and generations.', 'Vocalists, producers, instrumentalists, and songwriters lead an evening centered on artistry and creative independence.', 'Hoa Binh Theater', 'District 10, Ho Chi Minh City', '2027-03-13 19:30:00+07'::timestamptz, '2027-03-13 18:00:00+07'::timestamptz, 'CANCELLED', 'https://images.unsplash.com/photo-1488841714725-bb4c32d1ac94?auto=format&fit=crop&w=1800&q=85', 850000::numeric),
         (14, 'Rock the Red River', 'A loud, guitar-driven festival bringing together alternative and rock bands from across Vietnam.', 'Rock the Red River is built for live-band energy, festival crowds, and a stage that gets heavier after sunset.', 'Long Bien Riverside', 'Long Bien District, Hanoi', '2027-04-03 17:00:00+07'::timestamptz, '2027-04-03 15:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=1800&q=85', 700000::numeric),
         (15, 'Jazz by the River', 'An elegant riverside evening of jazz ensembles, vocal standards, and modern improvisation.', 'Vietnamese jazz musicians and international guests share a relaxed open-air program beside the Saigon River.', 'Bach Dang Wharf Park', 'District 1, Ho Chi Minh City', '2027-04-24 18:30:00+07'::timestamptz, '2027-04-24 17:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?auto=format&fit=crop&w=1800&q=85', 800000::numeric),
         (16, 'Nha Trang Summer Waves', 'A beachside summer concert combining pop anthems, dance music, and ocean views.', 'Summer Waves turns the Nha Trang coast into a vibrant live stage for holiday crowds and music fans.', 'April 2 Square', 'Tran Phu, Nha Trang', '2027-05-15 17:30:00+07'::timestamptz, '2027-05-15 15:30:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1509824227185-9c5a01ceba0d?auto=format&fit=crop&w=1800&q=85', 650000::numeric),
         (17, 'Campus Sound 2027', 'A high-energy youth festival featuring university bands, rising artists, and creative showcases.', 'Campus Sound gives student communities and emerging performers a major live platform in Ho Chi Minh City.', 'Vietnam National University Urban Area', 'Thu Duc City, Ho Chi Minh City', '2027-06-05 16:00:00+07'::timestamptz, '2027-06-05 14:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1800&q=85', 350000::numeric),
         (18, 'Vietnam Symphony Under the Stars', 'A cinematic outdoor symphony program featuring familiar themes and Vietnamese compositions.', 'A full orchestra performs beneath the night sky with projection design and guest soloists.', 'Thang Long Imperial Citadel', 'Ba Dinh District, Hanoi', '2027-06-26 19:30:00+07'::timestamptz, '2027-06-26 18:00:00+07'::timestamptz, 'SOLD_OUT', 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1800&q=85', 1000000::numeric),
-        (19, 'Hoi An Lantern Sessions', 'A warm acoustic concert framed by lantern light, heritage architecture, and intimate performances.', 'Lantern Sessions invites artists to reinterpret beloved songs in a calm, story-led setting.', 'An Hoi Sculpture Garden', 'Hoi An, Quang Nam', '2027-07-17 19:00:00+07'::timestamptz, '2027-07-17 17:30:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?auto=format&fit=crop&w=1800&q=85', 550000::numeric),
+        (19, 'Hoi An Lantern Sessions', 'A warm acoustic concert framed by lantern light, heritage architecture, and intimate performances.', 'Lantern Sessions invites artists to reinterpret beloved songs in a calm, story-led setting.', 'An Hoi Sculpture Garden', 'Hoi An, Quang Nam', '2027-07-17 19:00:00+07'::timestamptz, '2027-07-17 17:30:00+07'::timestamptz, 'DRAFT', 'https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?auto=format&fit=crop&w=1800&q=85', 550000::numeric),
         (20, 'TicketBox City Lights Festival', 'A flagship multi-stage festival connecting pop, indie, electronic, and visual arts.', 'City Lights closes the demo season with a broad lineup and the full TicketBox festival experience.', 'The Global City', 'Thu Duc City, Ho Chi Minh City', '2027-08-07 15:00:00+07'::timestamptz, '2027-08-07 13:00:00+07'::timestamptz, 'ON_SALE', 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1800&q=85', 850000::numeric)
 )
 INSERT INTO concerts (
@@ -119,14 +119,14 @@ WITH concert_seed (seed_no, event_date, status, base_price) AS (
         (9, '2026-12-05 19:30:00+07'::timestamptz, 'ON_SALE', 650000::numeric),
         (10, '2026-12-19 15:00:00+07'::timestamptz, 'ON_SALE', 750000::numeric),
         (11, '2026-12-31 20:00:00+07'::timestamptz, 'SOLD_OUT', 900000::numeric),
-        (12, '2027-02-20 16:00:00+07'::timestamptz, 'ON_SALE', 600000::numeric),
-        (13, '2027-03-13 19:30:00+07'::timestamptz, 'ON_SALE', 850000::numeric),
+        (12, '2027-02-20 16:00:00+07'::timestamptz, 'DRAFT', 600000::numeric),
+        (13, '2027-03-13 19:30:00+07'::timestamptz, 'CANCELLED', 850000::numeric),
         (14, '2027-04-03 17:00:00+07'::timestamptz, 'ON_SALE', 700000::numeric),
         (15, '2027-04-24 18:30:00+07'::timestamptz, 'ON_SALE', 800000::numeric),
         (16, '2027-05-15 17:30:00+07'::timestamptz, 'ON_SALE', 650000::numeric),
         (17, '2027-06-05 16:00:00+07'::timestamptz, 'ON_SALE', 350000::numeric),
         (18, '2027-06-26 19:30:00+07'::timestamptz, 'SOLD_OUT', 1000000::numeric),
-        (19, '2027-07-17 19:00:00+07'::timestamptz, 'ON_SALE', 550000::numeric),
+        (19, '2027-07-17 19:00:00+07'::timestamptz, 'DRAFT', 550000::numeric),
         (20, '2027-08-07 15:00:00+07'::timestamptz, 'ON_SALE', 850000::numeric)
 ),
 zone_seed (zone_no, name, price_multiplier, total_quantity, max_per_account, zone_color) AS (
@@ -156,12 +156,16 @@ SELECT
     z.name,
     round(c.base_price * z.price_multiplier),
     z.total_quantity,
-    CASE WHEN c.status = 'SOLD_OUT' THEN 0 ELSE z.total_quantity END,
+    CASE
+        WHEN c.status IN ('SOLD_OUT', 'CANCELLED') THEN 0
+        WHEN c.status = 'DRAFT' THEN z.total_quantity
+        ELSE greatest(1, floor(z.total_quantity * (0.42 + (c.seed_no % 4) * 0.12))::integer)
+    END,
     z.max_per_account,
-    '2026-06-01 09:00:00+07'::timestamptz,
-    c.event_date - interval '1 hour',
+    c.event_date - interval '60 days',
+    c.event_date - interval '2 hours',
     z.zone_color,
-    TRUE,
+    c.status <> 'CANCELLED',
     NOW(),
     NOW()
 FROM concert_seed c

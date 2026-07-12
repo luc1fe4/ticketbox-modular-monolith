@@ -23,11 +23,6 @@ public record CreateTicketTypeRequest(
         @Min(value = 1, message = "Max per account must be at least 1")
         int maxPerAccount,
 
-        @NotNull(message = "Sale start date must not be null")
-        OffsetDateTime saleStartAt,
-
-        OffsetDateTime saleEndAt,
-
         @Pattern(regexp = "^#([A-Fa-f0-9]{6})$", message = "Zone color must be a valid hex color code (e.g. #E11D48)")
         String zoneColor
 ) {}

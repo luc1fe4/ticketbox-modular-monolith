@@ -27,7 +27,9 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         c.getId(),
                         c.getTitle(),
                         c.getStatus().name(),
-                        c.getEventDate()
+                        c.getEventDate(),
+                        c.getSaleStartAt(),
+                        c.getSaleEndAt()
                 ));
     }
 
@@ -38,7 +40,9 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         c.getId(),
                         c.getTitle(),
                         c.getStatus().name(),
-                        c.getEventDate()
+                        c.getEventDate(),
+                        c.getSaleStartAt(),
+                        c.getSaleEndAt()
                 ))
                 .toList();
     }
@@ -66,8 +70,6 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         t.getTotalQuantity(),
                         t.getAvailableQty(),
                         t.getMaxPerAccount(),
-                        t.getSaleStartAt(),
-                        t.getSaleEndAt(),
                         t.isActive()
                 ))
                 .toList();

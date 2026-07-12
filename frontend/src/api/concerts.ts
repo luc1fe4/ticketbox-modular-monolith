@@ -7,6 +7,8 @@ export type ConcertSummary = {
   title: string;
   venueName: string;
   eventDate: string;
+  saleStartAt: string;
+  saleEndAt: string | null;
   status: ConcertStatus;
   posterUrl: string | null;
 };
@@ -20,6 +22,7 @@ export type ConcertDetail = ConcertSummary & {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  ticketTypes: TicketType[];
 };
 
 export type TicketType = {
@@ -30,8 +33,6 @@ export type TicketType = {
   totalQuantity: number;
   availableQty: number;
   maxPerAccount: number;
-  saleStartAt: string;
-  saleEndAt: string;
   zoneColor: string;
   isActive: boolean;
   createdAt: string;

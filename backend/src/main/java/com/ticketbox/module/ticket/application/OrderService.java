@@ -108,6 +108,15 @@ public class OrderService {
             throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
         }
 
+        OffsetDateTime now = OffsetDateTime.now();
+        if (concert.saleStartAt().isAfter(now)
+                || (concert.saleEndAt() != null && concert.saleEndAt().isBefore(now))) {
+            throw new AppException(
+                    ErrorCode.SALE_NOT_OPEN,
+                    "Ticket sale has not started or has ended for: " + concert.title()
+            );
+        }
+
         queueAccessPort.validateAccess(request.concertId(), userId, queueAccessToken);
 
         List<UUID> ticketTypeIds = request.items().stream()
@@ -124,7 +133,6 @@ public class OrderService {
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
-        OffsetDateTime now = OffsetDateTime.now();
 
         for (OrderItemRequest itemRequest : request.items()) {
             TicketTypeView type = typeMap.get(itemRequest.ticketTypeId());
@@ -147,14 +155,6 @@ public class OrderService {
                 throw new AppException(
                         ErrorCode.TICKET_TYPE_NOT_IN_CONCERT,
                         "Ticket type is not active"
-                );
-            }
-
-            if (type.saleStartAt().isAfter(now)
-                    || (type.saleEndAt() != null && type.saleEndAt().isBefore(now))) {
-                throw new AppException(
-                        ErrorCode.SALE_NOT_OPEN,
-                        "Ticket sale has not started or has ended for: " + type.name()
                 );
             }
 
@@ -229,7 +229,17 @@ public class OrderService {
         OrderResponse response = orderMapper.toResponse(savedOrder, itemResponses, concert.title());
 
         idempotencyService.completeAfterCommit(claim, savedOrder.getId());
+        releaseQueueSlotAfterCommit(request.concertId(), userId);
         return response;
+    }
+
+    private void releaseQueueSlotAfterCommit(UUID concertId, UUID userId) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                queueAccessPort.finishShoppingSession(concertId, userId);
+            }
+        });
     }
 
     private void releaseUserLockAfterTransaction(String lockKey, String lockToken) {

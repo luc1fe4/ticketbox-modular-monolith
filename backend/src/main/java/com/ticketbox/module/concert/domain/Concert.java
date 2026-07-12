@@ -40,6 +40,12 @@ public class Concert extends BaseEntity {
     @Column(name = "doors_open_at")
     private OffsetDateTime doorsOpenAt;
 
+    @Column(name = "sale_start_at", nullable = false)
+    private OffsetDateTime saleStartAt;
+
+    @Column(name = "sale_end_at")
+    private OffsetDateTime saleEndAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private Status status = Status.DRAFT;
@@ -52,6 +58,9 @@ public class Concert extends BaseEntity {
 
     @Column(name = "poster_public_id", length = 500)
     private String posterPublicId;
+
+    @Column(name = "is_public", nullable = false)
+    private boolean publicVisible = true;
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
@@ -84,6 +93,14 @@ public class Concert extends BaseEntity {
         this.doorsOpenAt = doorsOpenAt;
     }
 
+    public void setSaleStartAt(OffsetDateTime saleStartAt) {
+        this.saleStartAt = saleStartAt;
+    }
+
+    public void setSaleEndAt(OffsetDateTime saleEndAt) {
+        this.saleEndAt = saleEndAt;
+    }
+
     public void setStatus(Status status) {
         this.status = status;
     }
@@ -98,6 +115,10 @@ public class Concert extends BaseEntity {
 
     public void setPosterPublicId(String posterPublicId) {
         this.posterPublicId = posterPublicId;
+    }
+
+    public void setPublicVisible(boolean publicVisible) {
+        this.publicVisible = publicVisible;
     }
 
     public void setCreatedBy(UUID createdBy) {

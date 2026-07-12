@@ -13,4 +13,6 @@ public record GuestListEntryResponse(
         String notes,
         boolean active,
         OffsetDateTime importedAt,
-        String batchFile) {}
+        String batchFile,
+        OffsetDateTime checkedInAt,
+        String checkinGate) {}

@@ -39,6 +39,8 @@ public class GuestListManagementService {
                         guest.getNotes(),
                         guest.isActive(),
                         guest.getImportedAt(),
-                        guest.getBatchFile()));
+                        guest.getBatchFile(),
+                        guest.getCheckedInAt(),
+                        guest.getCheckinGate()));
     }
 }

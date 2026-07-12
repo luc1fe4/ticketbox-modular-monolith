@@ -10,6 +10,7 @@ import { isRequestCanceled } from '../../api/client';
 import type { ConcertDetail } from '../../api/concerts';
 import type { NotificationItem } from '../../api/notifications';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 
 const dateTime = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'medium',
@@ -107,12 +108,7 @@ export function AdminNotificationsPage() {
       {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
 
       <div className="admin-toolbar">
-        <label className="admin-concert-switcher">
-          <span className="sr-only">Chọn concert để gửi reminder</span>
-          <select value={selectedConcertId} onChange={(event) => setSelectedConcertId(event.target.value)}>
-            {concerts.map((concert) => <option key={concert.id} value={concert.id}>{concert.title}</option>)}
-          </select>
-        </label>
+        <ConcertPicker concerts={concerts} value={selectedConcertId} onChange={setSelectedConcertId} label="Concert gửi reminder" placeholder="Chọn concert" disabled={loading || !concerts.length} />
         <button type="button" onClick={() => void sendReminder()} disabled={!selectedConcertId || sendingReminder}>
           <Send aria-hidden="true" size={16} />
           {sendingReminder ? 'Đang gửi...' : 'Gửi reminder'}

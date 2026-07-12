@@ -371,6 +371,9 @@ phone,full_name,category,sponsor_name,notes
 
 ### 9.3. Organizer import theo scheduler
 
+Mặc định production chạy lúc 03:00 mỗi ngày. Khi demo local, đặt
+`GUEST_LIST_IMPORT_CRON=0 */1 * * * *` trước khi chạy Docker để scheduler quét mỗi phút.
+
 | Buoc | Thao tac | Output mong doi |
 | --- | --- | --- |
 | 1 | Login organizer | Vao `/organizer/guests` |

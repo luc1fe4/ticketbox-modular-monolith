@@ -22,7 +22,7 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(
-            @Value("${ticketbox.security.jwt.secret:replace-with-local-development-only-secret-very-long-and-secure-at-least-256-bits-to-prevent-hs256-errors}") String secret,
+            @Value("${ticketbox.security.jwt.secret}") String secret,
             @Value("${ticketbox.security.jwt.expiration-ms:86400000}") long expirationMs) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;

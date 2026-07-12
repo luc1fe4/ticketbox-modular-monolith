@@ -1,7 +1,5 @@
 package com.ticketbox.module.notification.application;
 
-import com.ticketbox.module.auth.UserContactPort;
-import com.ticketbox.module.auth.UserContactView;
 import com.ticketbox.module.concert.ConcertReminderPort;
 import com.ticketbox.module.concert.ConcertReminderView;
 import com.ticketbox.module.notification.domain.Notification;
@@ -17,33 +15,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
+import java.util.Locale;
 import java.util.UUID;
 
-/**
- * Scheduled job that sends 24-hour concert reminders to ticket holders.
- *
- * <p>Every {@code ticketbox.notifications.reminder.fixed-delay-ms} milliseconds (default 5 min),
- * the scheduler finds concerts whose {@code eventDate} falls in the window
- * {@code [now+23h, now+25h]} and sends an APP notification + queues an EMAIL for each
- * user holding a VALID ticket.
- *
- * <p><b>Idempotency</b>: deterministic messageIds prevent duplicate notifications if the
- * scheduler runs concurrently or the service restarts:
- * <ul>
- *   <li>APP  – {@code CONCERT_REMINDER:APP:{concertId}:{userId}}</li>
- *   <li>EMAIL – {@code CONCERT_REMINDER:EMAIL:{concertId}:{userId}}</li>
- * </ul>
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ConcertReminderScheduler {
 
+    private static final DateTimeFormatter DATE_TIME =
+            DateTimeFormatter.ofPattern("HH:mm 'ngay' dd/MM/yyyy", Locale.forLanguageTag("vi-VN"));
+
     private final ConcertReminderPort concertReminderPort;
     private final TicketReminderRecipientPort ticketReminderRecipientPort;
-    private final UserContactPort userContactPort;
     private final NotificationRepository notificationRepository;
     private final EmailNotificationPublisher emailNotificationPublisher;
 
@@ -51,7 +37,7 @@ public class ConcertReminderScheduler {
     public void sendReminders() {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime from = now.plusHours(23);
-        OffsetDateTime to   = now.plusHours(25);
+        OffsetDateTime to = now.plusHours(25);
 
         List<ConcertReminderView> concerts = concertReminderPort.findConcertsStartingBetween(from, to);
         if (concerts.isEmpty()) {
@@ -61,14 +47,11 @@ public class ConcertReminderScheduler {
         log.info("ConcertReminderScheduler: found {} concerts in window [{}, {}]", concerts.size(), from, to);
 
         for (ConcertReminderView concert : concerts) {
-            List<UUID> userIds = ticketReminderRecipientPort.findDistinctUserIdsByConcertId(concert.id());
-
-            for (UUID userId : userIds) {
+            for (UUID userId : ticketReminderRecipientPort.findDistinctUserIdsByConcertId(concert.id())) {
                 try {
                     processReminder(concert, userId);
                 } catch (Exception ex) {
-                    // Don't let one user failure block the rest
-                    log.error("ConcertReminderScheduler: failed for concertId={} userId={} – {}",
+                    log.error("ConcertReminderScheduler: failed for concertId={} userId={} - {}",
                             concert.id(), userId, ex.getMessage(), ex);
                 }
             }
@@ -94,10 +77,9 @@ public class ConcertReminderScheduler {
                 ("CONCERT_REMINDER:EMAIL:" + concert.id() + ":" + userId).getBytes()
         );
 
-        String subject = "Reminder: " + concert.title() + " starts tomorrow";
+        String subject = "Nhac lich: " + concert.title() + " dien ra trong 24 gio toi";
         String body = buildReminderBody(concert);
 
-        // APP notification (idempotent)
         if (!notificationRepository.existsByMessageId(appMessageId)) {
             Notification appNotification = Notification.createAppNotification(
                     appMessageId,
@@ -110,7 +92,6 @@ public class ConcertReminderScheduler {
             notificationRepository.save(appNotification);
         }
 
-        // EMAIL notification (idempotent) – only publish if newly created
         if (!notificationRepository.existsByMessageId(emailMessageId)) {
             Notification emailNotification = Notification.createEmailNotification(
                     emailMessageId,
@@ -125,13 +106,15 @@ public class ConcertReminderScheduler {
     }
 
     private String buildReminderBody(ConcertReminderView concert) {
-        return "Hi,\n\n"
-                + "This is a reminder that \"" + concert.title() + "\" is happening tomorrow!\n\n"
-                + "Venue: " + concert.venueName() + "\n"
-                + "Address: " + concert.venueAddress() + "\n"
-                + "Date: " + concert.eventDate() + "\n\n"
-                + "Please remember to bring your QR code / ticket for entry.\n\n"
-                + "See you there!\n"
-                + "– The TicketBox Team";
+        return "Xin chao,\n\n"
+                + "TicketBox nhac ban ve dem dien \"" + concert.title() + "\" sap dien ra trong 24 gio toi.\n\n"
+                + "Thong tin su kien\n"
+                + "- Thoi gian: " + DATE_TIME.format(concert.eventDate()) + "\n"
+                + "- Dia diem: " + concert.venueName() + "\n"
+                + "- Dia chi: " + concert.venueAddress() + "\n\n"
+                + "Vui long mo My Tickets truoc khi den cong va chuan bi QR e-ticket. "
+                + "QR chi nen duoc xuat trinh cho nhan su soat ve cua TicketBox.\n\n"
+                + "Hen gap ban tai dem dien,\n"
+                + "TicketBox";
     }
 }

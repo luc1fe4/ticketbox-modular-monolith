@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Edit3, Plus, RefreshCw, Ticket, Trash2, X } from 'lucide-react';
+import { Edit3, Plus, Search, Ticket, Trash2, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import {
   createTicketType,
   deleteTicketType,
@@ -14,6 +15,7 @@ import type { ConcertDetail, TicketType as TicketTypeModel } from '../../api/con
 import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminConfirmDialog } from '../../components/admin/AdminConfirmDialog';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
 
 const currency = new Intl.NumberFormat('vi-VN', {
@@ -22,18 +24,11 @@ const currency = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
-const dateTime = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
 type TicketFormState = {
   name: string;
   price: string;
   totalQuantity: string;
   maxPerAccount: string;
-  saleStartAt: string;
-  saleEndAt: string;
   zoneColor: string;
 };
 
@@ -42,8 +37,6 @@ const emptyForm: TicketFormState = {
   price: '',
   totalQuantity: '',
   maxPerAccount: '4',
-  saleStartAt: '',
-  saleEndAt: '',
   zoneColor: '#ff765f',
 };
 
@@ -60,8 +53,6 @@ function formFromTicket(ticketType: TicketTypeModel): TicketFormState {
     price: String(ticketType.price),
     totalQuantity: String(ticketType.totalQuantity),
     maxPerAccount: String(ticketType.maxPerAccount),
-    saleStartAt: toLocalInput(ticketType.saleStartAt),
-    saleEndAt: toLocalInput(ticketType.saleEndAt),
     zoneColor: ticketType.zoneColor || '#ff765f',
   };
 }
@@ -72,16 +63,15 @@ function toPayload(form: TicketFormState): TicketTypeMutation {
     price: Number(form.price),
     totalQuantity: Number(form.totalQuantity),
     maxPerAccount: Number(form.maxPerAccount),
-    saleStartAt: new Date(form.saleStartAt).toISOString(),
-    saleEndAt: form.saleEndAt ? new Date(form.saleEndAt).toISOString() : null,
     zoneColor: form.zoneColor,
   };
 }
 
 export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
-  const [selectedConcertId, setSelectedConcertId] = useState('');
+  const [selectedConcertId, setSelectedConcertId] = useState(() => searchParams.get('concertId') ?? '');
   const [ticketTypes, setTicketTypes] = useState<TicketTypeModel[]>([]);
   const [loadingConcerts, setLoadingConcerts] = useState(true);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -92,6 +82,8 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
   const [form, setForm] = useState<TicketFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [query, setQuery] = useState('');
+  const [availability, setAvailability] = useState<'all' | 'active' | 'paused' | 'sold'>('all');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,7 +92,7 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
       try {
         const data = await getAdminConcerts(0, 100, undefined, controller.signal, apiScope);
         setConcerts(data.content);
-        setSelectedConcertId((current) => current || data.content[0]?.id || '');
+        setSelectedConcertId((current) => current || searchParams.get('concertId') || data.content[0]?.id || '');
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           setError(requestError instanceof Error ? requestError.message : 'Không thể tải concert.');
@@ -111,7 +103,7 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
     }
     void load();
     return () => controller.abort();
-  }, [apiScope]);
+  }, [apiScope, searchParams]);
 
   const loadTicketTypes = useCallback(async (signal?: AbortSignal) => {
     if (!selectedConcertId) {
@@ -153,10 +145,22 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
     [ticketTypes],
   );
 
+  const visibleTicketTypes = useMemo(() => {
+    const keyword = query.trim().toLocaleLowerCase('vi');
+    return ticketTypes.filter((ticketType) => {
+      const matchesQuery = !keyword || ticketType.name.toLocaleLowerCase('vi').includes(keyword);
+      const sold = ticketType.totalQuantity - ticketType.availableQty;
+      const matchesAvailability = availability === 'all'
+        || (availability === 'active' && ticketType.isActive)
+        || (availability === 'paused' && !ticketType.isActive)
+        || (availability === 'sold' && sold > 0);
+      return matchesQuery && matchesAvailability;
+    });
+  }, [availability, query, ticketTypes]);
+
   function openCreate() {
-    const saleEnd = selectedConcert ? toLocalInput(selectedConcert.eventDate) : '';
     setEditing(null);
-    setForm({ ...emptyForm, saleEndAt: saleEnd });
+    setForm(emptyForm);
     setFormOpen(true);
   }
 
@@ -222,7 +226,7 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
       <AdminPageHeader
         eyebrow="Inventory"
         title="Quản lý hạng vé"
-        description="Thiết lập giá, hạn mức mua, lịch mở bán và tồn kho cho từng concert."
+        description="Thiết lập giá, hạn mức mua và tồn kho cho từng concert."
         actions={
           <button className="admin-primary-action" type="button" onClick={openCreate} disabled={!selectedConcertId}>
             <Plus aria-hidden="true" size={17} />
@@ -231,17 +235,22 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
         }
       />
 
-      <div className="admin-concert-switcher">
-        <label>
-          <span>Concert đang quản lý</span>
-          <select value={selectedConcertId} onChange={(event) => setSelectedConcertId(event.target.value)} disabled={loadingConcerts}>
-            {concerts.map((concert) => <option key={concert.id} value={concert.id}>{concert.title}</option>)}
-          </select>
-        </label>
+      <div className="admin-concert-switcher admin-context-switcher">
+        <ConcertPicker
+          concerts={concerts}
+          value={selectedConcertId}
+          onChange={(id) => {
+            setSelectedConcertId(id);
+            setQuery('');
+            setAvailability('all');
+          }}
+          label="Concert đang quản lý"
+          disabled={loadingConcerts}
+        />
         {selectedConcert ? (
-          <div>
-            <span>{dateTime.format(new Date(selectedConcert.eventDate))}</span>
-            <strong>{selectedConcert.venueName}</strong>
+          <div className="admin-context-summary">
+            <span>Thời gian mở bán</span>
+            <strong>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selectedConcert.saleStartAt))}</strong>
           </div>
         ) : null}
       </div>
@@ -252,24 +261,37 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
         <div><span>Còn khả dụng</span><strong>{totals.available}</strong></div>
       </section>
 
-      <div className="admin-toolbar admin-toolbar-end">
-        <button type="button" onClick={() => void loadTicketTypes()} disabled={loadingTickets || !selectedConcertId}>
-          <RefreshCw aria-hidden="true" size={16} />
-          Làm mới
-        </button>
-      </div>
-
       {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+
+      {ticketTypes.length ? (
+        <div className="admin-toolbar ticket-type-toolbar">
+          <label className="admin-search-control">
+            <Search aria-hidden="true" size={16} />
+            <span className="sr-only">Tìm hạng vé</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hạng vé..." />
+          </label>
+          <label>
+            <span className="sr-only">Lọc trạng thái hạng vé</span>
+            <select value={availability} onChange={(event) => setAvailability(event.target.value as typeof availability)}>
+              <option value="all">Tất cả hạng vé</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="paused">Tạm ngưng</option>
+              <option value="sold">Đã phát sinh bán</option>
+            </select>
+          </label>
+          <span className="admin-filter-count">Hiển thị {visibleTicketTypes.length} / {ticketTypes.length}</span>
+        </div>
+      ) : null}
 
       <section className="admin-data-panel">
         {loadingTickets ? (
           <div className="admin-row-skeleton" aria-label="Đang tải hạng vé" aria-live="polite">{[1, 2, 3].map((item) => <span key={item} />)}</div>
-        ) : ticketTypes.length ? (
+        ) : visibleTicketTypes.length ? (
           <div className="admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>Hạng vé</th><th>Giá</th><th>Tồn kho</th><th>Mở bán</th><th>Trạng thái</th><th><span className="sr-only">Thao tác</span></th></tr></thead>
+              <thead><tr><th>Hạng vé</th><th>Giá</th><th>Tồn kho</th><th>Trạng thái</th><th><span className="sr-only">Thao tác</span></th></tr></thead>
               <tbody>
-                {ticketTypes.map((ticketType) => {
+                {visibleTicketTypes.map((ticketType) => {
                   const sold = ticketType.totalQuantity - ticketType.availableQty;
                   const editable = sold === 0;
                   return (
@@ -284,10 +306,6 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
                       <td>
                         <strong className="admin-table-primary">{ticketType.availableQty} / {ticketType.totalQuantity}</strong>
                         <span className="admin-table-secondary">{sold} đã bán</span>
-                      </td>
-                      <td>
-                        <strong className="admin-table-primary">{dateTime.format(new Date(ticketType.saleStartAt))}</strong>
-                        <span className="admin-table-secondary">đến {ticketType.saleEndAt ? dateTime.format(new Date(ticketType.saleEndAt)) : 'khi concert diễn ra'}</span>
                       </td>
                       <td>
                         <button className={`admin-toggle ${ticketType.isActive ? 'is-active' : ''}`} type="button" aria-pressed={ticketType.isActive} onClick={() => void toggleStatus(ticketType)} disabled={busyId === ticketType.id}>
@@ -310,9 +328,9 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
         ) : (
           <div className="admin-empty-state">
             <Ticket aria-hidden="true" size={28} />
-            <h2>{selectedConcertId ? 'Concert chưa có hạng vé' : 'Chưa có concert để quản lý'}</h2>
-            <p>{selectedConcertId ? 'Tạo hạng vé đầu tiên để chuẩn bị mở bán.' : 'Tạo concert trước, sau đó quay lại cấu hình hạng vé.'}</p>
-            {selectedConcertId ? <button className="admin-primary-action" type="button" onClick={openCreate}>Thêm hạng vé</button> : null}
+            <h2>{ticketTypes.length ? 'Không có hạng vé phù hợp' : selectedConcertId ? 'Concert chưa có hạng vé' : 'Chưa có concert để quản lý'}</h2>
+            <p>{ticketTypes.length ? 'Thử đổi từ khóa hoặc bộ lọc trạng thái.' : selectedConcertId ? 'Tạo hạng vé đầu tiên để chuẩn bị mở bán.' : 'Tạo concert trước, sau đó quay lại cấu hình hạng vé.'}</p>
+            {ticketTypes.length ? <button className="admin-secondary-action" type="button" onClick={() => { setQuery(''); setAvailability('all'); }}>Xóa bộ lọc</button> : selectedConcertId ? <button className="admin-primary-action" type="button" onClick={openCreate}>Thêm hạng vé</button> : null}
           </div>
         )}
       </section>
@@ -377,8 +395,6 @@ function TicketTypeForm({
             <label className="admin-field"><span>Màu vùng</span><span className="admin-color-field"><input type="color" {...field('zoneColor')} /><input required pattern="^#[A-Fa-f0-9]{6}$" {...field('zoneColor')} /></span></label>
             <label className="admin-field"><span>Tổng số lượng</span><input required min="1" type="number" inputMode="numeric" {...field('totalQuantity')} /></label>
             <label className="admin-field"><span>Tối đa mỗi tài khoản</span><input required min="1" type="number" inputMode="numeric" {...field('maxPerAccount')} /></label>
-            <label className="admin-field"><span>Bắt đầu bán</span><input required type="datetime-local" {...field('saleStartAt')} /></label>
-            <label className="admin-field"><span>Kết thúc bán</span><input type="datetime-local" {...field('saleEndAt')} /></label>
           </div>
           <footer>
             <button className="admin-secondary-action" type="button" onClick={onClose}>Hủy</button>

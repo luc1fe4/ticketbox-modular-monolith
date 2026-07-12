@@ -43,6 +43,15 @@ public class GuestList extends BaseEntity {
     @Column(name = "batch_file", length = 255)
     private String batchFile;
 
+    @Column(name = "checked_in_at")
+    private OffsetDateTime checkedInAt;
+
+    @Column(name = "checked_in_by")
+    private UUID checkedInBy;
+
+    @Column(name = "checkin_gate", length = 100)
+    private String checkinGate;
+
     public void setConcertId(UUID concertId) {
         this.concertId = concertId;
     }
@@ -77,5 +86,17 @@ public class GuestList extends BaseEntity {
 
     public void setBatchFile(String batchFile) {
         this.batchFile = batchFile;
+    }
+
+    public void setCheckedInAt(OffsetDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
+    }
+
+    public void setCheckedInBy(UUID checkedInBy) {
+        this.checkedInBy = checkedInBy;
+    }
+
+    public void setCheckinGate(String checkinGate) {
+        this.checkinGate = checkinGate;
     }
 }

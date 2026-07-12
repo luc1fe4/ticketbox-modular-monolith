@@ -14,6 +14,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring")
 public interface ConcertMapper {
 
+    @Mapping(target = "ticketTypes", expression = "java(java.util.List.of())")
     ConcertDetailResponse toDetailResponse(Concert concert);
 
     ConcertSummaryResponse toSummaryResponse(Concert concert);
@@ -26,6 +27,7 @@ public interface ConcertMapper {
     @Mapping(target = "artistBio", ignore = true)
     @Mapping(target = "posterUrl", ignore = true)
     @Mapping(target = "posterPublicId", ignore = true)
+    @Mapping(target = "publicVisible", ignore = true)
     Concert toEntity(CreateConcertRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -37,5 +39,6 @@ public interface ConcertMapper {
     @Mapping(target = "artistBio", ignore = true)
     @Mapping(target = "posterUrl", ignore = true)
     @Mapping(target = "posterPublicId", ignore = true)
+    @Mapping(target = "publicVisible", ignore = true)
     void updateConcertFromRequest(UpdateConcertRequest request, @MappingTarget Concert concert);
 }

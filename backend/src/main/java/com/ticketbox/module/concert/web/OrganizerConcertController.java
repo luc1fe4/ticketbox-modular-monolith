@@ -45,7 +45,7 @@ public class OrganizerConcertController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("eventDate").ascending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(ApiResponse.success(
                 concertService.getOwnedConcerts(userId(authentication), status, pageable)));
     }

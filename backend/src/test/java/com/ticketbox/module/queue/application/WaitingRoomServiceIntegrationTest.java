@@ -23,6 +23,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,6 +39,7 @@ class WaitingRoomServiceIntegrationTest {
 
     private StringRedisTemplate redisTemplate;
     private WaitingRoomService service;
+    private ConcertOrderPort concertOrderPort;
 
     @BeforeEach
     void setUp() {
@@ -46,9 +48,9 @@ class WaitingRoomServiceIntegrationTest {
         redisTemplate = new StringRedisTemplate(connectionFactory);
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
 
-        ConcertOrderPort concertOrderPort = mock(ConcertOrderPort.class);
+        concertOrderPort = mock(ConcertOrderPort.class);
         when(concertOrderPort.findConcertById(CONCERT_ID))
-                .thenReturn(Optional.of(new ConcertView(CONCERT_ID, "Demo Concert", "ON_SALE", OffsetDateTime.now().plusDays(1))));
+                .thenReturn(Optional.of(new ConcertView(CONCERT_ID, "Demo Concert", "ON_SALE", OffsetDateTime.now().plusDays(1), OffsetDateTime.now().minusDays(1), OffsetDateTime.now().plusDays(2))));
 
         org.springframework.context.ApplicationEventPublisher eventPublisher = mock(org.springframework.context.ApplicationEventPublisher.class);
         service = new WaitingRoomService(redisTemplate, concertOrderPort, new TokenBucketRateLimiter(redisTemplate), eventPublisher);
@@ -85,10 +87,28 @@ class WaitingRoomServiceIntegrationTest {
         QueueStatusResponse waiting = service.join(CONCERT_ID, secondUser);
 
         assertEquals(QueueStatus.WAITING, waiting.status());
-        assertEquals(2, waiting.position());
-        assertEquals(1, waiting.peopleAhead());
+        assertEquals(1, waiting.position());
+        assertEquals(0, waiting.peopleAhead());
+        assertEquals(1L, waiting.queueSize());
+        assertEquals(1L, waiting.activeShoppers());
 
         Thread.sleep(520);
+
+        QueueStatusResponse admitted = service.status(CONCERT_ID, secondUser);
+        assertEquals(QueueStatus.ADMITTED, admitted.status());
+        assertNotNull(admitted.queueAccessToken());
+    }
+
+    @Test
+    void finishShoppingSession_ImmediatelyPromotesNextQueuedUser() {
+        UUID firstUser = UUID.randomUUID();
+        UUID secondUser = UUID.randomUUID();
+
+        service.join(CONCERT_ID, firstUser);
+        QueueStatusResponse waiting = service.join(CONCERT_ID, secondUser);
+        assertEquals(QueueStatus.WAITING, waiting.status());
+
+        service.finishShoppingSession(CONCERT_ID, firstUser);
 
         QueueStatusResponse admitted = service.status(CONCERT_ID, secondUser);
         assertEquals(QueueStatus.ADMITTED, admitted.status());
@@ -106,5 +126,55 @@ class WaitingRoomServiceIntegrationTest {
         Thread.sleep(520);
 
         assertThrows(AppException.class, () -> service.validateAccess(CONCERT_ID, userId, admitted.queueAccessToken()));
+    }
+
+    @Test
+    void join_BeforeSaleStart_PlacesUserInWaitingRoomWithoutAdmission() {
+        when(concertOrderPort.findConcertById(CONCERT_ID))
+                .thenReturn(Optional.of(new ConcertView(
+                        CONCERT_ID,
+                        "Demo Concert",
+                        "ON_SALE",
+                        OffsetDateTime.now().plusDays(1),
+                        OffsetDateTime.now().plusMinutes(30),
+                        OffsetDateTime.now().plusDays(2)
+                )));
+
+        QueueStatusResponse waitingRoom = service.join(CONCERT_ID, UUID.randomUUID());
+
+        assertEquals(QueueStatus.WAITING_ROOM, waitingRoom.status());
+        assertNull(waitingRoom.position());
+        assertNull(waitingRoom.queueAccessToken());
+        assertEquals(1L, waitingRoom.waitingRoomCount());
+        assertEquals(0L, waitingRoom.queueSize());
+    }
+
+    @Test
+    void saleStart_SnapshotsWaitingRoomThenKeepsNextFanAtTheFrontOfQueue() {
+        UUID firstUser = UUID.randomUUID();
+        UUID secondUser = UUID.randomUUID();
+        ConcertView beforeSale = new ConcertView(
+                CONCERT_ID, "Demo Concert", "ON_SALE", OffsetDateTime.now().plusDays(1),
+                OffsetDateTime.now().plusMinutes(30), OffsetDateTime.now().plusDays(2));
+        when(concertOrderPort.findConcertById(CONCERT_ID)).thenReturn(Optional.of(beforeSale));
+
+        service.join(CONCERT_ID, firstUser);
+        service.join(CONCERT_ID, secondUser);
+
+        ConcertView afterSale = new ConcertView(
+                CONCERT_ID, "Demo Concert", "ON_SALE", OffsetDateTime.now().plusDays(1),
+                OffsetDateTime.now().minusSeconds(1), OffsetDateTime.now().plusDays(2));
+        when(concertOrderPort.findConcertById(CONCERT_ID)).thenReturn(Optional.of(afterSale));
+
+        QueueStatusResponse firstStatus = service.status(CONCERT_ID, firstUser);
+        QueueStatusResponse secondStatus = service.status(CONCERT_ID, secondUser);
+        QueueStatusResponse queued = firstStatus.status() == QueueStatus.WAITING ? firstStatus : secondStatus;
+
+        assertEquals(QueueStatus.WAITING, queued.status());
+        assertEquals(1, queued.position());
+        assertEquals(0, queued.peopleAhead());
+        assertEquals(0L, queued.waitingRoomCount());
+        assertEquals(1L, queued.queueSize());
+        assertEquals(1L, queued.activeShoppers());
     }
 }

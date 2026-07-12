@@ -66,7 +66,7 @@ public class PaymentController {
                 "partnerCode",  params.getOrDefault("partnerCode", ""),
                 "orderId",      params.getOrDefault("orderId", ""),
                 "requestId",    params.getOrDefault("requestId", ""),
-                "responseTime", System.currentTimeMillis(),
+                "responseTime", java.lang.System.currentTimeMillis(),
                 "resultCode",   momoResultCode,
                 "message",      result.message()
         ));

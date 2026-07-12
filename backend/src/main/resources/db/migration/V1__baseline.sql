@@ -27,6 +27,8 @@ CREATE TABLE concerts (
                           venue_address TEXT NOT NULL,
                           event_date TIMESTAMPTZ NOT NULL,
                           doors_open_at TIMESTAMPTZ,
+                          sale_start_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                          sale_end_at TIMESTAMPTZ,
                           status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
                           seat_map_svg TEXT,
                           poster_url VARCHAR(500),

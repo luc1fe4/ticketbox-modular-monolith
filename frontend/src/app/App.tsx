@@ -3,9 +3,10 @@ import { OperationsLayout } from '../components/layout/OperationsLayout';
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { ToastProvider } from '../components/feedback/ToastProvider';
 import { AuthProvider } from '../features/auth/AuthContext';
-import { ProtectedRoute } from '../features/auth/ProtectedRoute';
+import { GuestOrAudienceRoute, ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { AdminArtistBioPage } from '../pages/admin/AdminArtistBioPage';
 import { AdminConcertsPage } from '../pages/admin/AdminConcertsPage';
+import { ConcertWorkspacePage } from '../pages/admin/ConcertWorkspacePage';
 import { AdminGuestImportsPage } from '../pages/admin/AdminGuestImportsPage';
 import { AdminNotificationsPage } from '../pages/admin/AdminNotificationsPage';
 import { AdminOrdersPage } from '../pages/admin/AdminOrdersPage';
@@ -32,10 +33,10 @@ import { StaffHistoryPage } from '../pages/staff/StaffHistoryPage';
 import { StaffOverviewPage } from '../pages/staff/StaffOverviewPage';
 
 const audiencePage = (page: React.ReactNode) => (
-  <ProtectedRoute allowedRoles={['AUDIENCE']}>{page}</ProtectedRoute>
+  <ProtectedRoute allowedRoles={['AUDIENCE']} redirectUnauthorized>{page}</ProtectedRoute>
 );
 
-const authenticatedPage = (page: React.ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
+const cataloguePage = (page: React.ReactNode) => <GuestOrAudienceRoute>{page}</GuestOrAudienceRoute>;
 
 export function App() {
   return (
@@ -44,16 +45,16 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route element={<PublicLayout />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/concerts/:id" element={<ConcertDetailPage />} />
+              <Route path="/" element={cataloguePage(<HomePage />)} />
+              <Route path="/concerts/:id" element={cataloguePage(<ConcertDetailPage />)} />
               <Route path="/concerts/:id/waiting-room" element={audiencePage(<WaitingRoomPage />)} />
               <Route path="/concerts/:id/seats" element={audiencePage(<SeatSelectionPage />)} />
               <Route path="/checkout" element={audiencePage(<CheckoutPage />)} />
               <Route path="/booking-confirmation" element={audiencePage(<BookingConfirmationPage />)} />
               <Route path="/payment/result" element={audiencePage(<PaymentResultPage />)} />
               <Route path="/my-tickets" element={audiencePage(<MyTicketsPage />)} />
-              <Route path="/notifications" element={authenticatedPage(<NotificationsPage />)} />
-              <Route path="/profile" element={authenticatedPage(<ProfilePage />)} />
+              <Route path="/notifications" element={audiencePage(<NotificationsPage />)} />
+              <Route path="/profile" element={audiencePage(<ProfilePage />)} />
             </Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -67,6 +68,7 @@ export function App() {
             >
               <Route index element={<AdminOverviewPage />} />
               <Route path="concerts" element={<AdminConcertsPage />} />
+              <Route path="concerts/:id" element={<ConcertWorkspacePage />} />
               <Route path="artist-bio" element={<AdminArtistBioPage />} />
               <Route path="ticket-types" element={<AdminTicketTypesPage />} />
               <Route path="guests" element={<AdminGuestImportsPage />} />
@@ -85,6 +87,7 @@ export function App() {
             >
               <Route index element={<OrganizerOverviewPage />} />
               <Route path="concerts" element={<AdminConcertsPage apiScope="organizer" />} />
+              <Route path="concerts/:id" element={<ConcertWorkspacePage apiScope="organizer" />} />
               <Route path="ticket-types" element={<AdminTicketTypesPage apiScope="organizer" />} />
               <Route path="guests" element={<AdminGuestImportsPage apiScope="organizer" uploadMode="scheduled" />} />
               <Route path="artist-bio" element={<AdminArtistBioPage apiScope="organizer" />} />

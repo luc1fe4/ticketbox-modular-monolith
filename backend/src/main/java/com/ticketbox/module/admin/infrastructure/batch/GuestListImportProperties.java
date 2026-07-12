@@ -8,7 +8,7 @@ import org.springframework.util.unit.DataSize;
 public class GuestListImportProperties {
 
     private String rootDir = "./data/guest-list";
-    private String cron = "0 */5 * * * *";
+    private String cron = "0 0 3 * * *";
     private DataSize maxFileSize = DataSize.ofMegabytes(10);
     private Duration stableAge = Duration.ofSeconds(30);
 

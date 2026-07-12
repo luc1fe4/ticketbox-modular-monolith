@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, Filter, RefreshCw, Receipt, Ticket } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import {
   getAdminOrders,
@@ -299,6 +300,7 @@ function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope
 type TabId = 'orders' | 'tickets';
 
 export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>('orders');
 
   // Orders tab state
@@ -306,7 +308,7 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
-  const [concertFilter, setConcertFilter] = useState('');
+  const [concertFilter, setConcertFilter] = useState(() => searchParams.get('concertId') ?? '');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Shared concerts list (for filters + ticket tab)

@@ -64,7 +64,7 @@ export function saveDeviceId(deviceId: string) {
 
 function setItem(key: string, value: string) {
   if (Platform.OS === 'web') {
-    localStorage.setItem(key, value);
+    writeCookie(key, value);
     return Promise.resolve();
   }
 
@@ -73,7 +73,7 @@ function setItem(key: string, value: string) {
 
 function getItem(key: string) {
   if (Platform.OS === 'web') {
-    return Promise.resolve(localStorage.getItem(key));
+    return Promise.resolve(readCookie(key));
   }
 
   return SecureStore.getItemAsync(key);
@@ -81,7 +81,7 @@ function getItem(key: string) {
 
 function deleteItem(key: string) {
   if (Platform.OS === 'web') {
-    localStorage.removeItem(key);
+    deleteCookie(key);
     return Promise.resolve();
   }
 
@@ -90,4 +90,21 @@ function deleteItem(key: string) {
 
 function createDeviceId() {
   return `ticketbox-scanner-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function writeCookie(key: string, value: string) {
+  document.cookie = `${key}=${encodeURIComponent(value)}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+}
+
+function readCookie(key: string) {
+  const prefix = `${key}=`;
+  const cookie = document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
+}
+
+function deleteCookie(key: string) {
+  document.cookie = `${key}=; Path=/; Max-Age=0; SameSite=Lax`;
 }

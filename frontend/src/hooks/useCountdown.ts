@@ -24,10 +24,17 @@ function formatCountdown(totalSeconds: number) {
 }
 
 export function useCountdown(expiresAt?: string | null, warningThresholdSeconds = 120): Countdown {
-  const [remainingMs, setRemainingMs] = useState(() => remainingUntil(expiresAt) ?? 0);
+  const [countdownState, setCountdownState] = useState(() => ({
+    expiresAt: expiresAt ?? null,
+    remainingMs: remainingUntil(expiresAt) ?? 0,
+  }));
 
   useEffect(() => {
-    const tick = () => setRemainingMs(remainingUntil(expiresAt) ?? 0);
+    const activeExpiry = expiresAt ?? null;
+    const tick = () => setCountdownState({
+      expiresAt: activeExpiry,
+      remainingMs: remainingUntil(expiresAt) ?? 0,
+    });
     tick();
     if (!expiresAt) return undefined;
 
@@ -36,8 +43,11 @@ export function useCountdown(expiresAt?: string | null, warningThresholdSeconds 
   }, [expiresAt]);
 
   return useMemo(() => {
-    const hasExpiry = Boolean(expiresAt);
-    const remainingSeconds = Math.ceil(remainingMs / 1_000);
+    // A newly created order reaches this hook one render after its expiry value.
+    // Do not report it as expired until the local countdown has synchronized to that value.
+    const hasExpiry = Boolean(expiresAt) && countdownState.expiresAt === expiresAt;
+    const remainingMs = hasExpiry ? countdownState.remainingMs : 0;
+    const remainingSeconds = hasExpiry ? Math.ceil(remainingMs / 1_000) : 0;
     const minutes = Math.floor(remainingSeconds / 60);
     const seconds = remainingSeconds % 60;
 
@@ -50,5 +60,5 @@ export function useCountdown(expiresAt?: string | null, warningThresholdSeconds 
       isWarning: hasExpiry && remainingSeconds > 0 && remainingSeconds <= warningThresholdSeconds,
       isExpired: hasExpiry && remainingMs <= 0,
     };
-  }, [expiresAt, remainingMs, warningThresholdSeconds]);
+  }, [countdownState, expiresAt, warningThresholdSeconds]);
 }

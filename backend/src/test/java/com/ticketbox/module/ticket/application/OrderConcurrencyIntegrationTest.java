@@ -273,6 +273,8 @@ class OrderConcurrencyIntegrationTest {
         concert.setVenueAddress("Test address");
         concert.setEventDate(OffsetDateTime.now().plusDays(30));
         concert.setDoorsOpenAt(OffsetDateTime.now().plusDays(30).minusHours(1));
+        concert.setSaleStartAt(OffsetDateTime.now().minusHours(1));
+        concert.setSaleEndAt(OffsetDateTime.now().plusDays(1));
         concert.setStatus(Concert.Status.ON_SALE);
         concert.setCreatedBy(organizer.getId());
         concert = concertRepository.saveAndFlush(concert);
@@ -284,8 +286,6 @@ class OrderConcurrencyIntegrationTest {
         ticketType.setTotalQuantity(inventory);
         ticketType.setAvailableQty(inventory);
         ticketType.setMaxPerAccount(maxPerAccount);
-        ticketType.setSaleStartAt(OffsetDateTime.now().minusHours(1));
-        ticketType.setSaleEndAt(OffsetDateTime.now().plusDays(1));
         ticketType.setZoneColor("#123456");
         ticketType.setActive(true);
         ticketType = ticketTypeRepository.saveAndFlush(ticketType);

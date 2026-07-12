@@ -33,6 +33,15 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     List<Ticket> findByUserIdOrderByIssuedAtDesc(UUID userId);
     Optional<Ticket> findByIdAndUserId(UUID id, UUID userId);
 
+    @Query("""
+            SELECT t FROM Ticket t
+             WHERE t.orderItemId IN (
+                 SELECT oi.id FROM OrderItem oi WHERE oi.orderId = :orderId
+             )
+             ORDER BY t.issuedAt ASC
+            """)
+    List<Ticket> findByOrderId(@Param("orderId") UUID orderId);
+
     @Modifying
     @Query("UPDATE Ticket t SET t.status = 'USED', t.usedAt = :usedAt WHERE t.id = :id AND t.status = 'VALID'")
     int markAsUsedIfValid(@Param("id") UUID id, @Param("usedAt") OffsetDateTime usedAt);

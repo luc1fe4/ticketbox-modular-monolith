@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/health", "/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/payments/webhooks/**").permitAll()
                 .requestMatchers("/api/admin/users", "/api/admin/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/orders", "/api/admin/orders/**").hasRole("ADMIN")

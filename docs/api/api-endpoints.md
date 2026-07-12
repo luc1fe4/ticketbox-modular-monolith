@@ -351,7 +351,7 @@ Local VNPAY sandbox config:
 ```text
 VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 VNPAY_RETURN_URL=http://localhost:5173/payment/result
-VNPAY_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+VNPAY_IPN_URL=https://<your-static-domain>.ngrok-free.dev/api/payments/webhooks/vnpay
 ```
 
 Webhook behavior:
@@ -437,7 +437,7 @@ CSV import behavior:
 ```text
 Scheduled uploads create a PENDING batch log and are stored under incoming/{concertId}.
 The scheduler claims stable CSV files into processing before changing PENDING to RUNNING.
-Validate the required phone, full_name, category, sponsor_name, and notes headers.
+Validate the required phone, full_name, category, sponsor_name, and notes headers. Partner exports may use `guest_type` instead of `category` (and `phone_number`/`mobile`, `name`, `sponsor`, `note` for the equivalent fields). An optional `status` of `CANCELLED` imports the guest as inactive; omitted status defaults to active.
 Use upsert on (concert_id, phone), and reject duplicate phones within one file.
 Write SUCCESS, PARTIAL, FAILED, or SKIPPED results and per-row error reports.
 ```

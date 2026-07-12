@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit3,
+  ExternalLink,
   MapPin,
   ImagePlus,
   Plus,
@@ -13,7 +14,7 @@ import {
   Map,
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   createConcert,
   deleteConcert,
@@ -31,6 +32,7 @@ import type { ConcertDetail, ConcertStatus, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminConfirmDialog } from '../../components/admin/AdminConfirmDialog';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ActionMenu } from '../../components/admin/ActionMenu';
 import { useToast } from '../../components/feedback/toast-context';
 
 const statuses: Array<{ value: '' | ConcertStatus; label: string }> = [
@@ -62,6 +64,8 @@ type ConcertFormState = {
   venueAddress: string;
   eventDate: string;
   doorsOpenAt: string;
+  saleStartAt: string;
+  saleEndAt: string;
   seatMapSvg: string;
 };
 
@@ -72,6 +76,8 @@ const emptyForm: ConcertFormState = {
   venueAddress: '',
   eventDate: '',
   doorsOpenAt: '',
+  saleStartAt: '',
+  saleEndAt: '',
   seatMapSvg: '',
 };
 
@@ -90,6 +96,8 @@ function formFromConcert(concert: ConcertDetail): ConcertFormState {
     venueAddress: concert.venueAddress,
     eventDate: toLocalInput(concert.eventDate),
     doorsOpenAt: toLocalInput(concert.doorsOpenAt),
+    saleStartAt: toLocalInput(concert.saleStartAt),
+    saleEndAt: toLocalInput(concert.saleEndAt),
     seatMapSvg: concert.seatMapSvg ?? '',
   };
 }
@@ -104,6 +112,8 @@ function toPayload(form: ConcertFormState): ConcertMutation {
     doorsOpenAt: form.doorsOpenAt
       ? new Date(form.doorsOpenAt).toISOString()
       : null,
+    saleStartAt: new Date(form.saleStartAt).toISOString(),
+    saleEndAt: form.saleEndAt ? new Date(form.saleEndAt).toISOString() : null,
     seatMapSvg: form.seatMapSvg.trim() || null,
   };
 }
@@ -403,24 +413,26 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                     ) : null}
                     <td>
                       <strong className="admin-table-primary">{dateTime.format(new Date(concert.eventDate))}</strong>
-                      <span className="admin-table-secondary">{concert.venueAddress}</span>
+                      <span className="admin-table-secondary">Bán vé: {dateTime.format(new Date(concert.saleStartAt))}</span>
+                      <span className="admin-table-secondary">{concert.saleEndAt ? `Đến ${dateTime.format(new Date(concert.saleEndAt))}` : 'Đến khi concert diễn ra'}</span>
                     </td>
                     <td><span className={`admin-status status-${concert.status.toLowerCase()}`}>{statusLabel(concert.status)}</span></td>
                     <td>
-                      <select
-                        aria-label={`Đổi trạng thái ${concert.title}`}
-                        value=""
+                      <ActionMenu
+                        label="Chuyển trạng thái"
+                        ariaLabel={`Đổi trạng thái ${concert.title}`}
                         disabled={!transitions[concert.status].length || busyId === concert.id}
-                        onChange={(event) => void changeStatus(concert, event.target.value as ConcertStatus)}
-                      >
-                        <option value="">Chuyển trạng thái</option>
-                        {transitions[concert.status].map((next) => (
-                          <option key={next} value={next}>{statusLabel(next)}</option>
-                        ))}
-                      </select>
+                        options={transitions[concert.status].map((next) => ({
+                          value: next,
+                          label: statusLabel(next),
+                          destructive: next === 'CANCELLED',
+                        }))}
+                        onSelect={(next) => void changeStatus(concert, next)}
+                      />
                     </td>
                     <td>
                       <div className="admin-row-actions">
+                        <Link className="admin-row-link" aria-label={`Mở workspace ${concert.title}`} to={`${apiScope === 'admin' ? '/admin' : '/organizer'}/concerts/${concert.id}`}><ExternalLink size={16} /></Link>
                         <button type="button" aria-label={`Sửa ${concert.title}`} onClick={() => openEdit(concert)} disabled={busyId === concert.id || ['COMPLETED', 'CANCELLED'].includes(concert.status)}>
                           <Edit3 size={16} />
                         </button>
@@ -584,6 +596,14 @@ function ConcertForm({
             <label className="admin-field">
               <span>Giờ mở cửa</span>
               <input type="datetime-local" {...field('doorsOpenAt')} />
+            </label>
+            <label className="admin-field">
+              <span>Sale starts</span>
+              <input required type="datetime-local" {...field('saleStartAt')} />
+            </label>
+            <label className="admin-field">
+              <span>Sale ends</span>
+              <input type="datetime-local" {...field('saleEndAt')} />
             </label>
             <label className="admin-field">
               <span>Địa điểm</span>

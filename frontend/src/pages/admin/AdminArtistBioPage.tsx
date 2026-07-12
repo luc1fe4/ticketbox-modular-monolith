@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  applyArtistBioJob,
   getAdminConcerts,
   getArtistBioJob,
   getArtistBioJobs,
@@ -33,8 +32,8 @@ import {
 } from '../../api/admin';
 import type { ConcertDetail, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
-import { AdminConfirmDialog } from '../../components/admin/AdminConfirmDialog';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
 
 const statuses: Array<{ value: '' | ArtistBioJobStatus; label: string }> = [
@@ -82,8 +81,6 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
   const [selectedJob, setSelectedJob] = useState<ArtistBioJob | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [overwriteJob, setOverwriteJob] = useState<ArtistBioJob | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const page = Math.max(0, Math.floor(Number(searchParams.get('page')) || 0));
@@ -98,7 +95,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
     try {
       const data = await getAdminConcerts(0, 100, undefined, signal, apiScope);
       setConcerts(data.content);
-      setUploadConcertId((current) => current || data.content[0]?.id || '');
+      setUploadConcertId((current) => current || concertFilter || data.content[0]?.id || '');
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
         toast.error(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách concert.');
@@ -106,7 +103,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
     } finally {
       if (!signal?.aborted) setLoadingConcerts(false);
     }
-  }, [apiScope, toast]);
+  }, [apiScope, concertFilter, toast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -291,31 +288,6 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
     }
   }
 
-  async function applyJob(job: ArtistBioJob, overwrite: boolean) {
-    setApplying(true);
-    try {
-      const result = await applyArtistBioJob(job.id, overwrite, apiScope);
-      toast.success(commandMessage(result.message, overwrite ? 'Đã thay thế Artist Bio của concert.' : 'Đã áp dụng Artist Bio cho concert.'));
-      setSelectedJob(result.data);
-      setLatestJob((current) => current?.id === result.data.id ? result.data : current);
-      setOverwriteJob(null);
-      await Promise.all([loadConcerts(), loadJobs(undefined, true)]);
-    } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Không thể áp dụng Artist Bio.');
-    } finally {
-      setApplying(false);
-    }
-  }
-
-  function requestApply(job: ArtistBioJob) {
-    const concert = concertMap.get(job.concertId);
-    if (concert?.artistBio?.trim()) {
-      setOverwriteJob(job);
-    } else {
-      void applyJob(job, false);
-    }
-  }
-
   return (
     <>
       <AdminPageHeader
@@ -327,7 +299,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
       <section className="ai-bio-workspace">
         <form className="ai-bio-upload" onSubmit={submitJob}>
           <ToolHeading eyebrow="Tạo nội dung" title="Press kit mới" icon={<Sparkles size={22} />} />
-          <label className="admin-field"><span>Concert</span><select value={uploadConcertId} onChange={(event) => setUploadConcertId(event.target.value)} disabled={loadingConcerts || uploading} required>{!concerts.length ? <option value="">Chưa có concert</option> : null}{concerts.map((concert) => <option key={concert.id} value={concert.id}>{concert.title}</option>)}</select></label>
+          <ConcertPicker concerts={concerts} value={uploadConcertId} onChange={setUploadConcertId} label="Concert nhận nội dung" placeholder={loadingConcerts ? 'Đang tải concert...' : 'Chọn concert cho press kit'} disabled={loadingConcerts || uploading || !concerts.length} />
           <label className={`ai-pdf-picker ${file ? 'has-file' : ''}`}><FileText aria-hidden="true" size={25} /><span>{file ? file.name : 'Chọn press kit PDF'}</span><small>{file ? `${(file.size / 1024).toFixed(1)} KB` : 'PDF có text · tối đa 10 MB · 50 trang'}</small><input ref={fileInputRef} type="file" accept=".pdf,application/pdf" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} disabled={uploading} /></label>
           <button className="admin-primary-action" type="submit" disabled={!file || !uploadConcertId || uploading}><UploadCloud aria-hidden="true" size={17} />{uploading ? 'Đang gửi PDF...' : 'Tạo Artist Bio'}</button>
         </form>
@@ -354,8 +326,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
         {jobs && jobs.totalPages > 1 ? <div className="admin-pagination"><span>Trang {jobs.number + 1} / {jobs.totalPages}</span><div><button type="button" aria-label="Trang trước" disabled={jobs.first} onClick={() => updateFilters({ page: String(page - 1) })}><ChevronLeft size={17} /></button><button type="button" aria-label="Trang sau" disabled={jobs.last} onClick={() => updateFilters({ page: String(page + 1) })}><ChevronRight size={17} /></button></div></div> : null}
       </section>
 
-      {selectedJob ? <ArtistBioReviewDialog job={selectedJob} concert={concertMap.get(selectedJob.concertId)} loading={detailLoading} retrying={retrying} applying={applying} onRetry={() => void retryJob(selectedJob)} onApply={() => requestApply(selectedJob)} onClose={() => setSelectedJob(null)} /> : null}
-      {overwriteJob ? <AdminConfirmDialog title={`Thay Artist Bio của “${concertMap.get(overwriteJob.concertId)?.title ?? 'concert'}”?`} description="Concert đã có Artist Bio. Nội dung AI hiện tại sẽ thay thế bản đang được hiển thị công khai và thao tác này không thể tự hoàn tác." confirmLabel="Thay thế bio" destructive={false} loading={applying} onClose={() => setOverwriteJob(null)} onConfirm={() => void applyJob(overwriteJob, true)} /> : null}
+      {selectedJob ? <ArtistBioReviewDialog job={selectedJob} concert={concertMap.get(selectedJob.concertId)} loading={detailLoading} retrying={retrying} onRetry={() => void retryJob(selectedJob)} onClose={() => setSelectedJob(null)} /> : null}
     </>
   );
 }
@@ -372,13 +343,13 @@ function JobSnapshot({ job, concertTitle, onOpen }: { job: ArtistBioJob; concert
   return <div className="ai-job-snapshot"><div><ArtistJobStatus status={job.status} />{job.appliedAt ? <span className="ai-applied-label"><Check size={12} />Đã áp dụng</span> : null}</div>{isActive(job.status) ? <div className="guest-indeterminate" aria-label="AI đang xử lý"><span /></div> : null}<h3>{job.originalFileName}</h3><p>{concertTitle ?? 'Concert không xác định'}</p><dl><div><dt>Provider</dt><dd>{job.provider ?? 'Đang chờ'}</dd></div><div><dt>Ký tự nguồn</dt><dd>{job.extractedCharCount?.toLocaleString('vi-VN') ?? '—'}</dd></div><div><dt>Thời lượng</dt><dd>{duration(job)}</dd></div></dl>{job.errorMessage ? <div className="ai-snapshot-error">{job.errorMessage}</div> : null}<button type="button" onClick={onOpen}>{job.status === 'DONE' ? 'Review nội dung' : 'Xem chi tiết'} <Eye size={15} /></button></div>;
 }
 
-function ArtistBioReviewDialog({ job, concert, loading, retrying, applying, onRetry, onApply, onClose }: { job: ArtistBioJob; concert?: ConcertDetail; loading: boolean; retrying: boolean; applying: boolean; onRetry: () => void; onApply: () => void; onClose: () => void }) {
-  const busy = retrying || applying;
+function ArtistBioReviewDialog({ job, concert, loading, retrying, onRetry, onClose }: { job: ArtistBioJob; concert?: ConcertDetail; loading: boolean; retrying: boolean; onRetry: () => void; onClose: () => void }) {
+  const busy = retrying;
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) { if (event.key === 'Escape' && !busy) onClose(); }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [busy, onClose]);
 
-  return <div className="admin-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}><section className="admin-dialog ai-review-dialog" role="dialog" aria-modal="true" aria-labelledby="ai-review-title"><header><div><span>Artist Bio review</span><h2 id="ai-review-title">{concert?.title ?? job.originalFileName}</h2></div><button type="button" aria-label="Đóng" onClick={onClose} disabled={busy} autoFocus><X size={20} /></button></header><div className="ai-review-body">{loading ? <div className="batch-detail-loading">Đang tải job mới nhất...</div> : null}<div className="ai-review-meta"><ArtistJobStatus status={job.status} /><span>{job.originalFileName}</span><span>{job.provider ?? 'Chưa có provider'} · {job.model ?? 'chưa có model'}</span></div>{isActive(job.status) ? <div className="guest-indeterminate" aria-label="AI đang xử lý"><span /></div> : null}<dl className="ai-review-facts"><div><dt>Tạo lúc</dt><dd>{dateTime.format(new Date(job.createdAt))}</dd></div><div><dt>Thời lượng</dt><dd>{duration(job)}</dd></div><div><dt>Ký tự trích xuất</dt><dd>{job.extractedCharCount?.toLocaleString('vi-VN') ?? 'Chưa có'}</dd></div><div><dt>Áp dụng</dt><dd>{job.appliedAt ? dateTime.format(new Date(job.appliedAt)) : 'Chưa áp dụng'}</dd></div></dl>{job.resultBio ? <article className="ai-bio-draft"><span>Bản nháp do AI tạo</span><p>{job.resultBio}</p></article> : null}{job.errorMessage ? <div className="batch-error-detail"><span>Job thất bại</span><p>{job.errorMessage}</p></div> : null}</div><footer className="ai-review-actions"><button className="admin-secondary-action" type="button" onClick={onClose} disabled={busy}>Đóng</button>{job.status === 'FAILED' ? <button className="admin-primary-action" type="button" onClick={onRetry} disabled={busy}><RotateCw size={16} />{retrying ? 'Đang retry...' : 'Retry job'}</button> : null}{job.status === 'DONE' && job.resultBio && !job.appliedAt ? <button className="admin-primary-action" type="button" onClick={onApply} disabled={busy}><Sparkles size={16} />{applying ? 'Đang áp dụng...' : 'Áp dụng vào concert'}</button> : null}</footer></section></div>;
+  return <div className="admin-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}><section className="admin-dialog ai-review-dialog" role="dialog" aria-modal="true" aria-labelledby="ai-review-title"><header><div><span>Artist Bio review</span><h2 id="ai-review-title">{concert?.title ?? job.originalFileName}</h2></div><button type="button" aria-label="Đóng" onClick={onClose} disabled={busy} autoFocus><X size={20} /></button></header><div className="ai-review-body">{loading ? <div className="batch-detail-loading">Đang tải job mới nhất...</div> : null}<div className="ai-review-meta"><ArtistJobStatus status={job.status} /><span>{job.originalFileName}</span><span>{job.provider ?? 'Chưa có provider'} · {job.model ?? 'chưa có model'}</span></div>{isActive(job.status) ? <div className="guest-indeterminate" aria-label="AI đang xử lý"><span /></div> : null}<dl className="ai-review-facts"><div><dt>Tạo lúc</dt><dd>{dateTime.format(new Date(job.createdAt))}</dd></div><div><dt>Thời lượng</dt><dd>{duration(job)}</dd></div><div><dt>Ký tự trích xuất</dt><dd>{job.extractedCharCount?.toLocaleString('vi-VN') ?? 'Chưa có'}</dd></div><div><dt>Xuất bản</dt><dd>{job.appliedAt ? dateTime.format(new Date(job.appliedAt)) : 'Cần biên tập trong Concert Workspace'}</dd></div></dl>{job.resultBio ? <article className="ai-bio-draft"><span>Bản nháp do AI tạo</span><p>{job.resultBio}</p></article> : null}{job.errorMessage ? <div className="batch-error-detail"><span>Job thất bại</span><p>{job.errorMessage}</p></div> : null}</div><footer className="ai-review-actions"><button className="admin-secondary-action" type="button" onClick={onClose} disabled={busy}>Đóng</button>{job.status === 'FAILED' ? <button className="admin-primary-action" type="button" onClick={onRetry} disabled={busy}><RotateCw size={16} />{retrying ? 'Đang retry...' : 'Retry job'}</button> : null}</footer></section></div>;
 }

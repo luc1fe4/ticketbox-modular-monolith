@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
+import { clearAuthToken, getAuthToken, saveAuthToken } from './tokenCookie';
 
 export type UserRole = 'AUDIENCE' | 'ORGANIZER' | 'STAFF' | 'ADMIN';
 
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let cancelled = false;
 
     async function restoreSession() {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = getAuthToken();
       if (!storedToken) {
         setLoading(false);
         return;
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const decoded = decodeJwt(storedToken);
       if (!decoded || decoded.exp * 1000 <= Date.now()) {
-        localStorage.removeItem('token');
+        clearAuthToken();
         setLoading(false);
         return;
       }
@@ -90,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!cancelled) setUser(currentUser);
       } catch {
         if (!cancelled) {
-          localStorage.removeItem('token');
+          clearAuthToken();
           setToken(null);
           setUser(null);
         }
@@ -108,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<UserSummary> => {
     const data = await api.post<unknown, LoginResponse>('/api/auth/login', { email, password });
-    localStorage.setItem('token', data.accessToken);
+    saveAuthToken(data.accessToken);
     setToken(data.accessToken);
     setUser(data.user);
     return data.user;
@@ -129,13 +130,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {}
     }
     sessionStorage.removeItem('ticketbox.queue-admission');
-    localStorage.removeItem('token');
+    clearAuthToken();
     setToken(null);
     setUser(null);
   };
 
   const refreshUser = async (): Promise<UserSummary | null> => {
-    if (!localStorage.getItem('token')) return null;
+    if (!getAuthToken()) return null;
     const currentUser = await api.get<unknown, UserSummary>('/api/auth/me');
     setUser(currentUser);
     return currentUser;

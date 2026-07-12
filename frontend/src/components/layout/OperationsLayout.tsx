@@ -164,11 +164,11 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
             </button>
             {accountOpen ? (
               <div className="operations-account-menu">
-                <Link to="/profile" onClick={() => setAccountOpen(false)}>
+                <Link className="internal-profile-link" to={workspaceHome} onClick={() => setAccountOpen(false)}>
                   <Settings aria-hidden="true" size={16} />
-                  Hồ sơ cá nhân
+                  Về tổng quan
                 </Link>
-                <button type="button" onClick={logOut}>
+                <button type="button" className="operations-danger-menu-item" onClick={logOut}>
                   <LogOut aria-hidden="true" size={16} />
                   Đăng xuất
                 </button>

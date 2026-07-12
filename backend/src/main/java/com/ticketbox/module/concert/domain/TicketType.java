@@ -34,12 +34,6 @@ public class TicketType extends BaseEntity {
     @Column(name = "max_per_account", nullable = false)
     private int maxPerAccount = 4;
 
-    @Column(name = "sale_start_at", nullable = false)
-    private OffsetDateTime saleStartAt;
-
-    @Column(name = "sale_end_at")
-    private OffsetDateTime saleEndAt;
-
     @Column(name = "zone_color", length = 7)
     private String zoneColor;
 
@@ -68,14 +62,6 @@ public class TicketType extends BaseEntity {
 
     public void setMaxPerAccount(int maxPerAccount) {
         this.maxPerAccount = maxPerAccount;
-    }
-
-    public void setSaleStartAt(OffsetDateTime saleStartAt) {
-        this.saleStartAt = saleStartAt;
-    }
-
-    public void setSaleEndAt(OffsetDateTime saleEndAt) {
-        this.saleEndAt = saleEndAt;
     }
 
     public void setZoneColor(String zoneColor) {

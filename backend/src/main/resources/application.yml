@@ -65,6 +65,12 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
 
 ticketbox:
+  queue:
+    admission-capacity: ${TICKETBOX_QUEUE_ADMISSION_CAPACITY:1}
+    shopping-session-ttl: ${TICKETBOX_QUEUE_SHOPPING_SESSION_TTL:PT10M}
+    waiting-room-open-before: ${TICKETBOX_QUEUE_WAITING_ROOM_OPEN_BEFORE:PT1H}
+    snapshot-check-interval-ms: ${TICKETBOX_QUEUE_SNAPSHOT_CHECK_INTERVAL_MS:1000}
+    websocket-push-interval-ms: ${TICKETBOX_QUEUE_WEBSOCKET_PUSH_INTERVAL_MS:1000}
   orders:
     expiration:
       fixed-delay-ms: 60000
@@ -100,7 +106,7 @@ ticketbox:
       fixed-delay-ms: 300000
   guest-list:
     root-dir: ${GUEST_LIST_ROOT_DIR:./data/guest-list}
-    cron: ${GUEST_LIST_IMPORT_CRON:0 */5 * * * *}
+    cron: ${GUEST_LIST_IMPORT_CRON:0 0 3 * * *}
     max-file-size: ${GUEST_LIST_MAX_FILE_SIZE:10MB}
     stable-age: ${GUEST_LIST_STABLE_AGE:30s}
   ai:
@@ -113,6 +119,10 @@ ticketbox:
     max-file-size: ${ARTIST_BIO_MAX_FILE_SIZE:10MB}
     max-pages: ${ARTIST_BIO_MAX_PAGES:50}
     storage-root: ${ARTIST_BIO_STORAGE_ROOT:./data/artist-bio}
+    recovery:
+      fixed-delay-ms: ${ARTIST_BIO_RECOVERY_FIXED_DELAY_MS:30000}
+      pending-after: ${ARTIST_BIO_RECOVERY_PENDING_AFTER:PT30S}
+      processing-timeout: ${ARTIST_BIO_RECOVERY_PROCESSING_TIMEOUT:PT2M}
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:}
     api-key: ${CLOUDINARY_API_KEY:}

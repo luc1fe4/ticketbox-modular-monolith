@@ -6,11 +6,13 @@ import com.ticketbox.module.auth.UserContactPort;
 import com.ticketbox.module.auth.UserContactView;
 import com.ticketbox.module.notification.application.NotificationService;
 import com.ticketbox.module.notification.domain.Notification;
+import com.ticketbox.module.ticket.ETicketDocumentPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +38,7 @@ public class EmailNotificationConsumer {
     private final NotificationService notificationService;
     private final UserContactPort userContactPort;
     private final JavaMailSender mailSender;
+    private final ETicketDocumentPort eTicketDocumentPort;
 
     @RabbitListener(queues = RabbitMqNames.NOTIFICATION_EMAIL_QUEUE)
     public void consume(EmailNotificationMessage message) {
@@ -77,12 +80,19 @@ public class EmailNotificationConsumer {
 
         // --- Send email ---
         try {
-            SimpleMailMessage mail = new SimpleMailMessage();
+            var mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper mail = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             mail.setFrom(FROM_ADDRESS);
             mail.setTo(contact.email());
             mail.setSubject(notification.getSubject());
-            mail.setText(notification.getBody());
-            mailSender.send(mail);
+            mail.setText(notification.getBody(), false);
+            if ("PAYMENT_SUCCEEDED".equals(notification.getEventType()) && notification.getReferenceId() != null) {
+                var document = eTicketDocumentPort.createForOrder(notification.getReferenceId())
+                        .orElseThrow(() -> new IllegalStateException(
+                                "E-ticket is not ready for order " + notification.getReferenceId()));
+                mail.addAttachment(document.filename(), new ByteArrayResource(document.content()), document.contentType());
+            }
+            mailSender.send(mimeMessage);
 
             notificationService.markEmailSent(notificationId);
             log.info("EmailNotificationConsumer: email sent for notification {}", notificationId);
@@ -92,7 +102,10 @@ public class EmailNotificationConsumer {
             log.error("EmailNotificationConsumer: failed to send email for notification {} – {}", notificationId, error);
             notificationService.recordEmailAttemptFailed(notificationId, error);
             // Re-throw so Spring AMQP retry kicks in; after max-attempts the message goes to DLQ
-            throw ex;
+            if (ex instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new IllegalStateException("Email delivery failed", ex);
         }
     }
 }
