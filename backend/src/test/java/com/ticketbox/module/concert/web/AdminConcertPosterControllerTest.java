@@ -108,6 +108,6 @@ class AdminConcertPosterControllerTest {
         OffsetDateTime now = OffsetDateTime.now();
         return new ConcertDetailResponse(
                 concertId, "Concert", null, null, "Venue", "Address",
-                now.plusDays(1), null, "DRAFT", null, posterUrl, creatorId, now, now);
+                now.plusDays(1), null, null, null, "DRAFT", null, posterUrl, creatorId, now, now);
     }
 }

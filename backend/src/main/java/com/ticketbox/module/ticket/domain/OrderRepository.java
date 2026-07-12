@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +43,18 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     List<Order> findByConcertIdOrderByCreatedAtDesc(UUID concertId);
 
+    List<Order> findByConcertIdInOrderByCreatedAtDesc(Collection<UUID> concertIds);
+
     @Query("SELECT o FROM Order o WHERE o.status = :status ORDER BY o.createdAt DESC")
     List<Order> findByStatusOrderByCreatedAtDesc(@Param("status") Order.Status status);
+
+    @Query("""
+            SELECT o FROM Order o
+            WHERE o.concertId IN :concertIds
+              AND o.status = :status
+            ORDER BY o.createdAt DESC
+            """)
+    List<Order> findByConcertIdInAndStatusOrderByCreatedAtDesc(
+            @Param("concertIds") Collection<UUID> concertIds,
+            @Param("status") Order.Status status);
 }

@@ -59,7 +59,7 @@ class ConcertPosterServiceTest {
         OffsetDateTime now = OffsetDateTime.now();
         ConcertDetailResponse response = new ConcertDetailResponse(
                 concertId, "Concert", null, null, "Venue", "Address",
-                now.plusDays(1), null, "DRAFT", null,
+                now.plusDays(1), null, null, null, "DRAFT", null,
                 "https://cloudinary/poster.jpg", ownerId, now, now);
         when(concertRepository.findById(concertId)).thenReturn(Optional.of(concert));
         when(posterStorage.upload(concertId, file)).thenReturn(

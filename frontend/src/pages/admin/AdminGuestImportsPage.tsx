@@ -31,6 +31,7 @@ import {
 import type { ConcertDetail, Page } from '../../api/concerts';
 import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
 
 const statuses: Array<{ value: '' | BatchLogStatus; label: string }> = [
@@ -115,7 +116,7 @@ export function AdminGuestImportsPage({
       try {
         const data = await getAdminConcerts(0, 100, undefined, controller.signal, apiScope);
         setConcerts(data.content);
-        setUploadConcertId((current) => current || data.content[0]?.id || '');
+        setUploadConcertId((current) => current || concertFilter || data.content[0]?.id || '');
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           toast.error(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách concert.');
@@ -126,7 +127,7 @@ export function AdminGuestImportsPage({
     }
     void loadConcerts();
     return () => controller.abort();
-  }, [apiScope, toast]);
+  }, [apiScope, concertFilter, toast]);
 
   const loadLogs = useCallback(async (signal?: AbortSignal, silent = false) => {
     if (!silent) setLoadingLogs(true);
@@ -313,13 +314,14 @@ export function AdminGuestImportsPage({
             <div><span>{uploadMode === 'scheduled' ? 'Import theo lịch' : 'Import thủ công'}</span><h2>Tải danh sách mới</h2></div>
             <UploadCloud aria-hidden="true" size={22} />
           </div>
-          <label className="admin-field">
-            <span>Concert nhận khách mời</span>
-            <select value={uploadConcertId} onChange={(event) => setUploadConcertId(event.target.value)} disabled={loadingConcerts || uploading} required>
-              {!concerts.length ? <option value="">Chưa có concert</option> : null}
-              {concerts.map((concert) => <option key={concert.id} value={concert.id}>{concert.title}</option>)}
-            </select>
-          </label>
+          <ConcertPicker
+            concerts={concerts}
+            value={uploadConcertId}
+            onChange={setUploadConcertId}
+            label="Concert nhận khách mời"
+            placeholder={loadingConcerts ? 'Đang tải concert...' : 'Chọn concert nhận danh sách'}
+            disabled={loadingConcerts || uploading || !concerts.length}
+          />
           <label className={`guest-file-picker ${file ? 'has-file' : ''}`}>
             <FileText aria-hidden="true" size={24} />
             <span>{file ? file.name : 'Chọn file CSV'}</span>

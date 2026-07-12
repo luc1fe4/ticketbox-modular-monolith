@@ -16,9 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -37,8 +35,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class GuestListImportTasklet implements Tasklet {
 
-    private static final Set<String> REQUIRED_HEADERS =
-            Set.of("phone", "full_name", "category", "sponsor_name", "notes");
     private static final int WRITE_CHUNK_SIZE = 500;
 
     private final JdbcTemplate jdbcTemplate;
@@ -76,7 +72,17 @@ public class GuestListImportTasklet implements Tasklet {
         BatchLog batchLog = batchLogRepository.findById(batchLogId)
                 .orElseThrow(() -> new GuestListImportException("Batch log does not exist"));
 
-        int totalRows = stageFile(batchLogId, concertId, filePath);
+        int totalRows;
+        try {
+            totalRows = stageFile(batchLogId, concertId, filePath);
+        } catch (GuestListImportException exception) {
+            Path errorReport = writeStructuralErrorReport(batchLogId, concertId, exception.getMessage());
+            batchLog.setStatus(BatchLog.Status.FAILED);
+            batchLog.setErrorDetail(exception.getMessage());
+            batchLog.setErrorReportPath(errorReport.toString());
+            batchLogRepository.save(batchLog);
+            throw exception;
+        }
         if (totalRows == 0) {
             throw new GuestListImportException("CSV contains no data rows");
         }
@@ -149,23 +155,20 @@ public class GuestListImportTasklet implements Tasklet {
     }
 
     private void validateHeaders(CSVParser parser) {
-        Set<String> headers = new HashSet<>();
-        parser.getHeaderMap().keySet().forEach(
-                header -> headers.add(stripBom(header).toLowerCase(Locale.ROOT)));
-        Set<String> missing = new HashSet<>(REQUIRED_HEADERS);
-        missing.removeAll(headers);
+        Set<String> missing = GuestListCsvSchema.missingRequiredHeaders(parser.getHeaderMap().keySet());
         if (!missing.isEmpty()) {
             throw new GuestListImportException("Missing required CSV header(s): " + missing);
         }
     }
 
     private StagedRow validateRow(CSVRecord record, int rowNumber, UUID concertId) {
-        String rawPhone = value(record, "phone");
+        String rawPhone = GuestListCsvSchema.value(record, "phone");
         String phone = phoneNormalizer.normalize(rawPhone);
-        String fullName = nullableTrim(value(record, "full_name"));
-        String category = nullableTrim(value(record, "category"));
-        String sponsorName = nullableTrim(value(record, "sponsor_name"));
-        String notes = nullableTrim(value(record, "notes"));
+        String fullName = nullableTrim(GuestListCsvSchema.value(record, "full_name"));
+        String category = nullableTrim(GuestListCsvSchema.value(record, "category"));
+        String sponsorName = nullableTrim(GuestListCsvSchema.value(record, "sponsor_name"));
+        String notes = nullableTrim(GuestListCsvSchema.value(record, "notes"));
+        String status = nullableTrim(GuestListCsvSchema.value(record, "status"));
 
         List<String> errors = new ArrayList<>();
         if (phone == null) {
@@ -182,6 +185,11 @@ public class GuestListImportTasklet implements Tasklet {
         if (sponsorName != null && sponsorName.length() > 255) {
             errors.add("sponsor_name exceeds 255 characters");
         }
+        Boolean active = activeStatus(status);
+        if (active == null) {
+            errors.add("status must be ACTIVE or CANCELLED");
+            active = true;
+        }
 
         return new StagedRow(
                 rowNumber,
@@ -191,6 +199,7 @@ public class GuestListImportTasklet implements Tasklet {
                 truncate(category, 100),
                 truncate(sponsorName, 255),
                 notes,
+                active,
                 errors.isEmpty() ? null : String.join("; ", errors));
     }
 
@@ -199,8 +208,8 @@ public class GuestListImportTasklet implements Tasklet {
                 """
                 INSERT INTO guest_list_staging (
                     batch_log_id, row_number, concert_id, normalized_phone,
-                    full_name, category, sponsor_name, notes, validation_error
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    full_name, category, sponsor_name, notes, is_active, validation_error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
                 rows.size(),
@@ -213,7 +222,8 @@ public class GuestListImportTasklet implements Tasklet {
                     statement.setString(6, row.category());
                     statement.setString(7, row.sponsorName());
                     statement.setString(8, row.notes());
-                    statement.setString(9, row.validationError());
+                    statement.setBoolean(9, row.active());
+                    statement.setString(10, row.validationError());
                 });
     }
 
@@ -257,7 +267,7 @@ public class GuestListImportTasklet implements Tasklet {
                     notes, is_active, imported_at, batch_file
                 )
                 SELECT concert_id, normalized_phone, full_name, category, sponsor_name,
-                       notes, TRUE, ?, ?
+                    notes, is_active, ?, ?
                 FROM guest_list_staging
                 WHERE batch_log_id = ? AND validation_error IS NULL
                 ON CONFLICT (concert_id, phone) DO UPDATE SET
@@ -265,7 +275,7 @@ public class GuestListImportTasklet implements Tasklet {
                     category = EXCLUDED.category,
                     sponsor_name = EXCLUDED.sponsor_name,
                     notes = EXCLUDED.notes,
-                    is_active = TRUE,
+                    is_active = EXCLUDED.is_active,
                     imported_at = EXCLUDED.imported_at,
                     batch_file = EXCLUDED.batch_file,
                     updated_at = NOW()
@@ -302,6 +312,18 @@ public class GuestListImportTasklet implements Tasklet {
         return reportPath;
     }
 
+    private Path writeStructuralErrorReport(UUID batchLogId, UUID concertId, String error)
+            throws IOException {
+        Path reportPath = fileStorage.errorReportPath(concertId, batchLogId, true);
+        try (BufferedWriter writer = Files.newBufferedWriter(reportPath, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("row_number", "phone", "error")
+                        .build())) {
+            printer.printRecord(0, "", error);
+        }
+        return reportPath;
+    }
+
     private Reader bomAwareReader(Path path) throws IOException {
         InputStream input = Files.newInputStream(path);
         PushbackInputStream pushback = new PushbackInputStream(input, 3);
@@ -313,10 +335,6 @@ public class GuestListImportTasklet implements Tasklet {
             pushback.unread(bom);
         }
         return new InputStreamReader(pushback, StandardCharsets.UTF_8);
-    }
-
-    private String value(CSVRecord record, String header) {
-        return record.get(header);
     }
 
     private String nullableTrim(String value) {
@@ -331,8 +349,17 @@ public class GuestListImportTasklet implements Tasklet {
         return value == null || value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
-    private String stripBom(String value) {
-        return value != null && value.startsWith("\uFEFF") ? value.substring(1) : value;
+    private Boolean activeStatus(String status) {
+        if (status == null || status.equalsIgnoreCase("ACTIVE")) {
+            return true;
+        }
+        if (status.equalsIgnoreCase("CANCELLED")
+                || status.equalsIgnoreCase("CANCELED")
+                || status.equalsIgnoreCase("INACTIVE")
+                || status.equalsIgnoreCase("DISABLED")) {
+            return false;
+        }
+        return null;
     }
 
     private record StagedRow(
@@ -343,5 +370,6 @@ public class GuestListImportTasklet implements Tasklet {
             String category,
             String sponsorName,
             String notes,
+            boolean active,
             String validationError) {}
 }

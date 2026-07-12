@@ -21,5 +21,10 @@ public record CreateConcertRequest(
 
         OffsetDateTime doorsOpenAt,
 
+        @NotNull(message = "Sale start date must not be null")
+        OffsetDateTime saleStartAt,
+
+        OffsetDateTime saleEndAt,
+
         String seatMapSvg
 ) {}

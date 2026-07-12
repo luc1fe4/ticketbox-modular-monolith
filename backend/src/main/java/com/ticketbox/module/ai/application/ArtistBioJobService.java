@@ -10,6 +10,8 @@ import com.ticketbox.module.concert.ConcertReportingPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
@@ -17,7 +19,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -34,6 +38,12 @@ public class ArtistBioJobService {
     private final ConcertArtistBioPort concertPort;
     private final ConcertReportingPort concertReportingPort;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Value("${ticketbox.ai.recovery.pending-after:PT30S}")
+    private Duration pendingRecoveryAfter = Duration.ofSeconds(30);
+
+    @Value("${ticketbox.ai.recovery.processing-timeout:PT2M}")
+    private Duration processingTimeout = Duration.ofMinutes(2);
 
     public ArtistBioJobService(
             ArtistPdfJobRepository jobRepository,
@@ -169,6 +179,45 @@ public class ArtistBioJobService {
                 overwrite);
         job.markApplied(requesterId);
         return ArtistBioJobResponse.from(jobRepository.save(job));
+    }
+
+    /**
+     * Publishes organizer-reviewed copy.  AI output is intentionally only a
+     * draft; the public concert page never receives it until this action.
+     */
+    @Transactional
+    public void publishReviewedBio(
+            UUID concertId,
+            String artistBio,
+            UUID requesterId,
+            boolean admin) {
+        String cleaned = new ArtistBioTextCleaner().sanitizeGeneratedBio(artistBio);
+        if (cleaned.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Artist bio must not be blank");
+        }
+        concertPort.applyArtistBio(concertId, cleaned, requesterId, admin, true);
+    }
+
+    /**
+     * Restores jobs that were queued before a process restart and makes a failed
+     * state visible for jobs whose worker died while processing.
+     */
+    @Scheduled(fixedDelayString = "${ticketbox.ai.recovery.fixed-delay-ms:30000}")
+    @Transactional
+    public void recoverStalledJobs() {
+        OffsetDateTime now = OffsetDateTime.now();
+        jobRepository.findByStatusAndCreatedAtBefore(
+                        ArtistPdfJob.Status.PENDING,
+                        now.minus(pendingRecoveryAfter))
+                .forEach(job -> eventPublisher.publishEvent(new ArtistBioJobSubmittedEvent(job.getId())));
+
+        jobRepository.findByStatusAndStartedAtBefore(
+                        ArtistPdfJob.Status.PROCESSING,
+                        now.minus(processingTimeout))
+                .forEach(job -> {
+                    job.fail("Artist bio processing timed out. Retry this job to run it again.");
+                    jobRepository.save(job);
+                });
     }
 
     private ArtistPdfJob requireJob(UUID jobId) {

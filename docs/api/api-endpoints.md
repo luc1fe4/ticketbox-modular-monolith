@@ -110,8 +110,8 @@ Example login response data:
 | PATCH | `/users/me/password` | AUTHENTICATED | Change current user password. |
 | GET | `/admin/users` | ADMIN | List users with filters. |
 | GET | `/admin/users/{userId}` | ADMIN | Get user detail. |
-| PATCH | `/admin/users/{userId}/status` | ADMIN | Activate or deactivate user. |
-| PATCH | `/admin/users/{userId}/role` | ADMIN | Change user role. |
+| PUT | `/admin/users/{userId}/status` | ADMIN | Activate or deactivate user. |
+| PUT | `/admin/users/{userId}/role` | ADMIN | Change user role. |
 
 ## Public Concerts
 
@@ -247,12 +247,18 @@ docs/api/order-payment-concurrency-test-guide.md
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | POST | `/orders` | AUDIENCE | Create order, hold ticket quantities, and start payment. Requires idempotency key. |
-| GET | `/orders` | AUDIENCE | List current user's orders. |
+| GET | `/orders/my` | AUDIENCE | List current user's orders. |
 | GET | `/orders/{orderId}` | AUDIENCE | Get current user's order detail. |
 | DELETE | `/orders/{orderId}` | AUDIENCE | Cancel an awaiting-payment order and release held tickets. |
 | POST | `/orders/{orderId}/retry-payment` | AUDIENCE | Create a new payment attempt for an awaiting-payment or failed order if allowed. |
-| GET | `/admin/orders` | ORGANIZER/ADMIN | List orders for admin reporting/support. |
-| GET | `/admin/orders/{orderId}` | ORGANIZER/ADMIN | Get order detail for admin. |
+| POST | `/reservations/concerts/{concertId}/ticket-types/{ticketTypeId}/reserve` | AUDIENCE | Reserve a ticket quantity during seat/category selection after queue admission. |
+| POST | `/reservations/concerts/{concertId}/ticket-types/{ticketTypeId}/release` | AUDIENCE | Release part of the current selection hold. |
+| GET | `/reservations/concerts/{concertId}/holds` | AUDIENCE | List current user's active selection holds for a concert. |
+| DELETE | `/reservations/concerts/{concertId}/holds` | AUDIENCE | Release all current selection holds for a concert, for example when leaving the selection screen. |
+| GET | `/admin/orders` | ADMIN | List all orders for system reporting/support. |
+| GET | `/admin/orders/{orderId}` | ADMIN | Get any order detail for system support. |
+| GET | `/organizer/manage/orders` | ORGANIZER | List orders only for concerts owned by the authenticated organizer. |
+| GET | `/organizer/manage/orders/{orderId}` | ORGANIZER | Get owned-concert order detail. |
 
 Important headers for `POST /orders`:
 
@@ -345,7 +351,7 @@ Local VNPAY sandbox config:
 ```text
 VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 VNPAY_RETURN_URL=http://localhost:5173/payment/result
-VNPAY_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+VNPAY_IPN_URL=https://<your-static-domain>.ngrok-free.dev/api/payments/webhooks/vnpay
 ```
 
 Webhook behavior:
@@ -367,8 +373,10 @@ If duplicate webhook, return OK without double-processing.
 | GET | `/tickets` | AUDIENCE | List current user's e-tickets. |
 | GET | `/tickets/{ticketId}` | AUDIENCE | Get current user's ticket detail. |
 | GET | `/tickets/{ticketId}/qr` | AUDIENCE | Get QR payload or QR image for e-ticket. |
-| GET | `/admin/concerts/{concertId}/tickets` | ORGANIZER/ADMIN | List tickets for a concert. |
-| PATCH | `/admin/tickets/{ticketId}/status` | ORGANIZER/ADMIN | Cancel or update ticket status when needed. |
+| GET | `/admin/concerts/{concertId}/tickets` | ADMIN | List tickets for any concert. |
+| PATCH | `/admin/tickets/{ticketId}/status` | ADMIN | Cancel or update ticket status for any concert when needed. |
+| GET | `/organizer/manage/concerts/{concertId}/tickets` | ORGANIZER | List tickets only for an owned concert. |
+| PATCH | `/organizer/manage/tickets/{ticketId}/status` | ORGANIZER | Cancel or update ticket status only for an owned concert. |
 
 ## Check-In
 
@@ -378,7 +386,7 @@ If duplicate webhook, return OK without double-processing.
 | POST | `/staff/checkins/scan` | STAFF | Online scan and check-in one QR code. |
 | POST | `/staff/checkins/sync` | STAFF | Batch sync offline check-in logs from mobile scanner. |
 | GET | `/staff/concerts/{concertId}/checkins` | STAFF/ORGANIZER/ADMIN | List check-in logs for a concert. |
-| GET | `/admin/concerts/{concertId}/checkin-summary` | ORGANIZER/ADMIN | Get check-in count and conflict summary. |
+| GET | `/admin/concerts/{concertId}/checkin-summary` | ADMIN | Get ticket/check-in count summary for operations. |
 
 Check-in history pagination:
 
@@ -429,7 +437,7 @@ CSV import behavior:
 ```text
 Scheduled uploads create a PENDING batch log and are stored under incoming/{concertId}.
 The scheduler claims stable CSV files into processing before changing PENDING to RUNNING.
-Validate the required phone, full_name, category, sponsor_name, and notes headers.
+Validate the required phone, full_name, category, sponsor_name, and notes headers. Partner exports may use `guest_type` instead of `category` (and `phone_number`/`mobile`, `name`, `sponsor`, `note` for the equivalent fields). An optional `status` of `CANCELLED` imports the guest as inactive; omitted status defaults to active.
 Use upsert on (concert_id, phone), and reject duplicate phones within one file.
 Write SUCCESS, PARTIAL, FAILED, or SKIPPED results and per-row error reports.
 ```
@@ -456,10 +464,11 @@ An inactive or unknown guest returns HTTP 200 with `"found": false`.
 | Method | Endpoint | Role | Description |
 | --- | --- | --- | --- |
 | GET | `/notifications` | AUTHENTICATED | List current user's notifications. |
+| GET | `/notifications/unread-count` | AUTHENTICATED | Count unread in-app notifications for the current user. |
 | PATCH | `/notifications/{notificationId}/read` | AUTHENTICATED | Mark notification as read if read state is implemented. |
-| GET | `/admin/notifications` | ORGANIZER/ADMIN | List notification records for operations/debug. |
-| POST | `/admin/notifications/{notificationId}/retry` | ORGANIZER/ADMIN | Retry failed notification. |
-| POST | `/admin/concerts/{concertId}/reminders/send` | ORGANIZER/ADMIN | Trigger concert reminder notifications. |
+| GET | `/admin/notifications` | ADMIN | List notification records for operations/debug. |
+| POST | `/admin/notifications/{notificationId}/retry` | ADMIN | Retry a failed email notification. |
+| POST | `/admin/concerts/{concertId}/reminders/send` | ADMIN | Trigger concert reminder notifications manually. |
 
 Async design:
 

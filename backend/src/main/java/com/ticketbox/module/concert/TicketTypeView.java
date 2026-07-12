@@ -12,7 +12,5 @@ public record TicketTypeView(
     int totalQuantity,
     int availableQty,
     int maxPerAccount,
-    OffsetDateTime saleStartAt,
-    OffsetDateTime saleEndAt,
     boolean isActive
 ) {}

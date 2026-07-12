@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, Filter, RefreshCw, Receipt, Ticket } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import {
   getAdminOrders,
   getAdminConcertTickets,
   updateAdminTicketStatus,
   getAdminConcerts,
+  type ManagementApiScope,
 } from '../../api/admin';
 import type { Order, OrderStatus } from '../../api/orders';
 import type { Ticket as TicketType } from '../../api/tickets';
@@ -149,7 +151,7 @@ function InfoRow({
 
 // ---- Ticket tab ----
 
-function TicketTab({ concerts }: { concerts: ConcertDetail[] }) {
+function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope: ManagementApiScope }) {
   const [concertId, setConcertId] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [tickets, setTickets] = useState<TicketType[]>([]);
@@ -163,14 +165,14 @@ function TicketTab({ concerts }: { concerts: ConcertDetail[] }) {
     setLoading(true);
     setError('');
     try {
-      const data = await getAdminConcertTickets(concertId, statusFilter || undefined);
+      const data = await getAdminConcertTickets(concertId, statusFilter || undefined, apiScope);
       setTickets(data);
     } catch {
       setError('Không thể tải danh sách vé.');
     } finally {
       setLoading(false);
     }
-  }, [concertId, statusFilter]);
+  }, [apiScope, concertId, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -178,7 +180,8 @@ function TicketTab({ concerts }: { concerts: ConcertDetail[] }) {
     setSavingId(ticketId);
     setNotice(null);
     try {
-      const updated = await updateAdminTicketStatus(ticketId, newStatus);
+      const result = await updateAdminTicketStatus(ticketId, newStatus, apiScope);
+      const updated = result.data;
       setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       setNotice({ type: 'success', msg: 'Cập nhật trạng thái vé thành công.' });
     } catch {
@@ -296,7 +299,8 @@ function TicketTab({ concerts }: { concerts: ConcertDetail[] }) {
 
 type TabId = 'orders' | 'tickets';
 
-export function AdminOrdersPage() {
+export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>('orders');
 
   // Orders tab state
@@ -304,7 +308,7 @@ export function AdminOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
-  const [concertFilter, setConcertFilter] = useState('');
+  const [concertFilter, setConcertFilter] = useState(() => searchParams.get('concertId') ?? '');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Shared concerts list (for filters + ticket tab)
@@ -312,8 +316,8 @@ export function AdminOrdersPage() {
 
   // Load concerts once
   useEffect(() => {
-    getAdminConcerts(0, 200).then((p) => setConcerts(p.content)).catch(() => {});
-  }, []);
+    getAdminConcerts(0, 200, undefined, undefined, apiScope).then((p) => setConcerts(p.content)).catch(() => {});
+  }, [apiScope]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -322,14 +326,14 @@ export function AdminOrdersPage() {
       const data = await getAdminOrders({
         concertId: concertFilter || undefined,
         status: (statusFilter as OrderStatus) || undefined,
-      });
+      }, apiScope);
       setOrders(data);
     } catch {
       setOrdersError('Không thể tải danh sách đơn hàng.');
     } finally {
       setLoadingOrders(false);
     }
-  }, [concertFilter, statusFilter]);
+  }, [apiScope, concertFilter, statusFilter]);
 
   useEffect(() => {
     if (activeTab === 'orders') loadOrders();
@@ -494,7 +498,7 @@ export function AdminOrdersPage() {
       )}
 
       {/* Tickets tab */}
-      {activeTab === 'tickets' && <TicketTab concerts={concerts} />}
+      {activeTab === 'tickets' && <TicketTab concerts={concerts} apiScope={apiScope} />}
 
       {/* Order detail modal */}
       {selectedOrder && (

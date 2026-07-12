@@ -27,7 +27,9 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         c.getId(),
                         c.getTitle(),
                         c.getStatus().name(),
-                        c.getEventDate()
+                        c.getEventDate(),
+                        c.getSaleStartAt(),
+                        c.getSaleEndAt()
                 ));
     }
 
@@ -38,9 +40,23 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         c.getId(),
                         c.getTitle(),
                         c.getStatus().name(),
-                        c.getEventDate()
+                        c.getEventDate(),
+                        c.getSaleStartAt(),
+                        c.getSaleEndAt()
                 ))
                 .toList();
+    }
+
+    @Override
+    public List<UUID> findConcertIdsOwnedBy(UUID organizerId) {
+        return concertRepository.findByCreatedBy(organizerId).stream()
+                .map(concert -> concert.getId())
+                .toList();
+    }
+
+    @Override
+    public boolean isConcertOwnedBy(UUID concertId, UUID organizerId) {
+        return concertRepository.findByIdAndCreatedBy(concertId, organizerId).isPresent();
     }
 
     @Override
@@ -54,8 +70,6 @@ public class ConcertOrderAdapter implements ConcertOrderPort {
                         t.getTotalQuantity(),
                         t.getAvailableQty(),
                         t.getMaxPerAccount(),
-                        t.getSaleStartAt(),
-                        t.getSaleEndAt(),
                         t.isActive()
                 ))
                 .toList();

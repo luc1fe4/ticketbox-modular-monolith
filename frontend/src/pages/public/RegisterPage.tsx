@@ -1,14 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth, type UserRole } from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/AuthContext';
+import { getRoleHome } from '../../features/auth/roleRoutes';
 import { AuthLayout } from './LoginPage';
-
-const roleHome: Record<UserRole, string> = {
-  AUDIENCE: '/',
-  ORGANIZER: '/admin',
-  STAFF: '/profile',
-  ADMIN: '/admin',
-};
 
 export function RegisterPage() {
   const { register, user, loading } = useAuth();
@@ -18,7 +12,7 @@ export function RegisterPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(roleHome[user.role], { replace: true });
+      navigate(getRoleHome(user.role), { replace: true });
     }
   }, [loading, navigate, user]);
 

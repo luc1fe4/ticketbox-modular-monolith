@@ -59,7 +59,7 @@ public class TicketTypeService {
                 Concert.Status.ON_SALE,
                 Concert.Status.SOLD_OUT
         );
-        concertRepository.findByIdAndStatusIn(concertId, publicStatuses)
+        concertRepository.findByIdAndStatusInAndPublicVisibleTrue(concertId, publicStatuses)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found"));
 
         return ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId).stream()
@@ -102,14 +102,13 @@ public class TicketTypeService {
     public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request, UUID requesterId, boolean isAdmin) {
         Concert concert = getConcertOrThrow(concertId);
         verifyConcertOwnership(concert, requesterId, isAdmin);
-        validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
-
         TicketType ticketType = ticketTypeMapper.toEntity(request);
         ticketType.setConcertId(concertId);
         ticketType.setAvailableQty(request.totalQuantity());
         ticketType.setActive(true);
 
         TicketType saved = ticketTypeRepository.save(ticketType);
+        evictTicketTypeCaches(concertId);
         return ticketTypeMapper.toResponse(saved);
     }
 
@@ -119,8 +118,6 @@ public class TicketTypeService {
         Concert concert = getConcertOrThrow(ticketType.getConcertId());
         verifyConcertOwnership(concert, requesterId, isAdmin);
         
-        validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
-
         if (ticketType.getAvailableQty() < ticketType.getTotalQuantity()) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot update ticket type after sales have begun");
         }
@@ -130,6 +127,7 @@ public class TicketTypeService {
         ticketType.setAvailableQty(ticketType.getAvailableQty() + difference);
 
         TicketType saved = ticketTypeRepository.save(ticketType);
+        evictTicketTypeCaches(ticketType.getConcertId());
         return ticketTypeMapper.toResponse(saved);
     }
 
@@ -140,6 +138,7 @@ public class TicketTypeService {
         verifyConcertOwnership(concert, requesterId, isAdmin);
         ticketType.setActive(isActive);
         TicketType saved = ticketTypeRepository.save(ticketType);
+        evictTicketTypeCaches(ticketType.getConcertId());
         return ticketTypeMapper.toResponse(saved);
     }
 
@@ -153,7 +152,9 @@ public class TicketTypeService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot delete ticket type that has active sales");
         }
 
+        UUID concertId = ticketType.getConcertId();
         ticketTypeRepository.delete(ticketType);
+        evictTicketTypeCaches(concertId);
     }
 
     private Concert getConcertOrThrow(UUID concertId) {
@@ -172,23 +173,22 @@ public class TicketTypeService {
         }
     }
 
-    private void validateDates(OffsetDateTime start, OffsetDateTime end, OffsetDateTime concertDate) {
-        if (start.isAfter(concertDate)) {
-            throw new AppException(ErrorCode.INVALID_DATE, "Sale start date must be before or equal to concert date");
-        }
-        if (end != null) {
-            if (end.isBefore(start)) {
-                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be after start date");
-            }
-            if (end.isAfter(concertDate)) {
-                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be before or equal to concert date");
-            }
-        }
-    }
-
     private void verifyConcertOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
         if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify ticket types for this concert");
+        }
+    }
+
+    private void evictTicketTypeCaches(UUID concertId) {
+        try {
+            redisTemplate.delete(RedisKeyConstants.CACHE_CONCERT_DETAIL + concertId);
+            redisTemplate.delete(RedisKeyConstants.CACHE_AVAILABILITY + concertId);
+            var listKeys = redisTemplate.keys(RedisKeyConstants.CACHE_CONCERT_LIST + ":page:*");
+            if (listKeys != null && !listKeys.isEmpty()) {
+                redisTemplate.delete(listKeys);
+            }
+        } catch (Exception ignored) {
+            // Ticket changes must remain durable even if Redis is temporarily unavailable.
         }
     }
 }

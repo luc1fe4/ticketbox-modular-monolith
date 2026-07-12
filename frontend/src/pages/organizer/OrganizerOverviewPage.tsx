@@ -13,7 +13,7 @@ const workspaces = [
   {
     to: '/organizer/ticket-types',
     title: 'Hạng vé',
-    copy: 'Quản lý giá, số lượng, thời gian mở bán và màu vùng chỗ.',
+    copy: 'Quản lý giá, số lượng và màu vùng chỗ.',
     icon: Ticket,
   },
   {

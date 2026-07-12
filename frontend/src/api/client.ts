@@ -1,4 +1,5 @@
 import axios, { AxiosError, type Method } from 'axios';
+import { clearAuthToken, getAuthToken } from '../features/auth/tokenCookie';
 
 declare module 'axios' {
   export interface AxiosRequestConfig {
@@ -45,7 +46,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -69,7 +70,7 @@ api.interceptors.response.use(
 
     const status = error.response?.status ?? 500;
     if (status === 401) {
-      localStorage.removeItem('token');
+      clearAuthToken();
       if (!window.location.pathname.includes('/login')) {
         window.location.assign('/login');
       }

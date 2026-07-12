@@ -15,6 +15,8 @@ public interface ConcertRepository extends JpaRepository<Concert, UUID> {
 
     Page<Concert> findByStatusIn(List<Concert.Status> statuses, Pageable pageable);
 
+    Page<Concert> findByStatusInAndPublicVisibleTrue(List<Concert.Status> statuses, Pageable pageable);
+
     Page<Concert> findByStatus(Concert.Status status, Pageable pageable);
 
     Optional<Concert> findByIdAndCreatedBy(UUID id, UUID createdBy);
@@ -29,6 +31,8 @@ public interface ConcertRepository extends JpaRepository<Concert, UUID> {
     List<Concert> findByCreatedBy(UUID createdBy);
 
     Optional<Concert> findByIdAndStatusIn(UUID id, List<Concert.Status> statuses);
+
+    Optional<Concert> findByIdAndStatusInAndPublicVisibleTrue(UUID id, List<Concert.Status> statuses);
 
     List<Concert> findByEventDateBetweenAndStatusIn(
             OffsetDateTime from,

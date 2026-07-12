@@ -67,6 +67,21 @@ public class PaymentService {
         );
     }
 
+    public PaymentStatusResponse getPaymentStatus(UUID orderId, UUID userId) {
+        OrderView order = orderPort.findOrderById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+        if (!order.userId().equals(userId)) {
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found");
+        }
+        return new PaymentStatusResponse(
+                order.id(),
+                order.status(),
+                order.paymentProvider(),
+                order.paymentRef(),
+                order.totalAmount()
+        );
+    }
+
     @Transactional
     public WebhookHandleResult handleWebhook(PaymentLog.Provider provider, Map<String, String> payload) {
         PaymentGateway gateway = gatewayResolver.resolve(provider);
@@ -207,5 +222,14 @@ public class PaymentService {
     }
 
     public record WebhookHandleResult(String responseCode, String message) {
+    }
+
+    public record PaymentStatusResponse(
+            UUID orderId,
+            String orderStatus,
+            String provider,
+            String providerRef,
+            java.math.BigDecimal amount
+    ) {
     }
 }

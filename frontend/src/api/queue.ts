@@ -1,6 +1,6 @@
 import { api } from './client';
 
-export type QueueStatus = 'WAITING' | 'ADMITTED' | 'EXPIRED' | 'LEFT';
+export type QueueStatus = 'WAITING_ROOM' | 'WAITING' | 'ADMITTED' | 'EXPIRED' | 'LEFT';
 
 export type QueueStatusResponse = {
   status: QueueStatus;
@@ -9,6 +9,9 @@ export type QueueStatusResponse = {
   estimatedWaitSeconds: number | null;
   queueAccessToken: string | null;
   sessionExpiresAt: string | null;
+  waitingRoomCount: number;
+  queueSize: number;
+  activeShoppers: number;
 };
 
 export type QueueAdmission = {

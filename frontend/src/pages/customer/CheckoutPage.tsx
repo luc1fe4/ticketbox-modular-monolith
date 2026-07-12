@@ -10,7 +10,7 @@ import {
   type Order,
   type PaymentProvider,
 } from '../../api/orders';
-import { clearStoredQueueAdmission, getStoredQueueAdmission } from '../../api/queue';
+import { clearStoredQueueAdmission, getStoredQueueAdmission, leaveQueue } from '../../api/queue';
 import { RemoteImage } from '../../components/RemoteImage';
 import { useToast } from '../../components/feedback/toast-context';
 import { currency } from '../../data/mockData';
@@ -110,6 +110,8 @@ export function CheckoutPage() {
         .then((order) => {
           if (!active) return;
           setCreatedOrder(order);
+          // The order is now holding the inventory, so its waiting-room slot is released for the next buyer.
+          clearStoredQueueAdmission();
         })
         .catch((requestError: unknown) => {
           if (!active) return;
@@ -235,17 +237,24 @@ export function CheckoutPage() {
 
   const paymentDisabled = processing || cancelling || creatingOrder || !createdOrder || paymentCountdown.isExpired;
 
-  async function handleCancel() {
-    if (!createdOrder || cancelling) return;
-    if (!window.confirm('Cancel this order? Your held tickets will be released.')) return;
+  async function leaveCheckout() {
+    if (!event) return;
+    if (processing || cancelling || creatingOrder) return;
+    if (createdOrder && !window.confirm('Leave checkout? This order will be cancelled and your tickets will be released.')) return;
+
     setCancelling(true);
     setError(null);
     try {
-      await cancelOrder(createdOrder.id);
+      if (createdOrder) await cancelOrder(createdOrder.id);
+      try {
+        await leaveQueue(event.id);
+      } catch {
+        // Queue session has a backend TTL fallback.
+      }
       clearStoredQueueAdmission();
-      navigate(event ? `/concerts/${event.id}` : '/', { replace: true });
+      navigate(`/concerts/${event.id}`, { replace: true });
     } catch {
-      setError('Could not cancel the order. Please try again or wait for it to expire.');
+      setError('Could not leave checkout safely. Please try again.');
       setCancelling(false);
     }
   }
@@ -253,7 +262,7 @@ export function CheckoutPage() {
   return (
     <div className="checkout-page page-width">
       <div className="flow-topbar">
-        <Link className="back-link" to={`/concerts/${event.id}/seats`}>{'<'} Change tickets</Link>
+        <button className="back-link" type="button" disabled={processing || cancelling || creatingOrder} onClick={() => void leaveCheckout()}>{'<'} Event details</button>
         <div className="flow-steps" aria-label="Booking progress">
           <span>1 <i>Tickets</i></span><b /><span className="active">2 <i>Checkout</i></span><b /><span>3 <i>Done</i></span>
         </div>
@@ -334,19 +343,6 @@ export function CheckoutPage() {
                   ? 'Payment time expired'
                   : `Continue with ${provider === 'MOCK' ? 'demo payment' : provider}`}
           </button>
-          {paymentCountdown.isExpired ? (
-            <Link className="text-link checkout-restart-link" to={`/concerts/${event.id}/seats`}>Return to ticket selection</Link>
-          ) : null}
-          {createdOrder && !paymentCountdown.isExpired ? (
-            <button
-              className="button button-secondary button-block"
-              type="button"
-              disabled={cancelling || processing}
-              onClick={() => void handleCancel()}
-            >
-              {cancelling ? 'Cancelling...' : 'Cancel order'}
-            </button>
-          ) : null}
           <p className="secure-note">The backend calculates the authoritative total and payment expiry.</p>
         </aside>
       </form>

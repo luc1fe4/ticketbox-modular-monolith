@@ -54,6 +54,9 @@ public class Notification extends BaseEntity {
     @Column(name = "read_at")
     private OffsetDateTime readAt;
 
+    @Column(name = "reference_id")
+    private UUID referenceId;
+
     public void setMessageId(UUID messageId) {
         this.messageId = messageId;
     }
@@ -96,6 +99,19 @@ public class Notification extends BaseEntity {
         notification.subject = subject;
         notification.body = body;
         notification.status = Status.PENDING;
+        return notification;
+    }
+
+    public static Notification createEmailNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body,
+            UUID referenceId
+    ) {
+        Notification notification = createEmailNotification(messageId, userId, eventType, subject, body);
+        notification.referenceId = referenceId;
         return notification;
     }
 

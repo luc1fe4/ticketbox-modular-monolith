@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ArrowLeft,
   BarChart3,
+  Bell,
   CalendarDays,
   ChevronDown,
   CircleDollarSign,
@@ -14,6 +15,7 @@ import {
   Settings,
   Sparkles,
   Ticket,
+  UserCog,
   Users,
   X,
 } from 'lucide-react';
@@ -35,6 +37,8 @@ const adminNavigation: NavigationItem[] = [
   { to: '/admin/orders', label: 'Đơn hàng & Vé', icon: Receipt },
   { to: '/admin/guests', label: 'Khách mời', icon: Users },
   { to: '/admin/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
+  { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
+  { to: '/admin/users', label: 'Người dùng', icon: UserCog },
 ];
 
 const staffNavigation: NavigationItem[] = [
@@ -70,6 +74,8 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
     : mode === 'organizer'
       ? organizerNavigation
       : staffNavigation;
+  const workspaceHome = mode === 'admin' ? '/admin' : mode === 'organizer' ? '/organizer' : '/staff';
+  const workspaceLabel = mode === 'admin' ? 'Control room' : mode === 'organizer' ? 'Organizer studio' : 'Gate desk';
 
   function logOut() {
     logout();
@@ -83,8 +89,8 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
         aria-label={mode === 'staff' ? 'Điều hướng nhân viên' : 'Điều hướng quản lý'}
       >
         <div className="operations-brand">
-          <Logo />
-          <span>{mode === 'admin' ? 'Control room' : mode === 'organizer' ? 'Organizer studio' : 'Gate desk'}</span>
+          <Logo to={workspaceHome} label={workspaceLabel} />
+          <span>{workspaceLabel}</span>
         </div>
 
         <nav className="operations-nav">
@@ -106,9 +112,9 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
         </nav>
 
         <div className="operations-sidebar-footer">
-          <Link to="/">
+          <Link to={workspaceHome}>
             <ArrowLeft aria-hidden="true" size={17} />
-            Về TicketBox
+            Về tổng quan
           </Link>
           <button type="button" onClick={logOut}>
             <LogOut aria-hidden="true" size={17} />
@@ -158,11 +164,11 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
             </button>
             {accountOpen ? (
               <div className="operations-account-menu">
-                <Link to="/profile" onClick={() => setAccountOpen(false)}>
+                <Link className="internal-profile-link" to={workspaceHome} onClick={() => setAccountOpen(false)}>
                   <Settings aria-hidden="true" size={16} />
-                  Hồ sơ cá nhân
+                  Về tổng quan
                 </Link>
-                <button type="button" onClick={logOut}>
+                <button type="button" className="operations-danger-menu-item" onClick={logOut}>
                   <LogOut aria-hidden="true" size={16} />
                   Đăng xuất
                 </button>

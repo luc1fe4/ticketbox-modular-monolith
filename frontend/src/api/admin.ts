@@ -2,6 +2,8 @@ import { apiCommand, apiGet, apiMultipartCommand } from './client';
 import type { ConcertDetail, ConcertStatus, Page, TicketType } from './concerts';
 import type { Order, OrderStatus } from './orders';
 import type { Ticket } from './tickets';
+import type { UserRole } from '../features/auth/AuthContext';
+import type { NotificationItem } from './notifications';
 
 export type ManagementApiScope = 'admin' | 'organizer';
 
@@ -16,6 +18,8 @@ export type ConcertMutation = {
   venueAddress: string;
   eventDate: string;
   doorsOpenAt: string | null;
+  saleStartAt: string;
+  saleEndAt: string | null;
   seatMapSvg: string | null;
 };
 
@@ -24,8 +28,6 @@ export type TicketTypeMutation = {
   price: number;
   totalQuantity: number;
   maxPerAccount: number;
-  saleStartAt: string;
-  saleEndAt: string | null;
   zoneColor: string;
 };
 
@@ -64,6 +66,8 @@ export type StaffGuestLookup = {
   category: string | null;
   sponsorName: string | null;
   notes: string | null;
+  checkedInAt: string | null;
+  checkinGate: string | null;
 };
 
 export type StaffCheckinHistory = {
@@ -108,6 +112,21 @@ export type GuestListImportResponse = {
   statusUrl: string;
 };
 
+export type GuestListEntry = {
+  id: string;
+  concertId: string;
+  phone: string;
+  fullName: string;
+  category: string | null;
+  sponsorName: string | null;
+  notes: string | null;
+  active: boolean;
+  importedAt: string | null;
+  batchFile: string | null;
+  checkedInAt: string | null;
+  checkinGate: string | null;
+};
+
 export type BatchLogFilters = {
   concertId?: string;
   status?: BatchLogStatus;
@@ -149,6 +168,30 @@ export type ArtistBioJobFilters = {
   size?: number;
 };
 
+export type AdminUser = {
+  id: string;
+  email: string;
+  phone: string | null;
+  fullName: string;
+  role: UserRole;
+  active: boolean;
+  isActive?: boolean;
+};
+
+export type CheckinSummary = {
+  concertId: string;
+  totalTickets: number;
+  validTickets: number;
+  usedTickets: number;
+  cancelledTickets: number;
+  transferredTickets: number;
+  checkedIn: number;
+  onlineCheckins: number;
+  offlineCheckins: number;
+  latestCheckedAt: string | null;
+  datasetUpdatedAt: string | null;
+};
+
 export function getAdminConcerts(
   page = 0,
   size = 20,
@@ -159,6 +202,14 @@ export function getAdminConcerts(
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
   return apiGet<Page<ConcertDetail>>(`${managementBase(scope)}/concerts?${params}`, signal);
+}
+
+export function getManagedConcert(
+  concertId: string,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<ConcertDetail>(`${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}`, signal);
 }
 
 export function createConcert(payload: ConcertMutation, scope: ManagementApiScope = 'admin') {
@@ -271,6 +322,14 @@ export function getStaffGuestList(concertId: string, signal?: AbortSignal) {
   return apiGet<StaffGuestLookup[]>(`/api/staff/guestlist/list?${params}`, signal);
 }
 
+export function checkInStaffGuest(guestId: string, concertId: string, gate = 'VIP') {
+  return apiCommand<StaffGuestLookup>(
+    'post',
+    `/api/staff/guestlist/${encodeURIComponent(guestId)}/check-in`,
+    { concertId, gate },
+  );
+}
+
 export function getStaffCheckinHistory(
   concertId: string,
   page = 0,
@@ -299,6 +358,19 @@ export function importGuestList(
     'post',
     path,
     data,
+  );
+}
+
+export function getConcertGuestList(
+  concertId: string,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<Page<GuestListEntry>>(
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/guest-lists?page=${page}&size=${size}`,
+    signal,
   );
 }
 
@@ -338,6 +410,18 @@ export function submitArtistBioJob(concertId: string, file: File, scope: Managem
   );
 }
 
+export function composeArtistBioDraft(
+  concertId: string,
+  sourceJobIds: string[],
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<ArtistBioJob>(
+    'post',
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/artist-bio-jobs/compose`,
+    { sourceJobIds },
+  );
+}
+
 export function getArtistBioJobs(filters: ArtistBioJobFilters = {}, signal?: AbortSignal, scope: ManagementApiScope = 'admin') {
   const params = new URLSearchParams({
     page: String(filters.page ?? 0),
@@ -370,25 +454,91 @@ export function applyArtistBioJob(jobId: string, overwrite = false, scope: Manag
   );
 }
 
+export function publishConcertArtistBio(
+  concertId: string,
+  artistBio: string,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<void>(
+    'put',
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/artist-bio`,
+    { artistBio },
+  );
+}
+
+// ---- Admin User Management ----
+
+export function getAdminUsers(page = 0, size = 20, signal?: AbortSignal) {
+  return apiGet<Page<AdminUser>>(`/api/admin/users?page=${page}&size=${size}`, signal);
+}
+
+export function updateAdminUserRole(userId: string, role: UserRole) {
+  return apiCommand<AdminUser>('put', `/api/admin/users/${encodeURIComponent(userId)}/role`, { role });
+}
+
+export function updateAdminUserStatus(userId: string, isActive: boolean) {
+  return apiCommand<AdminUser>('put', `/api/admin/users/${encodeURIComponent(userId)}/status`, { isActive });
+}
+
+// ---- Admin Notification Operations ----
+
+export function getAdminNotifications(page = 0, size = 20, signal?: AbortSignal) {
+  return apiGet<Page<NotificationItem>>(`/api/admin/notifications?page=${page}&size=${size}`, signal);
+}
+
+export function retryAdminNotification(notificationId: string) {
+  return apiCommand<NotificationItem>('post', `/api/admin/notifications/${encodeURIComponent(notificationId)}/retry`);
+}
+
+export function sendAdminConcertReminder(concertId: string) {
+  return apiCommand<{ recipients: number }>('post', `/api/admin/concerts/${encodeURIComponent(concertId)}/reminders/send`);
+}
+
+export function getAdminCheckinSummary(concertId: string, signal?: AbortSignal) {
+  return apiGet<CheckinSummary>(`/api/admin/concerts/${encodeURIComponent(concertId)}/checkin-summary`, signal);
+}
+
+export function getManagedCheckinSummary(
+  concertId: string,
+  signal?: AbortSignal,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiGet<CheckinSummary>(
+    `${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/checkin-summary`,
+    signal,
+  );
+}
+
 // ---- Admin Order & Ticket Management ----
 
-export function getAdminOrders(params?: { concertId?: string; status?: OrderStatus }) {
+export function getAdminOrders(
+  params?: { concertId?: string; status?: OrderStatus },
+  scope: ManagementApiScope = 'admin',
+) {
   const query = new URLSearchParams();
   if (params?.concertId) query.set('concertId', params.concertId);
   if (params?.status) query.set('status', params.status);
   const qs = query.toString();
-  return apiGet<Order[]>(`/api/admin/orders${qs ? `?${qs}` : ''}`);
+  return apiGet<Order[]>(`${managementBase(scope)}/orders${qs ? `?${qs}` : ''}`);
 }
 
-export function getAdminOrderDetail(orderId: string) {
-  return apiGet<Order>(`/api/admin/orders/${encodeURIComponent(orderId)}`);
+export function getAdminOrderDetail(orderId: string, scope: ManagementApiScope = 'admin') {
+  return apiGet<Order>(`${managementBase(scope)}/orders/${encodeURIComponent(orderId)}`);
 }
 
-export function getAdminConcertTickets(concertId: string, status?: string) {
+export function getAdminConcertTickets(
+  concertId: string,
+  status?: string,
+  scope: ManagementApiScope = 'admin',
+) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-  return apiGet<Ticket[]>(`/api/admin/concerts/${encodeURIComponent(concertId)}/tickets${qs}`);
+  return apiGet<Ticket[]>(`${managementBase(scope)}/concerts/${encodeURIComponent(concertId)}/tickets${qs}`);
 }
 
-export function updateAdminTicketStatus(ticketId: string, status: string) {
-  return apiCommand<Ticket>('patch', `/api/admin/tickets/${encodeURIComponent(ticketId)}/status`, { status });
+export function updateAdminTicketStatus(
+  ticketId: string,
+  status: string,
+  scope: ManagementApiScope = 'admin',
+) {
+  return apiCommand<Ticket>('patch', `${managementBase(scope)}/tickets/${encodeURIComponent(ticketId)}/status`, { status });
 }

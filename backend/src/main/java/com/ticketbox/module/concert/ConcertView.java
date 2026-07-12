@@ -7,5 +7,7 @@ public record ConcertView(
     UUID id,
     String title,
     String status,
-    OffsetDateTime eventDate
+    OffsetDateTime eventDate,
+    OffsetDateTime saleStartAt,
+    OffsetDateTime saleEndAt
 ) {}

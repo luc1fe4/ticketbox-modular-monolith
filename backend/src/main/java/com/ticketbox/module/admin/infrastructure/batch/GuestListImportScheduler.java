@@ -26,7 +26,7 @@ public class GuestListImportScheduler {
         this.importService = importService;
     }
 
-    @Scheduled(cron = "${ticketbox.guest-list.cron:0 */5 * * * *}")
+    @Scheduled(cron = "${ticketbox.guest-list.cron:0 0 3 * * *}")
     @SchedulerLock(
             name = "guestListImportScheduler",
             lockAtLeastFor = "PT5S",

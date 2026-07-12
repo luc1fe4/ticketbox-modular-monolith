@@ -13,6 +13,10 @@ public class RedisKeyConstants {
     public static final String RATE_LIMIT_IP = "rate-limit:ip:";
     public static final String QUEUE_CONCERT = "queue:concert:";
     public static final String QUEUE_SEQUENCE = "queue:sequence:";
+    public static final String WAITING_ROOM_CONCERT = "waiting-room:concert:";
+    public static final String WAITING_ROOM_SEQUENCE = "waiting-room:sequence:";
+    public static final String QUEUE_DRAW_STATE = "queue:draw-state:";
+    public static final String QUEUE_DRAW_LOCK = "queue:draw-lock:";
     public static final String QUEUE_ACTIVE = "queue:active:";
     public static final String QUEUE_SESSION = "shopping-session:";
     public static final String QUEUE_LEFT = "queue:left:";

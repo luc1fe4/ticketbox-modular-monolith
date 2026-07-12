@@ -14,6 +14,7 @@ export function ConcertDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!id) return;
@@ -21,11 +22,15 @@ export function ConcertDetailPage() {
     let active = true;
     setLoading(true);
     setError(null);
-    Promise.all([getConcert(id, controller.signal), getConcertTicketTypes(id, controller.signal), getConcerts(0, 4, controller.signal)])
-      .then(([detail, types, page]) => {
+    Promise.all([getConcert(id, controller.signal), getConcerts(0, 4, controller.signal)])
+      .then(async ([detail, page]) => {
+        if (!active) return;
+        const currentTicketTypes = detail.ticketTypes?.length
+          ? detail.ticketTypes
+          : await getConcertTicketTypes(detail.id, controller.signal);
         if (!active) return;
         setConcert(detail);
-        setTicketTypes(types);
+        setTicketTypes(currentTicketTypes);
         setRelatedConcerts(page.content.filter((item) => item.id !== detail.id).slice(0, 3));
         setError(null);
       })
@@ -41,6 +46,11 @@ export function ConcertDetailPage() {
     };
   }, [id, reloadKey]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const lowestPrice = useMemo(() => {
     const prices = ticketTypes.filter((item) => item.isActive).map((item) => item.price);
     return prices.length ? Math.min(...prices) : null;
@@ -53,7 +63,16 @@ export function ConcertDetailPage() {
 
   const concertDate = new Date(concert.eventDate);
   const doorsOpen = concert.doorsOpenAt ? new Intl.DateTimeFormat('en-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(concert.doorsOpenAt)) : 'To be announced';
-  const unavailable = concert.status !== 'ON_SALE';
+  const saleStartAt = new Date(concert.saleStartAt).getTime();
+  const waitingRoomOpensAt = saleStartAt - 60 * 60 * 1_000;
+  const saleNotStarted = saleStartAt > now;
+  const waitingRoomNotOpen = waitingRoomOpensAt > now;
+  const waitingRoomOpen = saleNotStarted && !waitingRoomNotOpen;
+  const saleEnded = concert.saleEndAt ? new Date(concert.saleEndAt).getTime() < now : false;
+  const saleStart = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(concert.saleStartAt));
+  const waitingRoomOpenTime = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(waitingRoomOpensAt));
+  const saleEnd = concert.saleEndAt ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(concert.saleEndAt)) : null;
+  const canEnterWaitingRoom = concert.status === 'ON_SALE' && !saleEnded && !waitingRoomNotOpen;
 
   return (
     <>
@@ -62,26 +81,48 @@ export function ConcertDetailPage() {
         <div className="detail-overlay" />
         <div className="detail-hero-content page-width">
           <Link className="back-link" to="/">← All concerts</Link>
-          <div className="detail-title"><p className="eyebrow"><span /> Live in Vietnam · {concert.status.replace('_', ' ')}</p><h1>{concert.title}</h1><p className="artist-line">An official TicketBox experience</p></div>
+          <div className="detail-title"><p className="eyebrow"><span /> Live in Vietnam · {concert.status.replace('_', ' ')}</p><h1>{concert.title}</h1><p className="artist-line">{concert.artistBio ? 'Featuring the artists behind the night' : 'An official TicketBox experience'}</p></div>
           <div className="detail-facts"><Fact label="Date" value={eventDate.format(concertDate)} /><Fact label="Doors open" value={doorsOpen} /><Fact label="Venue" value={concert.venueName} /></div>
         </div>
       </section>
       <section className="detail-body page-width">
         <article className="detail-story">
+          {concert.artistBio ? <section className="artist-section artist-section-featured"><p className="eyebrow"><span /> Nghệ sĩ biểu diễn</p><h2>Gặp gỡ những người đứng sau <em>sân khấu.</em></h2><p className="artist-biography">{concert.artistBio}</p></section> : null}
           <p className="eyebrow"><span /> About the night</p>
           <h2>A live experience shaped around <em>sound, light, and connection.</em></h2>
           <p>{concert.description || 'A one-night live experience created for music lovers.'}</p>
-          {concert.artistBio ? <section className="artist-section"><p className="eyebrow"><span /> About the artist</p><h2>Meet the story behind <em>the stage.</em></h2><p className="artist-biography">{concert.artistBio}</p></section> : null}
           <div className="feature-row"><Feature number="01" title="Immersive production" copy="A cinematic stage and spatial sound." /><Feature number="02" title="Official inventory" copy={`${ticketTypes.length} verified ticket zones.`} /><Feature number="03" title="Easy entry" copy="Mobile tickets and dedicated support." /></div>
+          <section className="ticket-types-section" aria-labelledby="ticket-types-title">
+            <p className="eyebrow"><span /> Ticket options</p>
+            <h2 id="ticket-types-title">Choose your <em>experience.</em></h2>
+            <div className="ticket-types-list">
+              {ticketTypes.length ? ticketTypes.map((ticketType) => (
+                <div className={`ticket-type-summary ${ticketType.availableQty === 0 ? 'is-sold-out' : ''}`} key={ticketType.id}>
+                  <div><strong>{ticketType.name}</strong><span>{ticketType.availableQty > 0 ? `${ticketType.availableQty} tickets available` : 'Sold out'}</span></div>
+                  <strong>{currency.format(ticketType.price)}</strong>
+                </div>
+              )) : <div className="ticket-type-empty">Ticket zones are being prepared for this concert.</div>}
+            </div>
+          </section>
         </article>
         <aside className="booking-card">
           <p className="booking-label">{lowestPrice === null ? 'Ticket information' : 'Tickets from'}</p>
           <p className="booking-price">{lowestPrice === null ? 'Coming soon' : currency.format(lowestPrice)}</p>
           <div className="booking-divider" />
           <div className="booking-detail"><span>Date</span><strong>{eventDate.format(concertDate)}</strong></div>
+          <div className="booking-detail"><span>Ticket sale starts</span><strong>{saleStart}</strong></div>
+          {saleEnd ? <div className="booking-detail"><span>Ticket sale ends</span><strong>{saleEnd}</strong></div> : null}
           <div className="booking-detail"><span>Location</span><strong>{concert.venueAddress}</strong></div>
           <div className="booking-detail"><span>Admission</span><strong>Mobile ticket</strong></div>
-          {unavailable ? <button className="button button-disabled" type="button" disabled>{concert.status === 'SOLD_OUT' ? 'Sold out' : 'Not on sale'}</button> : <Link className="button button-primary button-block" to={`/concerts/${concert.id}/waiting-room`}>Buy now <span aria-hidden="true">→</span></Link>}
+          {canEnterWaitingRoom ? (
+            <Link className="button button-primary button-block" to={`/concerts/${concert.id}/waiting-room`}>
+              {waitingRoomOpen ? 'Enter waiting room' : 'Buy now'} <span aria-hidden="true">→</span>
+            </Link>
+          ) : (
+            <button className="button button-disabled" type="button" disabled>
+              {concert.status === 'SOLD_OUT' ? 'Sold out' : waitingRoomNotOpen ? `Waiting room opens ${waitingRoomOpenTime}` : saleEnded ? 'Ticket sale ended' : 'Not on sale'}
+            </button>
+          )}
           <p className="secure-note">Secure checkout · Official ticket partner</p>
         </aside>
       </section>

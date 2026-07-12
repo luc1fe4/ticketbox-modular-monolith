@@ -37,7 +37,7 @@ public class AdminConcertController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("eventDate").ascending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<ConcertDetailResponse> concerts = concertService.getAllConcerts(status, pageable);
         return ResponseEntity.ok(ApiResponse.success(concerts));
     }

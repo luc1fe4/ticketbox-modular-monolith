@@ -3,6 +3,9 @@ package com.ticketbox.module.notification.application;
 import com.ticketbox.module.notification.domain.Notification;
 import com.ticketbox.module.notification.domain.NotificationRepository;
 import com.ticketbox.module.notification.web.dto.NotificationResponse;
+import com.ticketbox.module.ticket.OrderNotificationItemView;
+import com.ticketbox.module.ticket.OrderNotificationView;
+import com.ticketbox.module.ticket.OrderPort;
 import com.ticketbox.shared.exception.AppException;
 import com.ticketbox.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +14,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,11 +27,21 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class NotificationService {
 
+    private static final Locale VIETNAM = Locale.forLanguageTag("vi-VN");
+    private static final NumberFormat VND = NumberFormat.getCurrencyInstance(VIETNAM);
+    private static final DateTimeFormatter DATE_TIME =
+            DateTimeFormatter.ofPattern("HH:mm 'ngay' dd/MM/yyyy", VIETNAM);
+
     private final NotificationRepository notificationRepository;
+    private final OrderPort orderPort;
 
     public Page<NotificationResponse> getNotifications(UUID userId, Pageable pageable) {
         return notificationRepository.findByUserId(userId, pageable)
                 .map(NotificationResponse::from);
+    }
+
+    public long countUnreadAppNotifications(UUID userId) {
+        return notificationRepository.countByUserIdAndChannelAndReadAtIsNull(userId, Notification.Channel.APP);
     }
 
     @Transactional
@@ -38,19 +55,8 @@ public class NotificationService {
         return NotificationResponse.from(notification);
     }
 
-    /**
-     * Creates an APP (in-app) notification for a successful payment AND a PENDING EMAIL notification.
-     * Uses distinct messageIds to avoid unique-index conflicts on notifications.message_id.
-     *
-     * <p>APP  messageId = deterministic UUID from "PAYMENT_SUCCEEDED:APP:{eventId}"
-     * <p>EMAIL messageId = deterministic UUID from "PAYMENT_SUCCEEDED:EMAIL:{eventId}"
-     *
-     * @return the saved EMAIL Notification (to be published to the email queue), or empty if already processed
-     */
     @Transactional
-    public Optional<Notification> createPaymentSucceededNotification(
-            CreatePaymentNotificationCommand command
-    ) {
+    public Optional<Notification> createPaymentSucceededNotification(CreatePaymentNotificationCommand command) {
         UUID appMessageId = UUID.nameUUIDFromBytes(
                 ("PAYMENT_SUCCEEDED:APP:" + command.messageId()).getBytes()
         );
@@ -58,26 +64,35 @@ public class NotificationService {
                 ("PAYMENT_SUCCEEDED:EMAIL:" + command.messageId()).getBytes()
         );
 
-        String body = "Payment for order "
-                + command.orderId()
-                + " was successful. Amount: "
-                + command.amount().toPlainString()
-                + " VND.";
+        OrderNotificationView order = orderPort.findNotificationViewByOrderId(command.orderId()).orElse(null);
+        String appSubject = order == null
+                ? "Thanh toan thanh cong"
+                : "Ve " + order.concertTitle() + " da san sang";
+        String emailSubject = order == null
+                ? "Thanh toan thanh cong - TicketBox"
+                : "Xac nhan ve " + order.concertTitle() + " - TicketBox";
+        String appBody = order == null
+                ? "Don hang " + shortId(command.orderId()) + " da thanh toan thanh cong. Tong tien: "
+                        + money(command.amount()) + ". Ve cua ban da duoc phat hanh trong My Tickets."
+                : buildPaymentAppBody(order);
+        String emailBody = order == null
+                ? "TicketBox da xac nhan thanh toan cho don hang " + command.orderId()
+                        + ". Tong tien: " + money(command.amount())
+                        + ". Vui long mo My Tickets de xem e-ticket va QR check-in."
+                : buildPaymentEmailBody(order);
 
-        // APP notification (idempotent)
         if (!notificationRepository.existsByMessageId(appMessageId)) {
             Notification appNotification = Notification.createAppNotification(
                     appMessageId,
                     command.userId(),
                     "PAYMENT_SUCCEEDED",
-                    "Payment successful",
-                    body,
+                    appSubject,
+                    appBody,
                     OffsetDateTime.now()
             );
             notificationRepository.save(appNotification);
         }
 
-        // EMAIL notification (idempotent) – return the saved entity so caller can enqueue it
         if (notificationRepository.existsByMessageId(emailMessageId)) {
             return Optional.empty();
         }
@@ -86,16 +101,14 @@ public class NotificationService {
                 emailMessageId,
                 command.userId(),
                 "PAYMENT_SUCCEEDED",
-                "Payment successful – TicketBox",
-                body
+                emailSubject,
+                emailBody,
+                command.orderId()
         );
         notificationRepository.save(emailNotification);
         return Optional.of(emailNotification);
     }
 
-    /**
-     * Marks an EMAIL notification as successfully sent.
-     */
     @Transactional
     public void markEmailSent(UUID notificationId) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -105,11 +118,6 @@ public class NotificationService {
         });
     }
 
-    /**
-     * Marks an EMAIL notification as SKIPPED with a reason.
-     * Used when delivery is permanently impossible (e.g. user has no email address)
-     * so the message is ACKed without retry – retrying would never succeed.
-     */
     @Transactional
     public void markEmailSkipped(UUID notificationId, String reason) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -119,11 +127,6 @@ public class NotificationService {
         });
     }
 
-    /**
-     * Records a failed email delivery attempt.
-     * Increments the attempt counter and stores the last error message.
-     * If attempts reach 3, sets status to FAILED (message will land in DLQ).
-     */
     @Transactional
     public void recordEmailAttemptFailed(UUID notificationId, String error) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -137,10 +140,62 @@ public class NotificationService {
         });
     }
 
-    /**
-     * Finds a notification by ID for email consumer processing.
-     */
     public Optional<Notification> findNotificationById(UUID notificationId) {
         return notificationRepository.findById(notificationId);
+    }
+
+    private String buildPaymentAppBody(OrderNotificationView order) {
+        return "TicketBox da xac nhan " + order.totalTickets() + " ve cho "
+                + order.concertTitle()
+                + ". Dem dien: " + formatDate(order.eventDate())
+                + ". Tong thanh toan: " + money(order.totalAmount())
+                + ". Mo My Tickets de xem QR check-in.";
+    }
+
+    private String buildPaymentEmailBody(OrderNotificationView order) {
+        StringBuilder body = new StringBuilder();
+        body.append("Xin chao,\n\n")
+                .append("TicketBox da xac nhan thanh toan cua ban cho ")
+                .append(order.concertTitle())
+                .append(". E-ticket va ma QR check-in da san sang trong muc My Tickets.\n\n")
+                .append("Thong tin don hang\n")
+                .append("- Ma don: ").append(order.orderId()).append('\n')
+                .append("- Dem dien: ").append(formatDate(order.eventDate())).append('\n');
+
+        if (order.venueName() != null && !order.venueName().isBlank()) {
+            body.append("- Dia diem: ").append(order.venueName()).append('\n');
+        }
+
+        body.append("- So luong ve: ").append(order.totalTickets()).append('\n')
+                .append("- Tong thanh toan: ").append(money(order.totalAmount())).append("\n\n")
+                .append("Hang ve da mua\n");
+
+        for (OrderNotificationItemView item : order.items()) {
+            body.append("- ")
+                    .append(item.ticketTypeName())
+                    .append(" x")
+                    .append(item.quantity())
+                    .append(" - ")
+                    .append(money(item.subtotal()))
+                    .append('\n');
+        }
+
+        body.append("\nKhi den cong, hay mo My Tickets va xuat trinh QR cua tung ve. ")
+                .append("Khong chia se QR cho nguoi khac de tranh mat quyen vao cong.\n\n")
+                .append("Hen gap ban tai dem dien,\n")
+                .append("TicketBox");
+        return body.toString();
+    }
+
+    private String formatDate(OffsetDateTime dateTime) {
+        return dateTime == null ? "dang cap nhat" : DATE_TIME.format(dateTime);
+    }
+
+    private String money(BigDecimal amount) {
+        return VND.format(amount == null ? BigDecimal.ZERO : amount);
+    }
+
+    private String shortId(UUID id) {
+        return id.toString().substring(0, 8).toUpperCase(Locale.ROOT);
     }
 }

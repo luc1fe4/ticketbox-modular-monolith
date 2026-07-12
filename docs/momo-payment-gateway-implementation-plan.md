@@ -184,11 +184,11 @@ resilience4j:
 
 ```bash
 # MoMo Sandbox
-MOMO_PARTNER_CODE=MOMOBKUN20180529
-MOMO_ACCESS_KEY=klm05TvNBzhg7h7j
-MOMO_SECRET_KEY=at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa
+MOMO_PARTNER_CODE=<your-momo-partner-code>
+MOMO_ACCESS_KEY=<your-momo-access-key>
+MOMO_SECRET_KEY=<your-momo-secret-key>
 MOMO_RETURN_URL=http://localhost:5173/payment/result
-MOMO_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/momo
+MOMO_IPN_URL=https://<your-static-domain>.ngrok-free.dev/api/payments/webhooks/momo
 ```
 
 ---
@@ -229,9 +229,9 @@ export type PaymentProvider = 'MOCK' | 'VNPAY' | 'MOMO';
 ## 4. Lấy Sandbox Credentials
 
 1. Sandbox credentials đã có sẵn (public test account của MoMo):
-   - `partnerCode`: `MOMOBKUN20180529`
-   - `accessKey`: `klm05TvNBzhg7h7j`
-   - `secretKey`: `at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa`
+   - `partnerCode`: `<your-momo-partner-code>`
+   - `accessKey`: `<your-momo-access-key>`
+   - `secretKey`: `<your-momo-secret-key>`
    - `apiEndpoint`: `https://test-payment.momo.vn/v2/gateway/api/create`
 2. Test IPN local cần tunnel (ngrok):
    ```bash

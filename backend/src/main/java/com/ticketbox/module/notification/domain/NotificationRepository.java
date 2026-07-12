@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
     Page<Notification> findByUserId(UUID userId, Pageable pageable);
+    long countByUserIdAndChannelAndReadAtIsNull(UUID userId, Notification.Channel channel);
     boolean existsByMessageId(UUID messageId);
     Optional<Notification> findByIdAndUserId(UUID id, UUID userId);
 }

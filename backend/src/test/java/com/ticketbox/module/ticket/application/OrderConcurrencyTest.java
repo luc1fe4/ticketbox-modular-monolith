@@ -87,7 +87,9 @@ public class OrderConcurrencyTest {
                 concertId,
                 "Concert Title",
                 "ON_SALE",
-                OffsetDateTime.now().plusDays(1)
+                OffsetDateTime.now().plusDays(1),
+                OffsetDateTime.now().minusDays(1),
+                OffsetDateTime.now().plusDays(2)
         );
 
         ticketTypeView = new TicketTypeView(
@@ -98,8 +100,6 @@ public class OrderConcurrencyTest {
                 100,
                 100,
                 2, // maxPerAccount
-                OffsetDateTime.now().minusDays(1),
-                OffsetDateTime.now().plusDays(1),
                 true
         );
     }

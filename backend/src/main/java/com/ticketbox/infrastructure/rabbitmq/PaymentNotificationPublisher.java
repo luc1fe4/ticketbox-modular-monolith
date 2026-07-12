@@ -3,7 +3,6 @@ package com.ticketbox.infrastructure.rabbitmq;
 import com.ticketbox.shared.event.PaymentCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Component;
 public class PaymentNotificationPublisher {
     private final RabbitTemplate rabbitTemplate;
 
-    @ApplicationModuleListener
     public void publish(PaymentCompletedEvent event) {
         rabbitTemplate.convertAndSend(
                 RabbitMqNames.EVENTS_EXCHANGE,

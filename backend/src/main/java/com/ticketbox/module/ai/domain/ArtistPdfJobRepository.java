@@ -1,6 +1,8 @@
 package com.ticketbox.module.ai.domain;
 
 import java.util.Collection;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,4 +14,12 @@ public interface ArtistPdfJobRepository extends JpaRepository<ArtistPdfJob, UUID
             UUID concertId,
             String fileChecksum,
             Collection<ArtistPdfJob.Status> statuses);
+
+    List<ArtistPdfJob> findByStatusAndCreatedAtBefore(
+            ArtistPdfJob.Status status,
+            OffsetDateTime createdBefore);
+
+    List<ArtistPdfJob> findByStatusAndStartedAtBefore(
+            ArtistPdfJob.Status status,
+            OffsetDateTime startedBefore);
 }

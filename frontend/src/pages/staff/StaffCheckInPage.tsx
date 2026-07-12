@@ -9,8 +9,9 @@ import {
 } from '../../api/admin';
 import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
-import { getOrCreateStaffDeviceId, selectInitialConcert, staffConcertLabel, staffDateTime } from './staffPageUtils';
+import { getOrCreateStaffDeviceId, selectInitialConcert, staffDateTime } from './staffPageUtils';
 
 type BarcodeDetectorResult = { rawValue?: string };
 type BarcodeDetectorInstance = {
@@ -154,23 +155,17 @@ export function StaffCheckInPage() {
             <ScanLine aria-hidden="true" size={22} />
           </div>
 
-          <label className="admin-field">
-            Concert
-            <select
-              disabled={loadingConcerts || !concerts.length}
-              value={selectedConcertId}
-              onChange={(event) => {
-                setSelectedConcertId(event.target.value);
-                setScanResult(null);
-              }}
-            >
-              {loadingConcerts ? <option>Đang tải concert...</option> : null}
-              {!loadingConcerts && !concerts.length ? <option>Không có concert đang bán</option> : null}
-              {concerts.map((concert) => (
-                <option key={concert.id} value={concert.id}>{staffConcertLabel(concert)}</option>
-              ))}
-            </select>
-          </label>
+          <ConcertPicker
+            concerts={concerts}
+            value={selectedConcertId}
+            label="Concert của ca trực"
+            placeholder={loadingConcerts ? 'Đang tải concert...' : 'Không có concert đang bán'}
+            disabled={loadingConcerts || !concerts.length}
+            onChange={(id) => {
+              setSelectedConcertId(id);
+              setScanResult(null);
+            }}
+          />
 
           <label className="admin-field">
             Cổng

@@ -12,8 +12,6 @@ public record TicketTypeResponse(
         int totalQuantity,
         int availableQty,
         int maxPerAccount,
-        OffsetDateTime saleStartAt,
-        OffsetDateTime saleEndAt,
         String zoneColor,
         boolean isActive,
         OffsetDateTime createdAt,

@@ -18,9 +18,18 @@ export function selectInitialConcert(concerts: StaffConcert[], preferredId: stri
 
 export function getOrCreateStaffDeviceId() {
   const key = 'ticketbox.staffWebDeviceId';
-  const existing = localStorage.getItem(key);
+  const existing = readCookie(key);
   if (existing) return existing;
   const next = `staff-web-${crypto.randomUUID()}`;
-  localStorage.setItem(key, next);
+  document.cookie = `${key}=${encodeURIComponent(next)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
   return next;
+}
+
+function readCookie(name: string) {
+  const prefix = `${name}=`;
+  const cookie = document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
 }

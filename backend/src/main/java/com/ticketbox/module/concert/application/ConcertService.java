@@ -5,9 +5,12 @@ import com.ticketbox.module.concert.web.dto.ConcertSeatMapResponse;
 import com.ticketbox.module.concert.web.dto.ConcertSummaryResponse;
 import com.ticketbox.module.concert.web.dto.CreateConcertRequest;
 import com.ticketbox.module.concert.web.dto.UpdateConcertRequest;
+import com.ticketbox.module.concert.web.dto.TicketTypeResponse;
 import com.ticketbox.module.concert.application.mapper.ConcertMapper;
+import com.ticketbox.module.concert.application.mapper.TicketTypeMapper;
 import com.ticketbox.module.concert.domain.Concert;
 import com.ticketbox.module.concert.domain.ConcertRepository;
+import com.ticketbox.module.concert.domain.TicketType;
 import com.ticketbox.module.concert.domain.TicketTypeRepository;
 import com.ticketbox.module.concert.application.port.PosterStorage;
 import com.ticketbox.shared.exception.AppException;
@@ -24,6 +27,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +40,7 @@ public class ConcertService {
     private final ConcertRepository concertRepository;
     private final TicketTypeRepository ticketTypeRepository;
     private final ConcertMapper concertMapper;
+    private final TicketTypeMapper ticketTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final PosterStorage posterStorage;
@@ -46,10 +51,11 @@ public class ConcertService {
             Concert.Status.SOLD_OUT, Set.of(Concert.Status.ON_SALE, Concert.Status.CANCELLED, Concert.Status.COMPLETED)
     );
 
-    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository, ConcertMapper concertMapper, RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper, PosterStorage posterStorage) {
+    public ConcertService(ConcertRepository concertRepository, TicketTypeRepository ticketTypeRepository, ConcertMapper concertMapper, TicketTypeMapper ticketTypeMapper, RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper, PosterStorage posterStorage) {
         this.concertRepository = concertRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.concertMapper = concertMapper;
+        this.ticketTypeMapper = ticketTypeMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.posterStorage = posterStorage;
@@ -75,7 +81,7 @@ public class ConcertService {
                 Concert.Status.SOLD_OUT
         );
 
-        Page<ConcertSummaryResponse> result = concertRepository.findByStatusIn(publicStatuses, pageable)
+        Page<ConcertSummaryResponse> result = concertRepository.findByStatusInAndPublicVisibleTrue(publicStatuses, pageable)
                 .map(concertMapper::toSummaryResponse);
 
         try {
@@ -102,11 +108,11 @@ public class ConcertService {
                 Concert.Status.ON_SALE,
                 Concert.Status.SOLD_OUT
         );
-        Concert concert = concertRepository.findByIdAndStatusIn(concertId, publicStatuses)
+        Concert concert = concertRepository.findByIdAndStatusInAndPublicVisibleTrue(concertId, publicStatuses)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Concert not found with id: " + concertId));
 
-        ConcertDetailResponse result = concertMapper.toDetailResponse(concert);
+        ConcertDetailResponse result = composePublicDetail(concert);
         try {
             redisTemplate.opsForValue().set(cacheKey, result, RedisKeyConstants.TTL_CONCERT_DETAIL.getSeconds(), TimeUnit.SECONDS);
         } catch (Exception e) {}
@@ -117,7 +123,27 @@ public class ConcertService {
         Concert concert = concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found with id: " + concertId));
         verifyOwnership(concert, requesterId, isAdmin);
-        return concertMapper.toDetailResponse(concert);
+        return composeManagementDetail(concert);
+    }
+
+    private ConcertDetailResponse composePublicDetail(Concert concert) {
+        List<TicketTypeResponse> ticketTypes = ticketTypeRepository.findByConcertIdAndIsActiveTrue(concert.getId()).stream()
+                .map(ticketTypeMapper::toResponse)
+                .toList();
+        return concertMapper.toDetailResponse(concert).withTicketTypes(ticketTypes);
+    }
+
+    /**
+     * The concert workspace needs the complete inventory, including ticket types
+     * that are currently paused.  Public detail deliberately exposes active
+     * types only, so it must not be reused for an organizer/admin workspace.
+     */
+    private ConcertDetailResponse composeManagementDetail(Concert concert) {
+        List<TicketTypeResponse> ticketTypes = ticketTypeRepository.findByConcertId(concert.getId()).stream()
+                .sorted(Comparator.comparing(TicketType::getPrice))
+                .map(ticketTypeMapper::toResponse)
+                .toList();
+        return concertMapper.toDetailResponse(concert).withTicketTypes(ticketTypes);
     }
 
     public ConcertSeatMapResponse getConcertSeatMap(UUID concertId) {
@@ -150,7 +176,7 @@ public class ConcertService {
 
     @Transactional
     public ConcertDetailResponse createConcert(CreateConcertRequest request, UUID organizerId) {
-        validateDates(request.eventDate(), request.doorsOpenAt());
+        validateDates(request.eventDate(), request.doorsOpenAt(), request.saleStartAt(), request.saleEndAt());
 
         Concert concert = concertMapper.toEntity(request);
         concert.setCreatedBy(organizerId);
@@ -173,7 +199,7 @@ public class ConcertService {
                     "Cannot update concert information in " + concert.getStatus() + " status");
         }
 
-        validateDates(request.eventDate(), request.doorsOpenAt());
+        validateDates(request.eventDate(), request.doorsOpenAt(), request.saleStartAt(), request.saleEndAt());
 
         concertMapper.updateConcertFromRequest(request, concert);
 
@@ -237,12 +263,28 @@ public class ConcertService {
         evictConcertCaches(concertId);
     }
 
-    private void validateDates(OffsetDateTime eventDate, OffsetDateTime doorsOpenAt) {
+    private void validateDates(
+            OffsetDateTime eventDate,
+            OffsetDateTime doorsOpenAt,
+            OffsetDateTime saleStartAt,
+            OffsetDateTime saleEndAt
+    ) {
         if (eventDate.isBefore(OffsetDateTime.now())) {
             throw new AppException(ErrorCode.INVALID_DATE, "Event date must be in the future");
         }
         if (doorsOpenAt != null && doorsOpenAt.isAfter(eventDate)) {
             throw new AppException(ErrorCode.INVALID_DATE, "Doors open time must be before event date");
+        }
+        if (saleStartAt == null || saleStartAt.isAfter(eventDate)) {
+            throw new AppException(ErrorCode.INVALID_DATE, "Sale start date must be before or equal to event date");
+        }
+        if (saleEndAt != null) {
+            if (saleEndAt.isBefore(saleStartAt)) {
+                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be after sale start date");
+            }
+            if (saleEndAt.isAfter(eventDate)) {
+                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be before or equal to event date");
+            }
         }
     }
 

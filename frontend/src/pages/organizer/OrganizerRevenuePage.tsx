@@ -14,6 +14,7 @@ import {
   type ZoneRevenue,
 } from '../../api/organizerRevenue';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
 
 const REPORTING_TIME_ZONE = 'Asia/Ho_Chi_Minh';
@@ -208,12 +209,13 @@ export function OrganizerRevenuePage() {
       />
 
       <section className="revenue-filter-panel" aria-label="Bộ lọc báo cáo">
-        <label className="admin-field">
-          <span>Concert đã hoàn thành</span>
-          <select value={selectedConcertId} onChange={(event) => chooseConcert(event.target.value)}>
-            {concerts.map((concert) => <option key={concert.id} value={concert.id}>{concert.title}</option>)}
-          </select>
-        </label>
+        <ConcertPicker
+          concerts={concerts}
+          value={selectedConcertId}
+          onChange={chooseConcert}
+          label="Concert đã hoàn thành"
+          placeholder="Chọn concert để xem báo cáo"
+        />
         <form className="revenue-date-form" onSubmit={applyDateRange}>
           <label className="admin-field"><span>Từ ngày</span><input type="date" value={draftFrom} onChange={(event) => setDraftFrom(event.target.value)} /></label>
           <label className="admin-field"><span>Đến ngày</span><input type="date" value={draftTo} onChange={(event) => setDraftTo(event.target.value)} /></label>

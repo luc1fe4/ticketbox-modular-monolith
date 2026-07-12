@@ -1,16 +1,17 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { RefreshCw, Search, UserCheck, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   getStaffConcerts,
-  getStaffGuestList,
   lookupStaffGuest,
+  checkInStaffGuest,
   type StaffConcert,
   type StaffGuestLookup,
 } from '../../api/admin';
 import { isRequestCanceled } from '../../api/client';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
-import { selectInitialConcert, staffConcertLabel } from './staffPageUtils';
+import { ConcertPicker } from '../../components/admin/ConcertPicker';
+import { selectInitialConcert } from './staffPageUtils';
 
 export function StaffGuestsPage() {
   const [searchParams] = useSearchParams();
@@ -20,21 +21,9 @@ export function StaffGuestsPage() {
   const [phone, setPhone] = useState('');
   const [lookupResult, setLookupResult] = useState<StaffGuestLookup | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [guestList, setGuestList] = useState<StaffGuestLookup[]>([]);
-  const [guestSearch, setGuestSearch] = useState('');
-  const [loadingGuests, setLoadingGuests] = useState(false);
   const [error, setError] = useState('');
-
-  const filteredGuests = useMemo(() => {
-    const query = guestSearch.trim().toLowerCase();
-    if (!query) return guestList;
-    return guestList.filter((guest) =>
-      guest.fullName?.toLowerCase().includes(query) ||
-      guest.phone?.includes(query) ||
-      guest.category?.toLowerCase().includes(query) ||
-      guest.sponsorName?.toLowerCase().includes(query)
-    );
-  }, [guestList, guestSearch]);
+  const [checkinLoading, setCheckinLoading] = useState(false);
+  const [gate, setGate] = useState('VIP');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,26 +46,6 @@ export function StaffGuestsPage() {
     return () => controller.abort();
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!selectedConcertId) return;
-    const controller = new AbortController();
-    async function loadGuests() {
-      setLoadingGuests(true);
-      setError('');
-      try {
-        setGuestList(await getStaffGuestList(selectedConcertId, controller.signal));
-      } catch (requestError) {
-        if (!isRequestCanceled(requestError)) {
-          setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách khách mời.');
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoadingGuests(false);
-      }
-    }
-    void loadGuests();
-    return () => controller.abort();
-  }, [selectedConcertId]);
-
   async function submitLookup(event: FormEvent) {
     event.preventDefault();
     if (!selectedConcertId || !phone.trim()) return;
@@ -92,12 +61,26 @@ export function StaffGuestsPage() {
     }
   }
 
+  async function checkInGuest() {
+    if (!lookupResult?.guestId || !selectedConcertId || lookupResult.checkedInAt) return;
+    setCheckinLoading(true);
+    setError('');
+    try {
+      const response = await checkInStaffGuest(lookupResult.guestId, selectedConcertId, gate.trim() || 'VIP');
+      setLookupResult(response.data);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Không thể check-in khách mời.');
+    } finally {
+      setCheckinLoading(false);
+    }
+  }
+
   return (
     <>
       <AdminPageHeader
         eyebrow="Guest desk"
         title="Tra cứu khách mời"
-        description="Tìm khách mời VIP theo concert và số điện thoại, hoặc xem nhanh danh sách guest list đã import cho cổng vào."
+        description="Xác minh khách mời tại cổng theo concert và số điện thoại. Danh sách import đầy đủ thuộc workspace admin/organizer."
       />
 
       {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
@@ -112,23 +95,17 @@ export function StaffGuestsPage() {
             <UserCheck aria-hidden="true" size={22} />
           </div>
 
-          <label className="admin-field">
-            Concert
-            <select
-              disabled={loadingConcerts || !concerts.length}
-              value={selectedConcertId}
-              onChange={(event) => {
-                setSelectedConcertId(event.target.value);
-                setLookupResult(null);
-              }}
-            >
-              {loadingConcerts ? <option>Đang tải concert...</option> : null}
-              {!loadingConcerts && !concerts.length ? <option>Không có concert đang bán</option> : null}
-              {concerts.map((concert) => (
-                <option key={concert.id} value={concert.id}>{staffConcertLabel(concert)}</option>
-              ))}
-            </select>
-          </label>
+          <ConcertPicker
+            concerts={concerts}
+            value={selectedConcertId}
+            label="Concert tại cổng"
+            placeholder={loadingConcerts ? 'Đang tải concert...' : 'Không có concert đang bán'}
+            disabled={loadingConcerts || !concerts.length}
+            onChange={(id) => {
+              setSelectedConcertId(id);
+              setLookupResult(null);
+            }}
+          />
 
           <label className="admin-field">
             Số điện thoại
@@ -157,7 +134,14 @@ export function StaffGuestsPage() {
 
           {lookupResult ? (
             lookupResult.found ? (
-              <GuestCard guest={lookupResult} featured />
+              <GuestCard
+                guest={lookupResult}
+                featured
+                gate={gate}
+                checkinLoading={checkinLoading}
+                onGateChange={setGate}
+                onCheckIn={() => void checkInGuest()}
+              />
             ) : (
               <div className="admin-empty-state staff-empty-compact">
                 <Search aria-hidden="true" size={28} />
@@ -174,46 +158,18 @@ export function StaffGuestsPage() {
           )}
         </div>
       </section>
-
-      <section className="staff-list-section">
-        <div className="guest-log-header">
-          <div>
-            <span>Guest list</span>
-            <h2>Danh sách khách mời</h2>
-          </div>
-          <label className="staff-search-field">
-            <Search aria-hidden="true" size={16} />
-            <input
-              placeholder="Tìm tên, SĐT, hạng khách..."
-              value={guestSearch}
-              onChange={(event) => setGuestSearch(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="admin-data-panel">
-          {loadingGuests ? (
-            <div className="admin-row-skeleton" aria-label="Đang tải guest list" aria-live="polite">
-              {[1, 2, 3].map((item) => <span key={item} />)}
-            </div>
-          ) : filteredGuests.length ? (
-            <div className="staff-guest-grid">
-              {filteredGuests.map((guest) => <GuestCard key={guest.guestId ?? `${guest.phone}-${guest.fullName}`} guest={guest} />)}
-            </div>
-          ) : (
-            <div className="admin-empty-state">
-              <Users aria-hidden="true" size={28} />
-              <h2>Chưa có khách mời</h2>
-              <p>Guest list sẽ hiển thị sau khi admin hoặc organizer import dữ liệu cho concert này.</p>
-            </div>
-          )}
-        </div>
-      </section>
     </>
   );
 }
 
-function GuestCard({ guest, featured = false }: { guest: StaffGuestLookup; featured?: boolean }) {
+function GuestCard({ guest, featured = false, gate, checkinLoading, onGateChange, onCheckIn }: {
+  guest: StaffGuestLookup;
+  featured?: boolean;
+  gate: string;
+  checkinLoading: boolean;
+  onGateChange: (value: string) => void;
+  onCheckIn: () => void;
+}) {
   return (
     <article className={`staff-guest-card ${featured ? 'featured' : ''}`}>
       <div>
@@ -224,7 +180,16 @@ function GuestCard({ guest, featured = false }: { guest: StaffGuestLookup; featu
         <div><dt>Hạng</dt><dd>{guest.category ?? 'Chưa phân loại'}</dd></div>
         <div><dt>Sponsor</dt><dd>{guest.sponsorName ?? 'Không có'}</dd></div>
         <div><dt>Ghi chú</dt><dd>{guest.notes ?? 'Không có ghi chú'}</dd></div>
+        <div><dt>Trạng thái</dt><dd>{guest.checkedInAt ? `Đã check-in lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(guest.checkedInAt))}` : 'Chưa check-in'}</dd></div>
       </dl>
+      {guest.checkedInAt ? (
+        <div className="staff-guest-checked"><UserCheck size={17} /> Đã xác nhận tại cổng {guest.checkinGate ?? 'VIP'}</div>
+      ) : (
+        <div className="staff-guest-checkin-actions">
+          <label><span>Cổng vào</span><input value={gate} maxLength={100} onChange={(event) => onGateChange(event.target.value)} /></label>
+          <button className="admin-primary-action" type="button" disabled={checkinLoading} onClick={onCheckIn}><UserCheck size={16} />{checkinLoading ? 'Đang xác nhận...' : 'Xác nhận vào cổng'}</button>
+        </div>
+      )}
     </article>
   );
 }

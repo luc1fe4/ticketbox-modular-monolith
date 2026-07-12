@@ -9,6 +9,8 @@ public record ConcertSummaryResponse(
         String title,
         String venueName,
         OffsetDateTime eventDate,
+        OffsetDateTime saleStartAt,
+        OffsetDateTime saleEndAt,
         String status,
         String posterUrl
 ) {}

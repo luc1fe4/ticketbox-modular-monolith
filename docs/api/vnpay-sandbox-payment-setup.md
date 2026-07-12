@@ -52,7 +52,7 @@ Use an ngrok static domain because:
 Example static domain:
 
 ```text
-https://unglaring-unsavoured-elene.ngrok-free.dev
+https://<your-static-domain>.ngrok-free.dev
 ```
 
 ## 3. Prerequisites
@@ -111,7 +111,7 @@ ngrok help
 Every ngrok account has a free dev domain. In the dashboard, open the domain or endpoint area and copy your assigned static dev domain. It will look similar to:
 
 ```text
-unglaring-unsavoured-elene.ngrok-free.dev
+<your-static-domain>.ngrok-free.dev
 ```
 
 Use this static domain for the VNPAY IPN URL:
@@ -197,7 +197,7 @@ VNPAY_HASH_SECRET=<your-vnp-hash-secret>
 Example:
 
 ```env
-VNPAY_IPN_URL=https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+VNPAY_IPN_URL=https://<your-static-domain>.ngrok-free.dev/api/payments/webhooks/vnpay
 ```
 
 Notes:
@@ -223,7 +223,7 @@ ngrok http --url=<your-static-domain>.ngrok-free.dev 8080
 Example:
 
 ```powershell
-ngrok http --url=unglaring-unsavoured-elene.ngrok-free.dev 8080
+ngrok http --url=<your-static-domain>.ngrok-free.dev 8080
 ```
 
 Open the ngrok inspector:
@@ -266,7 +266,7 @@ HMACSHA512
 Example:
 
 ```text
-https://unglaring-unsavoured-elene.ngrok-free.dev/api/payments/webhooks/vnpay
+https://<your-static-domain>.ngrok-free.dev/api/payments/webhooks/vnpay
 ```
 
 Save the configuration.

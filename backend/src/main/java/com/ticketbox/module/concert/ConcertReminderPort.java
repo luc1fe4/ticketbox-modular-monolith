@@ -2,6 +2,8 @@ package com.ticketbox.module.concert;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Public port exposed by the {@code concert} module.
@@ -20,4 +22,6 @@ public interface ConcertReminderPort {
      * @return list of upcoming concerts in that window
      */
     List<ConcertReminderView> findConcertsStartingBetween(OffsetDateTime from, OffsetDateTime to);
+
+    Optional<ConcertReminderView> findReminderConcertById(UUID concertId);
 }

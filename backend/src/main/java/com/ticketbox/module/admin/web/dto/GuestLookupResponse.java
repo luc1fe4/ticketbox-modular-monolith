@@ -1,5 +1,6 @@
 package com.ticketbox.module.admin.web.dto;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record GuestLookupResponse(
@@ -10,9 +11,11 @@ public record GuestLookupResponse(
         String fullName,
         String category,
         String sponsorName,
-        String notes
+        String notes,
+        OffsetDateTime checkedInAt,
+        String checkinGate
 ) {
     public static GuestLookupResponse notFound() {
-        return new GuestLookupResponse(false, null, null, null, null, null, null, null);
+        return new GuestLookupResponse(false, null, null, null, null, null, null, null, null, null);
     }
 }
