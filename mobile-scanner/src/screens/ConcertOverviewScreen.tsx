@@ -45,7 +45,7 @@ export function ConcertOverviewScreen(props: Props) {
   );
 
   return (
-    <Screen footer={<BottomNav active="overview" onChange={props.onNavigate} />}>
+    <Screen footer={<BottomNav active="overview" onChange={props.onNavigate} showGuestList={props.hasGuestList} />}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.topActions}>
           <SecondaryButton label="‹ Concerts" onPress={props.onBack} />

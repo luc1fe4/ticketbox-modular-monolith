@@ -439,6 +439,13 @@ export function getArtistBioJob(jobId: string, signal?: AbortSignal, scope: Mana
   );
 }
 
+export function deleteArtistBioJob(jobId: string, scope: ManagementApiScope = 'admin') {
+  return apiCommand<void>(
+    'delete',
+    `${managementBase(scope)}/artist-bio-jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
 export function retryArtistBioJob(jobId: string, scope: ManagementApiScope = 'admin') {
   return apiCommand<ArtistBioJobSubmission>(
     'post',

@@ -12,6 +12,7 @@ import {
   getStaffTickets,
   getStaffUser,
   getStaffGuestList,
+  checkInStaffGuest,
   loginStaff,
   logoutStaff,
 } from './src/api';
@@ -103,6 +104,7 @@ export default function App() {
 
   const [guestList, setGuestList] = useState<StaffGuestListEntry[]>([]);
   const [isDownloadingGuestList, setIsDownloadingGuestList] = useState(false);
+  const [guestCheckinId, setGuestCheckinId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -293,6 +295,26 @@ export default function App() {
     }
   }
 
+  async function handleCheckInGuest(guest: StaffGuestListEntry) {
+    if (!selectedConcert || !session || guest.checkedInAt) return;
+    setGuestCheckinId(guest.guestId);
+    setOperationError(null);
+    try {
+      const updatedGuest = await checkInStaffGuest(
+        guest.guestId,
+        { concertId: selectedConcert.id, gate: gate.trim() || 'VIP' },
+        session.accessToken,
+      );
+      setGuestList((current) =>
+        current.map((item) => (item.guestId === updatedGuest.guestId ? updatedGuest : item)),
+      );
+    } catch (error) {
+      setOperationError(toErrorMessage(error));
+    } finally {
+      setGuestCheckinId(null);
+    }
+  }
+
   async function runCheckin(value: string) {
     if (!selectedConcert || !session) return;
     setIsCheckingIn(true);
@@ -458,7 +480,13 @@ export default function App() {
       <GuestListScreen
         concert={selectedConcert}
         guestList={guestList}
+        gate={gate}
+        isOnline={isOnline}
+        checkingInGuestId={guestCheckinId}
+        errorMessage={operationError}
         onBack={() => setScreen('overview')}
+        onCheckInGuest={handleCheckInGuest}
+        onNavigate={navigateWithinConcert}
       />
     );
   }

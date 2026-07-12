@@ -8,6 +8,7 @@ export {
 export { apiClient, ApiClientError, requestJson } from './client';
 export { loginStaff, logoutStaff } from './services/auth';
 export {
+  checkInStaffGuest,
   getCheckinDataset,
   getCheckinHistory,
   getStaffConcertOverview,

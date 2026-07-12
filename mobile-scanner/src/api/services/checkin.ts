@@ -19,6 +19,18 @@ export function getStaffGuestList(concertId: string, token?: string) {
   });
 }
 
+export function checkInStaffGuest(
+  guestId: string,
+  payload: { concertId: string; gate?: string | null },
+  token?: string,
+) {
+  return requestJson<StaffGuestListEntry>(`/staff/guestlist/${guestId}/check-in`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
 export function getStaffConcerts(token?: string) {
   return requestJson<PageResponse<StaffConcert>>(
     '/staff/concerts?status=ON_SALE&page=0&size=100',

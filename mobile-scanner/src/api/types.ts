@@ -153,4 +153,6 @@ export type StaffGuestListEntry = {
   category: string;
   sponsorName: string;
   notes: string | null;
+  checkedInAt: string | null;
+  checkinGate: string | null;
 };

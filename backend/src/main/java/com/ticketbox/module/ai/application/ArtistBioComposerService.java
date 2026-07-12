@@ -11,8 +11,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +81,7 @@ public class ArtistBioComposerService {
         if (bio.isBlank()) {
             throw new AppException(ErrorCode.AI_PROVIDER_UNAVAILABLE, "AI provider returned no usable artist biography");
         }
+        bio = ensureAllSourcesAreRepresented(bio, sources);
 
         ArtistPdfJob composed = new ArtistPdfJob(
                 concertId,
@@ -89,6 +92,37 @@ public class ArtistBioComposerService {
         composed.startProcessing();
         composed.complete(bio, generated.provider(), generated.model(), sourceText.length());
         return jobRepository.save(composed);
+    }
+
+    private String ensureAllSourcesAreRepresented(String generatedBio, List<ArtistPdfJob> sources) {
+        String normalizedBio = generatedBio.toLowerCase(Locale.ROOT);
+        List<String> missingSentences = sources.stream()
+                .map(ArtistPdfJob::getResultBio)
+                .map(this::firstUsefulSentence)
+                .filter(sentence -> !sentence.isBlank())
+                .filter(sentence -> !normalizedBio.contains(sentence.toLowerCase(Locale.ROOT)))
+                .toList();
+        if (missingSentences.isEmpty()) {
+            return generatedBio;
+        }
+        StringBuilder merged = new StringBuilder(generatedBio.trim())
+                .append("\n\nĐiểm bổ sung từ các hồ sơ đã chọn:");
+        for (String sentence : missingSentences) {
+            merged.append("\n- ").append(sentence);
+        }
+        return textCleaner.sanitizeGeneratedBio(merged.toString());
+    }
+
+    private String firstUsefulSentence(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        String firstSentence = Pattern.compile("(?<=[.!?。])\\s+")
+                .splitAsStream(normalized)
+                .findFirst()
+                .orElse(normalized);
+        return firstSentence.substring(0, Math.min(firstSentence.length(), 260)).trim();
     }
 
     private String checksum(List<UUID> sourceJobIds) {
