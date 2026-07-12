@@ -25,7 +25,7 @@ type Props = {
   isLoading: boolean;
   errorMessage: string | null;
   onRefresh: () => void;
-  onNavigate: (screen: 'overview' | 'scanner' | 'data') => void;
+  onNavigate: (screen: 'overview' | 'scanner' | 'data' | 'guestlist') => void;
 };
 
 export function ConcertDataScreen(props: Props) {

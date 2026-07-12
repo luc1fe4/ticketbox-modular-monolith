@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Edit3, Plus, Search, Ticket, Trash2, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   createTicketType,
   deleteTicketType,
@@ -70,6 +70,9 @@ function toPayload(form: TicketFormState): TicketTypeMutation {
 export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
   const [searchParams] = useSearchParams();
+  const root = apiScope === 'admin' ? '/admin' : '/organizer';
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo?.startsWith(`${root}/concerts/`) ? returnTo : '';
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
   const [selectedConcertId, setSelectedConcertId] = useState(() => searchParams.get('concertId') ?? '');
   const [ticketTypes, setTicketTypes] = useState<TicketTypeModel[]>([]);
@@ -228,10 +231,13 @@ export function AdminTicketTypesPage({ apiScope = 'admin' }: { apiScope?: Manage
         title="Quản lý hạng vé"
         description="Thiết lập giá, hạn mức mua và tồn kho cho từng concert."
         actions={
-          <button className="admin-primary-action" type="button" onClick={openCreate} disabled={!selectedConcertId}>
-            <Plus aria-hidden="true" size={17} />
-            Thêm hạng vé
-          </button>
+          <>
+            {safeReturnTo ? <Link className="admin-secondary-action" to={safeReturnTo}>Quay về concert</Link> : null}
+            <button className="admin-primary-action" type="button" onClick={openCreate} disabled={!selectedConcertId}>
+              <Plus aria-hidden="true" size={17} />
+              Thêm hạng vé
+            </button>
+          </>
         }
       />
 

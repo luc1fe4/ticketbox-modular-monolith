@@ -17,15 +17,17 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   getAdminConcerts,
   getBatchLog,
   getBatchLogs,
+  getConcertGuestList,
   importGuestList,
   type BatchLog,
   type BatchLogSource,
   type BatchLogStatus,
+  type GuestListEntry,
   type ManagementApiScope,
 } from '../../api/admin';
 import type { ConcertDetail, Page } from '../../api/concerts';
@@ -85,6 +87,9 @@ export function AdminGuestImportsPage({
 }) {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const root = apiScope === 'admin' ? '/admin' : '/organizer';
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo?.startsWith(`${root}/concerts/`) ? returnTo : '';
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
   const [logs, setLogs] = useState<Page<BatchLog> | null>(null);
   const [loadingConcerts, setLoadingConcerts] = useState(true);
@@ -95,6 +100,7 @@ export function AdminGuestImportsPage({
   const [uploading, setUploading] = useState(false);
   const [latestBatch, setLatestBatch] = useState<BatchLog | null>(null);
   const [selectedLog, setSelectedLog] = useState<BatchLog | null>(null);
+  const [selectedLogGuests, setSelectedLogGuests] = useState<GuestListEntry[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -289,8 +295,14 @@ export function AdminGuestImportsPage({
   async function openDetail(log: BatchLog) {
     setSelectedLog(log);
     setDetailLoading(true);
+    setSelectedLogGuests([]);
     try {
-      setSelectedLog(await getBatchLog(log.id, undefined, apiScope));
+      const [detail, guestPage] = await Promise.all([
+        getBatchLog(log.id, undefined, apiScope),
+        log.concertId ? getConcertGuestList(log.concertId, 0, 100, undefined, apiScope) : Promise.resolve(null),
+      ]);
+      setSelectedLog(detail);
+      setSelectedLogGuests(guestPage?.content ?? []);
     } catch (requestError) {
       toast.error(requestError instanceof Error ? requestError.message : 'Không thể tải chi tiết batch.');
     } finally {
@@ -306,6 +318,7 @@ export function AdminGuestImportsPage({
         description={uploadMode === 'scheduled'
           ? 'Đưa danh sách CSV vào hàng chờ định kỳ, theo dõi tiến trình và kiểm tra các dòng được nhập hoặc bị từ chối.'
           : 'Tiếp nhận danh sách CSV, theo dõi tiến trình xử lý và kiểm tra các dòng được nhập hoặc bị từ chối.'}
+        actions={safeReturnTo ? <Link className="admin-secondary-action" to={safeReturnTo}>Quay về concert</Link> : undefined}
       />
 
       <section className="guest-import-workspace">
@@ -389,7 +402,7 @@ export function AdminGuestImportsPage({
         ) : null}
       </section>
 
-      {selectedLog ? <BatchDetailDialog log={selectedLog} concertName={concertNames.get(selectedLog.concertId ?? '')} loading={detailLoading} showTechnicalDetails={apiScope === 'admin'} onClose={() => setSelectedLog(null)} /> : null}
+      {selectedLog ? <BatchDetailDialog log={selectedLog} guests={selectedLogGuests} concertName={concertNames.get(selectedLog.concertId ?? '')} loading={detailLoading} showTechnicalDetails={apiScope === 'admin'} onClose={() => setSelectedLog(null)} /> : null}
     </>
   );
 }
@@ -413,12 +426,14 @@ function BatchSnapshot({ log, concertName, onOpen }: { log: BatchLog; concertNam
 
 function BatchDetailDialog({
   log,
+  guests,
   concertName,
   loading,
   showTechnicalDetails,
   onClose,
 }: {
   log: BatchLog;
+  guests: GuestListEntry[];
   concertName?: string;
   loading: boolean;
   showTechnicalDetails: boolean;
@@ -448,6 +463,22 @@ function BatchDetailDialog({
             <div><dt>Báo cáo lỗi</dt><dd><code>{log.errorReportPath ?? 'Không có'}</code></dd></div>
           </dl>
           {log.errorDetail ? <div className="batch-error-detail"><span>Chi tiết lỗi</span><p>{log.errorDetail}</p></div> : null}
+          <section className="batch-guest-preview">
+            <div className="batch-guest-preview-heading">
+              <div><span>Guest List</span><h3>Danh sách khách mời của concert</h3></div>
+              <strong>{guests.length} khách</strong>
+            </div>
+            {guests.length ? (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead><tr><th>Khách mời</th><th>Hạng</th><th>Sponsor</th><th>Trạng thái</th><th>Check-in</th></tr></thead>
+                  <tbody>{guests.map((guest) => <tr key={guest.id}><td><strong className="admin-table-primary">{guest.fullName}</strong><span className="admin-table-secondary">{guest.phone}</span></td><td>{guest.category ?? '—'}</td><td>{guest.sponsorName ?? '—'}</td><td><span className={guest.active ? 'status-badge badge-success' : 'status-badge badge-muted'}>{guest.active ? 'Hiệu lực' : 'Đã hủy'}</span></td><td>{guest.checkedInAt ? dateTime.format(new Date(guest.checkedInAt)) : 'Chưa vào'}</td></tr>)}</tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="admin-empty-state compact"><FileText aria-hidden="true" size={22} /><h2>Chưa có khách mời</h2><p>Batch có thể đang xử lý hoặc concert này chưa có guest list.</p></div>
+            )}
+          </section>
         </div>
       </section>
     </div>

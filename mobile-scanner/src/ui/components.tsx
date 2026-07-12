@@ -10,6 +10,8 @@ import {
 
 import { colors, radius, spacing } from './theme';
 
+type BottomNavScreen = 'overview' | 'scanner' | 'data' | 'guestlist';
+
 export function Screen({
   children,
   footer,
@@ -158,24 +160,29 @@ export function ErrorBanner({ message }: { message: string }) {
 export function BottomNav({
   active,
   onChange,
+  showGuestList = false,
 }: {
-  active: 'overview' | 'scanner' | 'data';
-  onChange: (screen: 'overview' | 'scanner' | 'data') => void;
+  active: BottomNavScreen;
+  onChange: (screen: BottomNavScreen) => void;
+  showGuestList?: boolean;
 }) {
+  const items: ReadonlyArray<readonly [BottomNavScreen, string]> = [
+    ['overview', 'Tổng quan'],
+    ['scanner', 'Quét vé'],
+    ['data', 'Dữ liệu'],
+    ...(showGuestList ? ([['guestlist', 'Khách mời']] as const) : []),
+  ] as const;
+
   return (
     <View style={styles.bottomNav}>
-      {[
-        ['overview', 'Tổng quan'],
-        ['scanner', 'Quét vé'],
-        ['data', 'Dữ liệu'],
-      ].map(([key, label]) => {
+      {items.map(([key, label]) => {
         const isActive = active === key;
         return (
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             key={key}
-            onPress={() => onChange(key as 'overview' | 'scanner' | 'data')}
+            onPress={() => onChange(key)}
             style={({ pressed }) => [styles.navItem, pressed && styles.buttonPressed]}
           >
             <Text style={[styles.navText, isActive && styles.navTextActive]}>{label}</Text>
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '900' },
   subtitle: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   primaryButton: {
     minHeight: 50,
@@ -222,15 +229,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.button,
     borderWidth: 1,
-    borderColor: colors.accent,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  secondaryButtonText: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+  secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
   buttonPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   buttonDisabled: { opacity: 0.48 },
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: radius.input,
+    borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 5,
     backgroundColor: colors.surfaceMuted,

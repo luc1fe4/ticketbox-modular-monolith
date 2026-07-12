@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,6 +65,17 @@ public class ArtistBioJobController {
                 jobId,
                 userId(authentication),
                 isAdmin(authentication)));
+    }
+
+    @DeleteMapping("/artist-bio-jobs/{jobId}")
+    public ApiResponse<Void> delete(
+            @PathVariable UUID jobId,
+            Authentication authentication) {
+        jobService.delete(
+                jobId,
+                userId(authentication),
+                isAdmin(authentication));
+        return ApiResponse.success();
     }
 
     @GetMapping("/artist-bio-jobs")

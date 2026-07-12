@@ -16,11 +16,13 @@ import {
   RotateCcw,
   RotateCw,
   Sparkles,
+  Trash2,
   UploadCloud,
   X,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
+  deleteArtistBioJob,
   getAdminConcerts,
   getArtistBioJob,
   getArtistBioJobs,
@@ -69,6 +71,9 @@ function duration(job: ArtistBioJob) {
 export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: ManagementApiScope }) {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const root = apiScope === 'admin' ? '/admin' : '/organizer';
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo?.startsWith(`${root}/concerts/`) ? returnTo : '';
   const [concerts, setConcerts] = useState<ConcertDetail[]>([]);
   const [jobs, setJobs] = useState<Page<ArtistBioJob> | null>(null);
   const [loadingConcerts, setLoadingConcerts] = useState(true);
@@ -81,6 +86,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
   const [selectedJob, setSelectedJob] = useState<ArtistBioJob | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [deletingId, setDeletingId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const page = Math.max(0, Math.floor(Number(searchParams.get('page')) || 0));
@@ -288,12 +294,29 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
     }
   }
 
+  async function deleteJob(job: ArtistBioJob) {
+    if (!window.confirm(`Xóa bản nháp "${job.originalFileName}"?`)) return;
+    setDeletingId(job.id);
+    try {
+      await deleteArtistBioJob(job.id, apiScope);
+      toast.success('Đã xóa bản nháp AI.');
+      if (selectedJob?.id === job.id) setSelectedJob(null);
+      if (latestJob?.id === job.id) setLatestJob(null);
+      await loadJobs(undefined, true);
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : 'Không thể xóa bản nháp AI.');
+    } finally {
+      setDeletingId('');
+    }
+  }
+
   return (
     <>
       <AdminPageHeader
         eyebrow="Editorial AI"
         title="AI Artist Bio"
         description="Tạo bản giới thiệu nghệ sĩ từ press kit PDF, review nội dung và chủ động xuất bản lên trang concert."
+        actions={safeReturnTo ? <Link className="admin-secondary-action" to={safeReturnTo}>Quay về concert</Link> : undefined}
       />
 
       <section className="ai-bio-workspace">
@@ -320,7 +343,7 @@ export function AdminArtistBioPage({ apiScope = 'admin' }: { apiScope?: Manageme
         {jobsError ? <div className="admin-notice error" role="alert">{jobsError}</div> : null}
         <div className="admin-data-panel">
           {loadingJobs ? <div className="admin-row-skeleton" aria-label="Đang tải AI jobs" aria-live="polite">{[1, 2, 3, 4].map((item) => <span key={item} />)}</div> : jobs?.content.length ? (
-            <div className="admin-table-wrap"><table className="admin-table ai-job-table"><thead><tr><th>PDF</th><th>Concert</th><th>Trạng thái</th><th>Provider</th><th>Thời gian</th><th><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{jobs.content.map((job) => <tr key={job.id}><td><strong className="admin-table-primary">{job.originalFileName}</strong><span className="admin-table-secondary">{job.extractedCharCount == null ? job.id.slice(0, 8) : `${job.extractedCharCount.toLocaleString('vi-VN')} ký tự`}</span></td><td><strong className="admin-table-primary">{concertMap.get(job.concertId)?.title ?? 'Concert không xác định'}</strong></td><td><ArtistJobStatus status={job.status} />{job.appliedAt ? <span className="ai-applied-label"><Check size={12} />Đã áp dụng</span> : null}</td><td><strong className="admin-table-primary">{job.provider ?? 'Chưa xác định'}</strong><span className="admin-table-secondary">{job.model ?? 'Đang chờ model'}</span></td><td><strong className="admin-table-primary">{dateTime.format(new Date(job.createdAt))}</strong><span className="admin-table-secondary">{duration(job)}</span></td><td><div className="admin-row-actions"><button type="button" aria-label={`Review ${job.originalFileName}`} onClick={() => void openDetail(job)}><Eye size={16} /></button></div></td></tr>)}</tbody></table></div>
+            <div className="admin-table-wrap"><table className="admin-table ai-job-table"><thead><tr><th>PDF</th><th>Concert</th><th>Trạng thái</th><th>Provider</th><th>Thời gian</th><th><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{jobs.content.map((job) => <tr key={job.id}><td><strong className="admin-table-primary">{job.originalFileName}</strong><span className="admin-table-secondary">{job.extractedCharCount == null ? job.id.slice(0, 8) : `${job.extractedCharCount.toLocaleString('vi-VN')} ký tự`}</span></td><td><strong className="admin-table-primary">{concertMap.get(job.concertId)?.title ?? 'Concert không xác định'}</strong></td><td><ArtistJobStatus status={job.status} />{job.appliedAt ? <span className="ai-applied-label"><Check size={12} />Đã áp dụng</span> : null}</td><td><strong className="admin-table-primary">{job.provider ?? 'Chưa xác định'}</strong><span className="admin-table-secondary">{job.model ?? 'Đang chờ model'}</span></td><td><strong className="admin-table-primary">{dateTime.format(new Date(job.createdAt))}</strong><span className="admin-table-secondary">{duration(job)}</span></td><td><div className="admin-row-actions"><button type="button" aria-label={`Review ${job.originalFileName}`} onClick={() => void openDetail(job)}><Eye size={16} /></button><button type="button" aria-label={`Xóa ${job.originalFileName}`} disabled={deletingId === job.id} onClick={() => void deleteJob(job)}><Trash2 size={16} /></button></div></td></tr>)}</tbody></table></div>
           ) : <div className="admin-empty-state"><Sparkles aria-hidden="true" size={28} /><h2>Chưa có AI job phù hợp</h2><p>Thay đổi bộ lọc hoặc tải press kit đầu tiên để tạo Artist Bio.</p></div>}
         </div>
         {jobs && jobs.totalPages > 1 ? <div className="admin-pagination"><span>Trang {jobs.number + 1} / {jobs.totalPages}</span><div><button type="button" aria-label="Trang trước" disabled={jobs.first} onClick={() => updateFilters({ page: String(page - 1) })}><ChevronLeft size={17} /></button><button type="button" aria-label="Trang sau" disabled={jobs.last} onClick={() => updateFilters({ page: String(page + 1) })}><ChevronRight size={17} /></button></div></div> : null}

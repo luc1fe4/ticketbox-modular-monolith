@@ -28,7 +28,7 @@ type Props = {
   onChangeQrCode: (value: string) => void;
   onCheckin: () => void;
   onCameraQrScanned: (value: string) => void;
-  onNavigate: (screen: 'overview' | 'scanner' | 'data') => void;
+  onNavigate: (screen: 'overview' | 'scanner' | 'data' | 'guestlist') => void;
 };
 
 export function ScannerHomeScreen({

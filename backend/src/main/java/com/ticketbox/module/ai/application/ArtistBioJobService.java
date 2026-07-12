@@ -134,6 +134,16 @@ public class ArtistBioJobService {
     }
 
     @Transactional
+    public void delete(
+            UUID jobId,
+            UUID requesterId,
+            boolean admin) {
+        ArtistPdfJob job = requireJob(jobId);
+        concertPort.requireAccessibleConcert(job.getConcertId(), requesterId, admin);
+        jobRepository.delete(job);
+    }
+
+    @Transactional
     public ArtistPdfJob retry(
             UUID jobId,
             UUID requesterId,
