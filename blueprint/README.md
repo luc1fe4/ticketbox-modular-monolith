@@ -24,7 +24,6 @@ Tài liệu thiết kế hệ thống TicketBox theo cấu trúc OpenSpec (spec-
 | [specs/checkin.md](specs/checkin.md) | Soát vé online/offline và đồng bộ log từ mobile scanner. | BP07, IM07, IM08 |
 | [specs/queue.md](specs/queue.md) | Waiting room và rate limiting khi tải đột biến. | BP10, IM12 |
 | [specs/concert-catalog.md](specs/concert-catalog.md) | Xem concert và caching. | BP13, IM01, IM15 |
-| [specs/guest-list.md](specs/guest-list.md) | Đồng bộ khách mời VIP từ CSV. | BP08, IM10 |
 | [specs/guest-list-import.md](specs/guest-list-import.md) | Đặc tả import danh sách khách mời VIP từ CSV. | BP08, IM10 |
 | [specs/artist-bio.md](specs/artist-bio.md) | AI Artist Bio từ PDF. | IM09 |
 | [specs/notification.md](specs/notification.md) | Thông báo app/email và khả năng mở rộng kênh. | IM04 |
@@ -37,8 +36,3 @@ Tài liệu thiết kế hệ thống TicketBox theo cấu trúc OpenSpec (spec-
 4. Đọc các file trong [specs/](specs/) theo từng luồng nghiệp vụ.
 5. Đọc [performance/cache-strategy.md](performance/cache-strategy.md) khi cần kiểm tra chiến lược cache và tính nhất quán availability.
 6. Đọc [flows/import-guest-list.mmd](flows/import-guest-list.mmd) khi cần xem sequence diagram cho luồng import guest list.
-
-## Trạng thái
-
-- Các spec **auth, checkin, payment** đã có nội dung đầy đủ.
-- Các spec **queue, concert-catalog, guest-list, artist-bio, notification, ticket-purchase** và **adr.md** hiện là khung (template), cần điền nội dung vào các phần `<!-- ... -->`.
