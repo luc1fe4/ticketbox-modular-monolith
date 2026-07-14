@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { isRequestCanceled } from '../../api/client';
 import {
   getConcert,
@@ -271,20 +272,28 @@ export function ConcertDetailPage() {
         <div className="page-width venue-grid">
           <div>
             <p className="eyebrow">
-              <span /> Địa điểm
+              <span /> Sơ đồ chỗ ngồi
             </p>
-            <h2>{concert.venueName}</h2>
-            <p>{concert.venueAddress}</p>
-            <a className="text-link" href="#map">
-              Xem bản đồ địa điểm ↓
-            </a>
+            <h2>Sơ đồ phân khu</h2>
+            <p>Sơ đồ phân bổ các hạng vé trong khu vực biểu diễn của concert.</p>
           </div>
-          <div className="map-art" id="map" aria-label={`Bản đồ minh họa ${concert.venueName}`}>
-            <span className="map-pin">T</span>
-            <i className="road road-one" />
-            <i className="road road-two" />
-            <i className="road road-three" />
-          </div>
+          {concert.seatMapSvg ? (
+            <div
+              className="concert-seat-map"
+              style={{ pointerEvents: 'none' }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(concert.seatMapSvg, {
+                  USE_PROFILES: { svg: true, svgFilters: true },
+                }),
+              }}
+            />
+          ) : (
+            <div className="seat-map-fallback">
+              <span aria-hidden="true">◇</span>
+              <h3>Sơ đồ chỗ không khả dụng</h3>
+              <p>Hệ thống chưa cập nhật sơ đồ cho buổi biểu diễn này.</p>
+            </div>
+          )}
         </div>
       </section>
       {relatedConcerts.length ? (
