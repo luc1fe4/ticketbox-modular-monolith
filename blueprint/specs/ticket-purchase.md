@@ -14,10 +14,10 @@ Khán giả thực hiện chọn loại vé, số lượng và gửi yêu cầu 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Khán giả (Browser)
+    participant Client as Khán giả (Browser)
     participant Server as Backend API (Spring Boot)
-    database Redis as Cache / Lock (Redis)
-    database DB as Transactional DB (PostgreSQL)
+    participant Redis as Cache / Lock (Redis)
+    participant DB as Transactional DB (PostgreSQL)
     participant Gateway as Cổng Thanh toán
     participant MQ as Message Broker (RabbitMQ)
 
@@ -35,7 +35,7 @@ sequenceDiagram
             Server-->>Client: Trả về lỗi TICKET_SOLD_OUT (400)
         else Giữ chỗ thành công
             Server->>DB: Tạo đơn hàng status AWAITING_PAYMENT & Order Items
-            Server->>Redis: Release lock:user:{userId} & Update Idempotency
+            Server->>Redis: Release lock:user:{userId} va Update Idempotency
             Server-->>Client: Trả về orderId + expiresAt (5 phút)
         end
     end
