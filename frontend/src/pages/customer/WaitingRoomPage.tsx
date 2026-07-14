@@ -191,20 +191,20 @@ export function WaitingRoomPage() {
           {'<'} Chi tiết sự kiện
         </button>
         <div className="flow-steps" aria-label="Tiến trình đặt vé">
-          <span className={isWaitingRoom ? 'active' : ''}>
-            1 <i>Phòng chờ</i>
+          <span className={`flow-step${isWaitingRoom ? ' active' : ''}`}>
+            <b>1</b><i>Phòng chờ</i>
           </span>
-          <b />
-          <span className={isWaiting ? 'active' : ''}>
-            2 <i>Hàng chờ</i>
+          <b className="flow-step-connector" />
+          <span className={`flow-step${isWaiting ? ' active' : ''}`}>
+            <b>2</b><i>Hàng chờ</i>
           </span>
-          <b />
-          <span>
-            3 <i>Vé</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step">
+            <b>3</b><i>Vé</i>
           </span>
-          <b />
-          <span>
-            4 <i>Thanh toán</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step">
+            <b>4</b><i>Thanh toán</i>
           </span>
         </div>
         <div className="timer" role="status">

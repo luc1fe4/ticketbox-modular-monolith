@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiClientError } from '../../api/client';
+import { getConcert } from '../../api/concerts';
 import {
   cancelOrder,
   completeMockPayment,
@@ -34,6 +35,24 @@ export type CheckoutState = {
 
 export const PENDING_PAYMENT_STORAGE_KEY = 'ticketbox.pending-payment';
 
+type PendingPayment = {
+  orderId: string;
+  provider?: PaymentProvider;
+};
+
+function readPendingPayment(): PendingPayment | null {
+  try {
+    const value = sessionStorage.getItem(PENDING_PAYMENT_STORAGE_KEY);
+    return value ? (JSON.parse(value) as PendingPayment) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberPendingPayment(orderId: string, provider: PaymentProvider) {
+  sessionStorage.setItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify({ orderId, provider }));
+}
+
 const paymentOptions: Array<{
   value: PaymentProvider;
   title: string;
@@ -63,10 +82,15 @@ const paymentOptions: Array<{
 export function CheckoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
   const state = location.state as CheckoutState | null;
-  const event = state?.event;
-  const selection = state?.selection ?? [];
+  const resumeOrderId = searchParams.get('orderId');
+  const [event, setEvent] = useState<CheckoutEvent | null>(state?.event ?? null);
+  const [selection, setSelection] = useState<CheckoutSelection[]>(state?.selection ?? []);
+  const [restoringOrder, setRestoringOrder] = useState(Boolean(resumeOrderId));
+  const [resumeUnavailable, setResumeUnavailable] = useState<string | null>(null);
+  const [resumeRefreshKey, setResumeRefreshKey] = useState(0);
   const storedAdmission = event ? getStoredQueueAdmission(event.id) : null;
   const queueAccessToken = state?.queueAccessToken ?? storedAdmission?.queueAccessToken;
   const [provider, setProvider] = useState<PaymentProvider>('MOCK');
@@ -85,7 +109,104 @@ export function CheckoutPage() {
     selection.reduce((total, item) => total + item.price * item.quantity, 0);
 
   useEffect(() => {
-    if (!event || !selection.length || creationStarted.current) return;
+    const activeResumeOrderId = resumeOrderId ?? '';
+    if (!activeResumeOrderId) {
+      setRestoringOrder(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    setRestoringOrder(true);
+    setResumeUnavailable(null);
+    setError(null);
+
+    async function restorePendingOrder() {
+      try {
+        const order = await getOrder(activeResumeOrderId, controller.signal);
+        const concert = await getConcert(order.concertId, controller.signal);
+        if (!active) return;
+
+        const restoredEvent: CheckoutEvent = {
+          id: concert.id,
+          title: concert.title,
+          venue: concert.venueName,
+          date: concert.eventDate,
+          image: concert.posterUrl,
+        };
+        const restoredSelection = order.items.map((item) => ({
+          id: item.ticketTypeId,
+          name: item.ticketTypeName,
+          price: item.unitPrice,
+          quantity: item.quantity,
+        }));
+
+        if (order.status === 'PAID') {
+          sessionStorage.removeItem(PENDING_PAYMENT_STORAGE_KEY);
+          navigate('/booking-confirmation', {
+            replace: true,
+            state: { event: restoredEvent, selection: restoredSelection, order },
+          });
+          return;
+        }
+
+        if (
+          order.status !== 'AWAITING_PAYMENT' ||
+          new Date(order.expiresAt).getTime() <= Date.now()
+        ) {
+          sessionStorage.removeItem(PENDING_PAYMENT_STORAGE_KEY);
+          setEvent(restoredEvent);
+          setResumeUnavailable('Đơn hàng này đã hết hạn hoặc không còn có thể thanh toán. Vé đã được trả về tồn kho.');
+          return;
+        }
+
+        const pendingPayment = readPendingPayment();
+        if (pendingPayment?.orderId === order.id && pendingPayment.provider) {
+          setProvider(pendingPayment.provider);
+        }
+        setEvent(restoredEvent);
+        setSelection(restoredSelection);
+        setCreatedOrder(order);
+      } catch (requestError) {
+        if (!active || (requestError instanceof DOMException && requestError.name === 'AbortError')) return;
+        setResumeUnavailable(
+          requestError instanceof ApiClientError && requestError.status === 404
+            ? 'Không tìm thấy đơn thanh toán này hoặc bạn không có quyền truy cập.'
+            : 'Không thể khôi phục đơn chờ thanh toán. Vui lòng kiểm tra lại lịch sử đơn hàng.',
+        );
+      } finally {
+        if (active) setRestoringOrder(false);
+      }
+    }
+
+    void restorePendingOrder();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [navigate, resumeOrderId, resumeRefreshKey]);
+
+  useEffect(() => {
+    function restoreAfterBrowserBack() {
+      // A return from VNPAY/MoMo can be restored from the browser back-forward
+      // cache. Reset the in-flight UI state and re-read the server-owned order.
+      setProcessing(false);
+      setError(null);
+      if (resumeOrderId) setResumeRefreshKey((current) => current + 1);
+    }
+
+    window.addEventListener('pageshow', restoreAfterBrowserBack);
+    return () => window.removeEventListener('pageshow', restoreAfterBrowserBack);
+  }, [resumeOrderId]);
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'failed') {
+      setError('Thanh toán chưa hoàn tất. Đơn của bạn vẫn được giữ đến hết thời gian thanh toán.');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (resumeOrderId || !event || !selection.length || creationStarted.current) return;
 
     if (!queueAccessToken) {
       clearStoredQueueAdmission();
@@ -117,6 +238,10 @@ export function CheckoutPage() {
           setCreatedOrder(order);
           // The order is now holding the inventory, so its waiting-room slot is released for the next buyer.
           clearStoredQueueAdmission();
+          navigate(`/checkout?orderId=${encodeURIComponent(order.id)}`, {
+            replace: true,
+            state: { event, selection },
+          });
         })
         .catch((requestError: unknown) => {
           if (!active) return;
@@ -162,7 +287,7 @@ export function CheckoutPage() {
       window.clearTimeout(timeoutId);
       creationStarted.current = false;
     };
-  }, [event, navigate, queueAccessToken, selection]);
+  }, [event, navigate, queueAccessToken, resumeOrderId, selection]);
 
   useEffect(() => {
     if (!paymentCountdown.isWarning || paymentCountdown.isExpired || paymentWarningShown.current)
@@ -178,6 +303,36 @@ export function CheckoutPage() {
     setError('Thời gian thanh toán đã hết. Vui lòng quay lại chọn vé và tạo đơn mới.');
     toast.error('Đã hết thời gian thanh toán.');
   }, [paymentCountdown.isExpired, toast]);
+
+  if (restoringOrder) {
+    return (
+      <section className="checkout-missing page-width state-panel" aria-live="polite">
+        <span className="state-icon" aria-hidden="true">…</span>
+        <h1>Đang khôi phục đơn thanh toán</h1>
+        <p>TicketBox đang kiểm tra trạng thái mới nhất của đơn hàng.</p>
+      </section>
+    );
+  }
+
+  if (resumeUnavailable) {
+    return (
+      <section className="checkout-missing page-width state-panel">
+        <span className="state-icon" aria-hidden="true">!</span>
+        <h1>Không thể tiếp tục thanh toán</h1>
+        <p>{resumeUnavailable}</p>
+        <div className="confirmation-actions">
+          {event ? (
+            <Link className="button button-primary" to={`/concerts/${event.id}`}>
+              Xem lại concert
+            </Link>
+          ) : null}
+          <Link className="button button-secondary" to="/profile">
+            Xem đơn hàng
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   if (!event || !selection.length) {
     return (
@@ -221,8 +376,7 @@ export function CheckoutPage() {
     setProcessing(true);
 
     try {
-      const pendingPayment = { event, selection, orderId: createdOrder.id };
-      sessionStorage.setItem(PENDING_PAYMENT_STORAGE_KEY, JSON.stringify(pendingPayment));
+      rememberPendingPayment(createdOrder.id, provider);
 
       const payment = await initiatePayment(createdOrder.id, provider);
       if (!payment.paymentUrl) {
@@ -301,16 +455,16 @@ export function CheckoutPage() {
           {'<'} Chi tiết sự kiện
         </button>
         <div className="flow-steps" aria-label="Tiến trình đặt vé">
-          <span>
-            1 <i>Vé</i>
+          <span className="flow-step">
+            <b>1</b><i>Vé</i>
           </span>
-          <b />
-          <span className="active">
-            2 <i>Thanh toán</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step active">
+            <b>2</b><i>Thanh toán</i>
           </span>
-          <b />
-          <span>
-            3 <i>Hoàn tất</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step">
+            <b>3</b><i>Hoàn tất</i>
           </span>
         </div>
         <div
@@ -390,10 +544,6 @@ export function CheckoutPage() {
                 </label>
               ))}
             </div>
-            <p className="payment-explainer">
-              TicketBox tạo đơn chờ thanh toán trước. Backend xác nhận tồn kho và tổng tiền cuối
-              cùng trước khi mở nhà cung cấp thanh toán đã chọn.
-            </p>
           </section>
         </div>
 

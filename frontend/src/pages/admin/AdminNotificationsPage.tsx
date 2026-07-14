@@ -131,7 +131,11 @@ export function AdminNotificationsPage() {
         </div>
       ) : null}
 
-      <div className="admin-toolbar">
+      <div className="admin-toolbar admin-reminder-toolbar">
+        <div className="admin-reminder-copy">
+          <span>Nhắc lịch thủ công</span>
+          <small>Chọn concert và gửi email nhắc lịch cho khách giữ vé hợp lệ.</small>
+        </div>
         <ConcertPicker
           concerts={concerts}
           value={selectedConcertId}
@@ -141,6 +145,7 @@ export function AdminNotificationsPage() {
           disabled={loading || !concerts.length}
         />
         <button
+          className="admin-primary-action"
           type="button"
           onClick={() => void sendReminder()}
           disabled={!selectedConcertId || sendingReminder}

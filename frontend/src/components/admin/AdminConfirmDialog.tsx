@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { ModalPortal } from '../feedback/ModalPortal';
 
 type AdminConfirmDialogProps = {
   title: string;
@@ -37,13 +38,14 @@ export function AdminConfirmDialog({
   }, [loading, onClose]);
 
   return (
-    <div
-      className="admin-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !loading) onClose();
-      }}
-    >
+    <ModalPortal>
+      <div
+        className="admin-dialog-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !loading) onClose();
+        }}
+      >
       <section
         className="admin-confirm-dialog"
         role="alertdialog"
@@ -84,6 +86,7 @@ export function AdminConfirmDialog({
           </button>
         </footer>
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }

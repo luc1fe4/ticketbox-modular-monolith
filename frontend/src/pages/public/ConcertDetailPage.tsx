@@ -209,9 +209,7 @@ export function ConcertDetailPage() {
                     <div>
                       <strong>{ticketType.name}</strong>
                       <span>
-                        {ticketType.availableQty > 0
-                          ? `Còn ${ticketType.availableQty} vé`
-                          : 'Hết vé'}
+                        {ticketType.availableQty > 0 ? 'Còn vé' : 'Hết vé'}
                       </span>
                     </div>
                     <strong>{currency.format(ticketType.price)}</strong>

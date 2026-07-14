@@ -11,6 +11,7 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
   const [initialLoadFailed, setInitialLoadFailed] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const refreshRef = useRef<() => void>(() => undefined);
+  const ticketTypeOrderRef = useRef<string[]>([]);
 
   const refresh = useCallback(() => {
     refreshRef.current();
@@ -31,6 +32,7 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
     let timeoutId: number | undefined;
     setLoading(true);
     setInitialLoadFailed(false);
+    ticketTypeOrderRef.current = [];
 
     function scheduleNextRefresh() {
       window.clearTimeout(timeoutId);
@@ -50,7 +52,17 @@ export function useTicketAvailability(concertId?: string, refreshKey = 0) {
       try {
         const types = await getConcertTicketTypes(activeConcertId, controller.signal);
         if (!active) return;
-        setTicketTypes(types.filter((item) => item.isActive));
+        const activeTypes = types.filter((item) => item.isActive);
+        if (ticketTypeOrderRef.current.length === 0) {
+          ticketTypeOrderRef.current = activeTypes.map((item) => item.id);
+        } else {
+          const knownIds = new Set(ticketTypeOrderRef.current);
+          ticketTypeOrderRef.current.push(
+            ...activeTypes.filter((item) => !knownIds.has(item.id)).map((item) => item.id),
+          );
+        }
+        const orderById = new Map(ticketTypeOrderRef.current.map((id, index) => [id, index]));
+        setTicketTypes([...activeTypes].sort((left, right) => orderById.get(left.id)! - orderById.get(right.id)!));
         setLastUpdatedAt(new Date());
         setUpdatesDelayed(false);
         setInitialLoadFailed(false);

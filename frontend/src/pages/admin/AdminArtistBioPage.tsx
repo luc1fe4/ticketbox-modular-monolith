@@ -30,6 +30,7 @@ import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 const statuses: Array<{ value: '' | ArtistBioJobStatus; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -706,13 +707,14 @@ function ArtistBioReviewDialog({
   }, [busy, onClose]);
 
   return (
-    <div
-      className="admin-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
-      }}
-    >
+    <ModalPortal>
+      <div
+        className="admin-dialog-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) onClose();
+        }}
+      >
       <section
         className="admin-dialog ai-review-dialog"
         role="dialog"
@@ -799,6 +801,7 @@ function ArtistBioReviewDialog({
           ) : null}
         </footer>
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }

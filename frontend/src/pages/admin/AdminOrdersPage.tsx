@@ -12,6 +12,7 @@ import {
 import type { Order, OrderStatus } from '../../api/orders';
 import type { Ticket as TicketType } from '../../api/tickets';
 import type { ConcertDetail } from '../../api/concerts';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 // ---- Status badge helpers ----
 
@@ -83,7 +84,8 @@ function fmtDate(iso: string) {
 
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
   return (
-    <div className="admin-dialog-backdrop" onClick={onClose}>
+    <ModalPortal>
+      <div className="admin-dialog-backdrop" onClick={onClose}>
       <div className="admin-dialog admin-dialog-compact" onClick={(e) => e.stopPropagation()}>
         <header>
           <div>
@@ -142,7 +144,8 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }
 
@@ -226,8 +229,8 @@ function TicketTab({
 
   return (
     <div>
-      <div className="admin-toolbar">
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div className="admin-toolbar admin-filter-toolbar">
+        <div className="admin-filter-controls">
           <Filter size={14} style={{ color: 'var(--muted)' }} />
           <select value={concertId} onChange={(e) => setConcertId(e.target.value)}>
             <option value="">— Chọn concert —</option>
@@ -414,35 +417,14 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
       />
 
       {/* Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 0,
-          borderBottom: '1px solid #d9dee8',
-          marginBottom: 28,
-          background: '#fff',
-        }}
-      >
+      <div className="admin-section-tabs" role="tablist" aria-label="Đơn hàng và vé">
         {(['orders', 'tickets'] as TabId[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '12px 22px',
-              background: activeTab === tab ? '#eef4ff' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === tab ? '2px solid #1457d9' : '2px solid transparent',
-              color: activeTab === tab ? '#1457d9' : '#667085',
-              fontFamily: 'Manrope, sans-serif',
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: 'pointer',
-              transition: 'color .18s ease',
-              marginBottom: -1,
-            }}
+            className={`admin-section-tab${activeTab === tab ? ' is-active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === tab}
           >
             {tab === 'orders' ? <Receipt size={14} /> : <Ticket size={14} />}
             {tab === 'orders' ? 'Đơn hàng' : 'Vé'}
@@ -454,7 +436,7 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
       {activeTab === 'orders' && (
         <div>
           {/* Stats */}
-          <div className="admin-inline-stats" style={{ marginBottom: 24 }}>
+          <div className="admin-inline-stats admin-order-stats">
             <div>
               <span>Tổng đơn</span>
               <strong>{stats.total}</strong>
@@ -470,8 +452,8 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
           </div>
 
           {/* Toolbar */}
-          <div className="admin-toolbar">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="admin-toolbar admin-filter-toolbar">
+            <div className="admin-filter-controls">
               <Filter size={14} style={{ color: 'var(--muted)' }} />
               <select value={concertFilter} onChange={(e) => setConcertFilter(e.target.value)}>
                 <option value="">Tất cả concert</option>
