@@ -169,13 +169,13 @@ export function SeatSelectionPage() {
 
       if (requestError.status === 409) {
         if (requestError.message.toLowerCase().includes('limit')) {
-          const message = 'You have reached the per-account limit for this ticket type.';
+          const message = 'Bạn đã đạt giới hạn mua cho hạng vé này theo tài khoản.';
           setInventoryNotice(message);
           toast.error(message);
           return;
         }
-        setInventoryNotice('This ticket type just sold out or no longer has enough tickets.');
-        toast.error('This ticket type just sold out or no longer has enough tickets.');
+        setInventoryNotice('Hạng vé này vừa hết hoặc không còn đủ số lượng.');
+        toast.error('Hạng vé này vừa hết hoặc không còn đủ số lượng.');
         refresh();
         return;
       }
@@ -187,7 +187,7 @@ export function SeatSelectionPage() {
     }
 
     toast.error(
-      requestError instanceof Error ? requestError.message : 'Ticket hold could not be updated.',
+      requestError instanceof Error ? requestError.message : 'Không thể cập nhật lượt giữ vé.',
     );
   }
 
@@ -201,14 +201,14 @@ export function SeatSelectionPage() {
 
     const currentQuantity = heldQuantities[ticketType.id] ?? 0;
     if (delta > 0 && currentQuantity >= ticketType.maxPerAccount) {
-      const message = `Maximum ${ticketType.maxPerAccount} tickets per account for ${ticketType.name}.`;
+      const message = `Tối đa ${ticketType.maxPerAccount} vé cho mỗi tài khoản đối với hạng vé ${ticketType.name}.`;
       setInventoryNotice(message);
       toast.error(message);
       return;
     }
     if (delta > 0 && ticketType.availableQty <= 0) {
-      setInventoryNotice('This ticket type just sold out or no longer has enough tickets.');
-      toast.error('This ticket type just sold out or no longer has enough tickets.');
+      setInventoryNotice('Hạng vé này vừa hết hoặc không còn đủ số lượng.');
+      toast.error('Hạng vé này vừa hết hoặc không còn đủ số lượng.');
       refresh();
       return;
     }
@@ -342,10 +342,10 @@ export function SeatSelectionPage() {
           className={`timer countdown-timer ${selectionCountdown.isExpired ? 'expired' : selectionCountdown.isWarning ? 'warning' : updatesDelayed ? 'delayed' : ''}`}
           role="status"
           title={
-            lastUpdatedAt ? `Inventory updated ${lastUpdatedAt.toLocaleTimeString()}` : undefined
+            lastUpdatedAt ? `Số lượng vé cập nhật lúc ${lastUpdatedAt.toLocaleTimeString()}` : undefined
           }
         >
-          <span>Ticket selection time</span>
+          <span>Thời gian chọn vé</span>
           <strong>{queueAdmission ? selectionCountdown.formatted : '--:--'}</strong>
         </div>
       </div>
@@ -364,11 +364,11 @@ export function SeatSelectionPage() {
         <section className="zone-map-panel" aria-labelledby="zone-map-title">
           <div className="panel-heading">
             <div>
-              <span>Interactive SVG</span>
-              <h2 id="zone-map-title">Select a zone</h2>
+              <span>Sơ đồ SVG tương tác</span>
+              <h2 id="zone-map-title">Chọn phân khu</h2>
             </div>
             <div className="map-legend">
-              <i /> Available <i /> Selected <i /> Sold out
+              <i /> Còn vé <i /> Đang chọn <i /> Hết vé
             </div>
           </div>
           <ConcertSeatMap
@@ -377,13 +377,13 @@ export function SeatSelectionPage() {
             disabledTicketTypeIds={soldOutTicketTypeIds}
             onZoneSelect={setSelectedZone}
           />
-          <p className="map-note">Select a zone on the map or from the ticket list.</p>
+          <p className="map-note">Chọn phân khu trên sơ đồ hoặc từ danh sách vé.</p>
         </section>
         <aside className="ticket-picker">
           <div className="panel-heading">
             <div>
-              <span>Live availability</span>
-              <h2>Choose tickets</h2>
+              <span>Số vé còn lại trực tiếp</span>
+              <h2>Chọn vé</h2>
             </div>
           </div>
           {inventoryNotice ? (
@@ -421,19 +421,19 @@ export function SeatSelectionPage() {
                       <strong>{ticketType.name}</strong>
                       <small>
                         {quantity > 0
-                          ? `${quantity} held for checkout`
-                          : `Maximum ${ticketType.maxPerAccount} per account`}
+                          ? `${quantity} vé đang giữ`
+                          : `Tối đa ${ticketType.maxPerAccount} vé/tài khoản`}
                       </small>
                     </span>
                   </button>
                   <div className="zone-price">
                     <strong>{currency.format(ticketType.price)}</strong>
-                    <small>{soldOut ? 'Sold out' : `${ticketType.availableQty} available`}</small>
+                    <small>{soldOut ? 'Hết vé' : `Còn ${ticketType.availableQty} vé`}</small>
                   </div>
                   <div className="quantity-control" aria-busy={loadingAction ? 'true' : undefined}>
                     <button
                       type="button"
-                      aria-label={`Remove one ${ticketType.name} ticket`}
+                      aria-label={`Bỏ một vé ${ticketType.name}`}
                       disabled={quantity === 0 || Boolean(loadingAction)}
                       onClick={() => void updateQuantity(ticketType, -1)}
                     >
@@ -442,7 +442,7 @@ export function SeatSelectionPage() {
                     <span aria-live="polite">{quantity}</span>
                     <button
                       type="button"
-                      aria-label={`Add one ${ticketType.name} ticket`}
+                      aria-label={`Thêm một vé ${ticketType.name}`}
                       disabled={!canReserveMore || Boolean(loadingAction)}
                       onClick={() => void updateQuantity(ticketType, 1)}
                     >
@@ -451,7 +451,7 @@ export function SeatSelectionPage() {
                   </div>
                   {loadingAction ? (
                     <span className="zone-hold-status" role="status">
-                      {loadingAction === 'reserve' ? 'Holding...' : 'Releasing...'}
+                      {loadingAction === 'reserve' ? 'Đang giữ...' : 'Đang giải phóng...'}
                     </span>
                   ) : null}
                 </div>
@@ -461,7 +461,7 @@ export function SeatSelectionPage() {
           <div className="selection-summary">
             <div>
               <span>
-                {ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}
+                {ticketCount} vé
               </span>
               <strong>{currency.format(subtotal)}</strong>
             </div>
@@ -469,25 +469,24 @@ export function SeatSelectionPage() {
               className={`hold-timer ${selectionCountdown.isExpired ? 'expired' : selectionCountdown.isWarning ? 'warning' : ''}`}
               role="status"
             >
-              <span>Ticket selection time</span>
+              <span>Thời gian chọn vé</span>
               <strong>{queueAdmission ? selectionCountdown.formatted : '--:--'}</strong>
             </div>
             {selectionCountdown.isWarning && !selectionCountdown.isExpired ? (
-              <p className="timer-warning-copy">Your 10-minute shopping session is almost over.</p>
+              <p className="timer-warning-copy">Phiên mua vé 10 phút của bạn sắp kết thúc.</p>
             ) : null}
             {selection.length ? (
               <ul className="held-ticket-list" aria-label="Vé đang giữ">
                 {selection.map((item) => (
                   <li key={item.id}>
                     <span>{item.name}</span>
-                    <strong>{item.quantity} held</strong>
+                    <strong>Đang giữ {item.quantity} vé</strong>
                   </li>
                 ))}
               </ul>
             ) : null}
             <p>
-              Only tickets successfully held by the backend appear here. This timer comes from your
-              waiting-room session.
+              Chỉ những vé đã được máy chủ giữ thành công mới xuất hiện ở đây. Bộ đếm thời gian này lấy từ phiên phòng chờ của bạn.
             </p>
             <button
               className="button button-primary button-block"
@@ -495,7 +494,7 @@ export function SeatSelectionPage() {
               disabled={!ticketCount || !queueAdmission || selectionCountdown.isExpired}
               onClick={continueToCheckout}
             >
-              Continue to checkout <span aria-hidden="true">-&gt;</span>
+              Tiếp tục thanh toán <span aria-hidden="true">-&gt;</span>
             </button>
           </div>
         </aside>

@@ -191,7 +191,7 @@ export function AdminNotificationsPage() {
                       <span
                         className={`status-badge ${item.status === 'FAILED' ? 'badge-error' : item.status === 'SENT' ? 'badge-success' : 'badge-warning'}`}
                       >
-                        {item.status}
+                        {item.status === 'SENT' ? 'ĐÃ GỬI' : item.status === 'FAILED' ? 'THẤT BẠI' : 'ĐANG CHỜ'}
                       </span>
                     </td>
                     <td>
@@ -200,7 +200,7 @@ export function AdminNotificationsPage() {
                       </strong>
                       <span className="admin-table-secondary">
                         {item.sentAt
-                          ? `Sent ${dateTime.format(new Date(item.sentAt))}`
+                          ? `Đã gửi lúc ${dateTime.format(new Date(item.sentAt))}`
                           : 'Chưa gửi'}
                       </span>
                     </td>

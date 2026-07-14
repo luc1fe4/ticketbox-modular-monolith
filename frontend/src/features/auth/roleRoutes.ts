@@ -8,10 +8,10 @@ export const roleHome: Record<UserRole, string> = {
 };
 
 export const roleHomeLabel: Record<UserRole, string> = {
-  AUDIENCE: 'Back to events',
-  ORGANIZER: 'Organizer studio',
-  STAFF: 'Gate operations',
-  ADMIN: 'Administration',
+  AUDIENCE: 'Quay lại sự kiện',
+  ORGANIZER: 'Không gian nhà tổ chức',
+  STAFF: 'Vận hành cổng',
+  ADMIN: 'Quản trị hệ thống',
 };
 
 export function getRoleHome(role?: UserRole | null) {
@@ -19,5 +19,5 @@ export function getRoleHome(role?: UserRole | null) {
 }
 
 export function getRoleHomeLabel(role?: UserRole | null) {
-  return role ? roleHomeLabel[role] : 'TicketBox home';
+  return role ? roleHomeLabel[role] : 'Trang chủ TicketBox';
 }
