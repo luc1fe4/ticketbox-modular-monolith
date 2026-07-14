@@ -3,9 +3,6 @@ spring:
     name: ticketbox-api
   profiles:
     default: dev
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
 
 server:
   port: 8080
