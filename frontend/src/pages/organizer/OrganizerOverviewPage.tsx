@@ -13,7 +13,7 @@ import { useAuth } from '../../features/auth/AuthContext';
 const workspaces = [
   {
     to: '/organizer/concerts',
-    title: 'Concert',
+    title: 'Buổi diễn',
     copy: 'Tạo chương trình, cập nhật thông tin và điều phối trạng thái bán.',
     icon: CalendarDays,
   },

@@ -36,7 +36,7 @@ export function WaitingRoomPage() {
       })
       .catch((requestError) => {
         if (active && !isRequestCanceled(requestError))
-          setError('This concert could not be loaded.');
+          setError('Không thể tải thông tin buổi biểu diễn này.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -148,7 +148,7 @@ export function WaitingRoomPage() {
   const waitLabel = useMemo(() => {
     if (!queueStatus?.estimatedWaitSeconds) return 'Đang tính';
     const minutes = Math.max(1, Math.ceil(queueStatus.estimatedWaitSeconds / 60));
-    return minutes === 1 ? 'About 1 min' : `About ${minutes} mins`;
+    return minutes === 1 ? 'Khoảng 1 phút' : `Khoảng ${minutes} phút`;
   }, [queueStatus]);
 
   async function leave() {
@@ -222,7 +222,7 @@ export function WaitingRoomPage() {
             <p>
               {concert
                 ? `${eventDate.format(new Date(concert.eventDate))} / ${concert.venueName}`
-                : 'Hold your place while TicketBox admits buyers in order.'}
+                : 'Vui lòng giữ vị trí của bạn trong khi TicketBox duyệt người mua theo thứ tự.'}
             </p>
           </div>
 
@@ -232,7 +232,7 @@ export function WaitingRoomPage() {
               role="timer"
               aria-label={`Mở bán sau ${countdown(concert?.saleStartAt, now)}`}
             >
-              <span>Ticket sales open in</span>
+              <span>Mở bán vé sau</span>
               <strong>{countdown(concert?.saleStartAt, now)}</strong>
             </div>
           ) : (

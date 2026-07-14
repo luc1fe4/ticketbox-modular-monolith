@@ -87,6 +87,15 @@ The database seed data automatically creates these primary credentials for demo 
 | **Admin**    | `admin@ticketbox.com`    | `password123` | Full access to operations dashboard, user role management, status updates, check-ins |
 | **Staff**    | `staff@ticketbox.com`    | `password123` | Check-in attendees, search guests, use mobile ticket scanner flows |
 
+Additionally, the database seed includes these alternative test accounts (`.vn` domain) with password `password123` for testing and RBAC validation:
+
+| Role | Email | Password | Main Use Cases & Permissions |
+| --- | --- | --- | --- |
+| **Audience** | `audience@ticketbox.vn` | `password123` | Alternative audience account for testing and RBAC validation |
+| **Organizer**| `organizer@ticketbox.vn`| `password123` | Alternative organizer account for testing and RBAC validation |
+| **Admin**    | `admin@ticketbox.vn`    | `password123` | Alternative admin account for testing and RBAC validation |
+| **Staff**    | `staff@ticketbox.vn`    | `password123` | Alternative staff account for testing and RBAC validation |
+
 ---
 
 ## Role-Based Access Control (RBAC) Matrix

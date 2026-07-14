@@ -163,8 +163,8 @@ export function ProfilePage() {
     if (!profile) return [];
     return [
       { label: 'Email', value: profile.email },
-      { label: 'Phone', value: profile.phone || 'Chưa cập nhật' },
-      { label: 'Role', value: roleLabels[profile.role] },
+      { label: 'Số điện thoại', value: profile.phone || 'Chưa cập nhật' },
+      { label: 'Vai trò', value: roleLabels[profile.role] },
     ];
   }, [profile]);
 
@@ -273,7 +273,7 @@ export function ProfilePage() {
           className={activeTab === 'profile' ? 'active' : ''}
           onClick={() => setActiveTab('profile')}
         >
-          Profile
+          Hồ sơ
         </button>
         {showAudienceHistory ? (
           <>
