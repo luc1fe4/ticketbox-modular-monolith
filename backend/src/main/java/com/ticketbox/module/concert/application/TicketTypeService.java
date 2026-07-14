@@ -60,7 +60,7 @@ public class TicketTypeService {
                 Concert.Status.SOLD_OUT
         );
         concertRepository.findByIdAndStatusInAndPublicVisibleTrue(concertId, publicStatuses)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert"));
 
         return ticketTypeRepository.findByConcertIdAndIsActiveTrue(concertId).stream()
                 .map(ticketTypeMapper::toResponse)
@@ -119,7 +119,7 @@ public class TicketTypeService {
         verifyConcertOwnership(concert, requesterId, isAdmin);
         
         if (ticketType.getAvailableQty() < ticketType.getTotalQuantity()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot update ticket type after sales have begun");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể cập nhật hạng vé sau khi đã bắt đầu bán");
         }
 
         int difference = request.totalQuantity() - ticketType.getTotalQuantity();
@@ -149,7 +149,7 @@ public class TicketTypeService {
         verifyConcertOwnership(concert, requesterId, isAdmin);
         
         if (ticketType.getAvailableQty() < ticketType.getTotalQuantity()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot delete ticket type that has active sales");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể xóa hạng vé đã phát sinh bán vé");
         }
 
         UUID concertId = ticketType.getConcertId();
@@ -159,23 +159,23 @@ public class TicketTypeService {
 
     private Concert getConcertOrThrow(UUID concertId) {
         return concertRepository.findById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert"));
     }
 
     private TicketType getTicketTypeOrThrow(UUID id) {
         return ticketTypeRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Ticket type not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hạng vé"));
     }
 
     private void verifyConcertExists(UUID concertId) {
         if (!concertRepository.existsById(concertId)) {
-            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found");
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert");
         }
     }
 
     private void verifyConcertOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
         if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify ticket types for this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn không có quyền chỉnh sửa hạng vé của concert này");
         }
     }
 

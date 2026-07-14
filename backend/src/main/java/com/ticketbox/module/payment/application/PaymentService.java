@@ -69,9 +69,9 @@ public class PaymentService {
 
     public PaymentStatusResponse getPaymentStatus(UUID orderId, UUID userId) {
         OrderView order = orderPort.findOrderById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
         if (!order.userId().equals(userId)) {
-            throw new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found");
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng");
         }
         return new PaymentStatusResponse(
                 order.id(),
@@ -94,27 +94,27 @@ public class PaymentService {
         OrderView order = orderPort.findOrderById(result.orderId())
                 .orElse(null);
         if (order == null) {
-            return new WebhookHandleResult("01", "Order not found");
+            return new WebhookHandleResult("01", "Không tìm thấy đơn hàng");
         }
 
         if (result.amount() == null || result.amount().compareTo(order.totalAmount()) != 0) {
-            return new WebhookHandleResult("04", "Invalid amount");
+            return new WebhookHandleResult("04", "Số tiền không hợp lệ");
         }
 
         if ("PAID".equals(order.status())
                 || paymentLogRepository.existsByOrderIdAndEventType(result.orderId(), PaymentLog.EventType.SUCCESS)) {
-            return new WebhookHandleResult("02", "Order already confirmed");
+            return new WebhookHandleResult("02", "Đơn hàng đã được xác nhận");
         }
 
         if (!"AWAITING_PAYMENT".equals(order.status())) {
-            return new WebhookHandleResult("02", "Order is not payable");
+            return new WebhookHandleResult("02", "Đơn hàng không thể thanh toán");
         }
 
         PaymentLog.EventType eventType = result.success()
                 ? PaymentLog.EventType.SUCCESS
                 : PaymentLog.EventType.FAILED;
         if (paymentLogRepository.existsByOrderIdAndEventType(result.orderId(), eventType)) {
-            return new WebhookHandleResult("02", "Payment result already recorded");
+            return new WebhookHandleResult("02", "Kết quả thanh toán đã được ghi nhận");
         }
 
         PaymentLog log = new PaymentLog();
@@ -127,7 +127,7 @@ public class PaymentService {
         paymentLogRepository.save(log);
 
         if (!result.success()) {
-            return new WebhookHandleResult("00", "Payment failed result recorded");
+            return new WebhookHandleResult("00", "Đã ghi nhận kết quả thanh toán thất bại");
         }
 
         eventPublisher.publishEvent(
@@ -142,7 +142,7 @@ public class PaymentService {
                 )
         );
 
-        return new WebhookHandleResult("00", "Confirm Success");
+        return new WebhookHandleResult("00", "Xác nhận thành công");
     }
 
     @Transactional
@@ -152,10 +152,10 @@ public class PaymentService {
         }
 
         OrderView order = orderPort.findOrderById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (!"AWAITING_PAYMENT".equals(order.status())) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order is not in payable status");
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Đơn hàng không ở trạng thái có thể thanh toán");
         }
 
         PaymentLog successLog = new PaymentLog();
@@ -187,7 +187,7 @@ public class PaymentService {
         }
 
         OrderView order = orderPort.findOrderById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         PaymentLog failLog = new PaymentLog();
         failLog.setOrderId(orderId);
@@ -206,16 +206,16 @@ public class PaymentService {
         try {
             return PaymentLog.Provider.valueOf(providerName.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Unsupported payment provider: " + providerName);
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Nhà cung cấp thanh toán không được hỗ trợ: " + providerName);
         }
     }
 
     private OrderView getPayableOrder(UUID orderId) {
         OrderView order = orderPort.findOrderById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (!"AWAITING_PAYMENT".equals(order.status())) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order is not in payable status");
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Đơn hàng không ở trạng thái có thể thanh toán");
         }
 
         return order;

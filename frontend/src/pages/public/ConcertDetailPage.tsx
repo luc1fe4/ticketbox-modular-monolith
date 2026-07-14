@@ -120,6 +120,10 @@ export function ConcertDetailPage() {
         new Date(concert.saleEndAt),
       )
     : null;
+  const concertDateTime = new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(concertDate);
   const canEnterWaitingRoom = concert.status === 'ON_SALE' && !saleEnded && !waitingRoomNotOpen;
 
   return (
@@ -143,7 +147,7 @@ export function ConcertDetailPage() {
             </p>
           </div>
           <div className="detail-facts">
-            <Fact label="Ngày diễn" value={eventDate.format(concertDate)} />
+            <Fact label="Ngày diễn" value={concertDateTime} />
             <Fact label="Mở cửa" value={doorsOpen} />
             <Fact label="Địa điểm" value={concert.venueName} />
           </div>
@@ -152,7 +156,7 @@ export function ConcertDetailPage() {
       <section className="detail-body page-width">
         <article className="detail-story">
           {concert.artistBio ? (
-            <section className="artist-section artist-section-featured">
+            <section className="detail-section artist-section artist-section-featured">
               <p className="eyebrow">
                 <span /> Nghệ sĩ biểu diễn
               </p>
@@ -162,31 +166,33 @@ export function ConcertDetailPage() {
               <p className="artist-biography">{concert.artistBio}</p>
             </section>
           ) : null}
-          <p className="eyebrow">
-            <span /> Về đêm diễn
-          </p>
-          <h2>
-            Trải nghiệm live được tạo nên từ <em>âm thanh, ánh sáng và kết nối.</em>
-          </h2>
-          <p>{concert.description || 'Một đêm nhạc live dành cho những người yêu âm nhạc.'}</p>
-          <div className="feature-row">
-            <Feature
-              number="01"
-              title="Sản xuất giàu trải nghiệm"
-              copy="Sân khấu điện ảnh cùng âm thanh không gian."
-            />
-            <Feature
-              number="02"
-              title="Vé chính thức"
-              copy={`${ticketTypes.length} khu vé đã xác thực.`}
-            />
-            <Feature
-              number="03"
-              title="Vào cổng dễ dàng"
-              copy="Vé mobile và đội ngũ hỗ trợ riêng."
-            />
-          </div>
-          <section className="ticket-types-section" aria-labelledby="ticket-types-title">
+          <section className="detail-section detail-about-section">
+            <p className="eyebrow">
+              <span /> Về đêm diễn
+            </p>
+            <h2>
+              Trải nghiệm live được tạo nên từ <em>âm thanh, ánh sáng và kết nối.</em>
+            </h2>
+            <p>{concert.description || 'Một đêm nhạc live dành cho những người yêu âm nhạc.'}</p>
+            <div className="feature-row">
+              <Feature
+                number="01"
+                title="Sản xuất giàu trải nghiệm"
+                copy="Sân khấu điện ảnh cùng âm thanh không gian."
+              />
+              <Feature
+                number="02"
+                title="Vé chính thức"
+                copy={`${ticketTypes.length} khu vé đã xác thực.`}
+              />
+              <Feature
+                number="03"
+                title="Vào cổng dễ dàng"
+                copy="Vé mobile và đội ngũ hỗ trợ riêng."
+              />
+            </div>
+          </section>
+          <section className="detail-section ticket-types-section" aria-labelledby="ticket-types-title">
             <p className="eyebrow">
               <span /> Lựa chọn vé
             </p>
@@ -227,7 +233,7 @@ export function ConcertDetailPage() {
           <div className="booking-divider" />
           <div className="booking-detail">
             <span>Ngày diễn</span>
-            <strong>{eventDate.format(concertDate)}</strong>
+            <strong>{concertDateTime}</strong>
           </div>
           <div className="booking-detail">
             <span>Mở bán</span>

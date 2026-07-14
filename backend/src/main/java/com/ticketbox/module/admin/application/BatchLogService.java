@@ -66,11 +66,11 @@ public class BatchLogService {
 
     public BatchLogResponse get(UUID id, UUID userId, boolean admin) {
         BatchLog log = batchLogRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Batch log not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy lịch sử import"));
         if (log.getConcertId() != null) {
             accessService.requireAccess(log.getConcertId(), userId, admin);
         } else if (!admin) {
-            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Batch log not found");
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy lịch sử import");
         }
         return toResponse(log);
     }

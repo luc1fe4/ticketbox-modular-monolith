@@ -116,7 +116,7 @@ class SecurityHardeningTest {
         UUID ticketTypeId = UUID.randomUUID();
 
         when(reservationService.reserve(eq(concertId), eq(ticketTypeId), anyInt(), any(), anyString()))
-                .thenThrow(new AppException(ErrorCode.UNAUTHORIZED, "Your shopping session has expired."));
+                .thenThrow(new AppException(ErrorCode.UNAUTHORIZED, "Phiên mua vé của bạn đã hết hạn"));
 
         mockMvc.perform(post("/api/reservations/concerts/" + concertId + "/ticket-types/" + ticketTypeId + "/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -124,7 +124,7 @@ class SecurityHardeningTest {
                         .header("Queue-Access-Token", "fake-or-expired-token")
                         .with(authentication(createAuthToken(User.Role.AUDIENCE))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Your shopping session has expired."));
+                .andExpect(jsonPath("$.message").value("Phiên mua vé của bạn đã hết hạn"));
     }
 
     // 6. Test reserve when sold out (conflict status 409)
@@ -134,7 +134,7 @@ class SecurityHardeningTest {
         UUID ticketTypeId = UUID.randomUUID();
 
         when(reservationService.reserve(eq(concertId), eq(ticketTypeId), anyInt(), any(), anyString()))
-                .thenThrow(new AppException(ErrorCode.TICKET_SOLD_OUT, "Tickets are sold out"));
+                .thenThrow(new AppException(ErrorCode.TICKET_SOLD_OUT, "Vé đã bán hết"));
 
         mockMvc.perform(post("/api/reservations/concerts/" + concertId + "/ticket-types/" + ticketTypeId + "/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -142,6 +142,6 @@ class SecurityHardeningTest {
                         .header("Queue-Access-Token", "valid-token")
                         .with(authentication(createAuthToken(User.Role.AUDIENCE))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Tickets are sold out"));
+                .andExpect(jsonPath("$.message").value("Vé đã bán hết"));
     }
 }

@@ -9,11 +9,13 @@ import {
   ImagePlus,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
   X,
   Map,
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   createConcert,
@@ -126,6 +128,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
   const [pageData, setPageData] = useState<Page<ConcertDetail> | null>(null);
   const [page, setPage] = useState(0);
   const [status, setStatus] = useState<'' | ConcertStatus>('');
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<ConcertDetail | null>(null);
@@ -202,6 +205,19 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       draft: content.filter((concert) => concert.status === 'DRAFT').length,
     };
   }, [pageData]);
+
+  const filteredConcerts = useMemo(() => {
+    const content = pageData?.content ?? [];
+    const keyword = query.trim().toLocaleLowerCase('vi-VN');
+    if (!keyword) return content;
+    return content.filter((concert) =>
+      [concert.title, concert.venueName, concert.venueAddress, statusLabel(concert.status)]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('vi-VN')
+        .includes(keyword),
+    );
+  }, [pageData?.content, query]);
 
   function openCreate() {
     setEditing(null);
@@ -361,6 +377,16 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       </section>
 
       <div className="admin-toolbar">
+        <label className="admin-search-control">
+          <Search aria-hidden="true" size={16} />
+          <span className="sr-only">Tìm concert</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Tìm concert, địa điểm..."
+          />
+        </label>
         <label>
           <span className="sr-only">Lọc theo trạng thái</span>
           <select
@@ -392,7 +418,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       <section className="admin-data-panel">
         {loading ? (
           <ConcertRowsSkeleton />
-        ) : pageData?.content.length ? (
+        ) : filteredConcerts.length ? (
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
@@ -408,7 +434,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                 </tr>
               </thead>
               <tbody>
-                {pageData.content.map((concert) => (
+                {filteredConcerts.map((concert) => (
                   <tr key={concert.id}>
                     <td>
                       <div className="admin-concert-cell">
@@ -516,7 +542,11 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
           <div className="admin-empty-state">
             <CalendarPlus aria-hidden="true" size={28} />
             <h2>Chưa có concert phù hợp</h2>
-            <p>Thay đổi bộ lọc hoặc tạo concert đầu tiên.</p>
+            <p>
+              {query.trim()
+                ? 'Thử đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.'
+                : 'Thay đổi bộ lọc hoặc tạo concert đầu tiên.'}
+            </p>
             <button className="admin-primary-action" type="button" onClick={openCreate}>
               Tạo concert
             </button>
@@ -659,7 +689,7 @@ function ConcertForm({
     reader.readAsText(file);
   };
 
-  return (
+  const dialog = (
     <div className="admin-dialog-backdrop" role="presentation">
       <section
         className="admin-dialog"
@@ -810,4 +840,6 @@ function ConcertForm({
       </section>
     </div>
   );
+
+  return createPortal(dialog, document.body);
 }

@@ -23,7 +23,7 @@ public class PaymentGatewayResolver {
     public PaymentGateway resolve(PaymentLog.Provider provider) {
         PaymentGateway gateway = gateways.get(provider);
         if (gateway == null) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Unsupported payment provider: " + provider);
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Nhà cung cấp thanh toán không được hỗ trợ: " + provider);
         }
         return gateway;
     }

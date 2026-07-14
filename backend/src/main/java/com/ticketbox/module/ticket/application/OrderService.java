@@ -96,16 +96,16 @@ public class OrderService {
         String lockToken = UUID.randomUUID().toString();
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, lockToken, Duration.ofSeconds(5));
         if (Boolean.FALSE.equals(acquired)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Another request is being processed. Please try again.");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Một yêu cầu khác đang được xử lý. Vui lòng thử lại");
         }
 
         releaseUserLockAfterTransaction(lockKey, lockToken);
 
         ConcertView concert = concertOrderPort.findConcertById(request.concertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         if (!"ON_SALE".equals(concert.status())) {
-            throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
+            throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert hiện không mở bán");
         }
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -113,7 +113,7 @@ public class OrderService {
                 || (concert.saleEndAt() != null && concert.saleEndAt().isBefore(now))) {
             throw new AppException(
                     ErrorCode.SALE_NOT_OPEN,
-                    "Ticket sale has not started or has ended for: " + concert.title()
+                    "Thời gian bán vé chưa bắt đầu hoặc đã kết thúc cho: " + concert.title()
             );
         }
 
@@ -140,21 +140,21 @@ public class OrderService {
             if (type == null) {
                 throw new AppException(
                         ErrorCode.TICKET_TYPE_NOT_IN_CONCERT,
-                        "Ticket type not found: " + itemRequest.ticketTypeId()
+                        "Không tìm thấy hạng vé: " + itemRequest.ticketTypeId()
                 );
             }
 
             if (!request.concertId().equals(type.concertId())) {
                 throw new AppException(
                         ErrorCode.TICKET_TYPE_NOT_IN_CONCERT,
-                        "Ticket type does not belong to this concert"
+                        "Hạng vé không thuộc concert này"
                 );
             }
 
             if (!type.isActive()) {
                 throw new AppException(
                         ErrorCode.TICKET_TYPE_NOT_IN_CONCERT,
-                        "Ticket type is not active"
+                        "Hạng vé hiện không được mở bán"
                 );
             }
 
@@ -169,8 +169,8 @@ public class OrderService {
             if (alreadyOrdered + itemRequest.quantity() > type.maxPerAccount()) {
                 throw new AppException(
                         ErrorCode.TICKET_LIMIT_EXCEEDED,
-                        "Purchase limit exceeded for zone: " + type.name()
-                                + " (Max: " + type.maxPerAccount() + ")"
+                        "Bạn đã vượt quá giới hạn mua vé cho khu vực " + type.name()
+                                + " (tối đa: " + type.maxPerAccount() + ")"
                 );
             }
 
@@ -185,7 +185,7 @@ public class OrderService {
                 if (!reserved) {
                     throw new AppException(
                             ErrorCode.TICKET_SOLD_OUT,
-                            "Tickets are sold out for zone: " + type.name()
+                            "Vé đã bán hết cho khu vực " + type.name()
                     );
                 }
             }
@@ -281,24 +281,24 @@ public class OrderService {
             List<OrderItem> orderItems = itemsByOrderId.getOrDefault(order.getId(), Collections.emptyList());
             List<OrderItemResponse> itemResponses = orderItems.stream()
                     .map(item -> {
-                        String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type");
+                        String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé");
                         return orderMapper.toItemResponse(item, typeName);
                     })
                     .toList();
 
-            String concertTitle = concertTitles.getOrDefault(order.getConcertId(), "Unknown Concert");
+            String concertTitle = concertTitles.getOrDefault(order.getConcertId(), "Không rõ concert");
             return orderMapper.toResponse(order, itemResponses, concertTitle);
         }).toList();
     }
 
     public OrderResponse getOrderDetail(UUID id, UUID userId) {
         Order order = orderRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
 
         ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         List<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).toList();
         List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(ticketTypeIds);
@@ -307,7 +307,7 @@ public class OrderService {
 
         List<OrderItemResponse> itemResponses = items.stream()
                 .map(item -> {
-                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type");
+                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé");
                     return orderMapper.toItemResponse(item, typeName);
                 })
                 .toList();
@@ -391,27 +391,27 @@ public class OrderService {
         return orders.stream().map(order -> {
             List<OrderItem> items = itemsByOrderId.getOrDefault(order.getId(), Collections.emptyList());
             List<OrderItemResponse> itemResponses = items.stream()
-                    .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                    .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé")))
                     .toList();
-            return orderMapper.toResponse(order, itemResponses, concertTitles.getOrDefault(order.getConcertId(), "Unknown Concert"));
+            return orderMapper.toResponse(order, itemResponses, concertTitles.getOrDefault(order.getConcertId(), "Không rõ concert"));
         }).toList();
     }
 
     public OrderResponse getAdminOrderDetail(UUID orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
 
         ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         List<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).toList();
         Map<UUID, String> ticketTypeNames = concertOrderPort.findTicketTypesByIds(ticketTypeIds).stream()
                 .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
 
         List<OrderItemResponse> itemResponses = items.stream()
-                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé")))
                 .toList();
 
         return orderMapper.toResponse(order, itemResponses, concert.title());
@@ -419,7 +419,7 @@ public class OrderService {
 
     public OrderResponse getManagedOrderDetail(UUID orderId, UUID requesterId, boolean admin) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
         if (!admin) {
             requireOwnedConcert(order.getConcertId(), requesterId);
         }
@@ -430,14 +430,14 @@ public class OrderService {
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
 
         ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         List<UUID> ticketTypeIds = items.stream().map(OrderItem::getTicketTypeId).toList();
         Map<UUID, String> ticketTypeNames = concertOrderPort.findTicketTypesByIds(ticketTypeIds).stream()
                 .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
 
         List<OrderItemResponse> itemResponses = items.stream()
-                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type")))
+                .map(item -> orderMapper.toItemResponse(item, ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé")))
                 .toList();
 
         return orderMapper.toResponse(order, itemResponses, concert.title());
@@ -445,21 +445,21 @@ public class OrderService {
 
     private void requireOwnedConcert(UUID concertId, UUID organizerId) {
         if (!concertOrderPort.isConcertOwnedBy(concertId, organizerId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not manage this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn không quản lý concert này");
         }
     }
 
     public OrderResponse retryPayment(UUID orderId, UUID userId) {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Only AWAITING_PAYMENT orders can be retried. Current status: " + order.getStatus());
+                    "Chỉ có thể thanh toán lại đơn đang chờ thanh toán. Trạng thái hiện tại: " + order.getStatus());
         }
 
         if (order.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order payment window has expired");
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Thời hạn thanh toán đơn hàng đã hết");
         }
 
         return toOrderResponse(order);
@@ -468,11 +468,11 @@ public class OrderService {
     @Transactional
     public OrderResponse cancelOrder(UUID orderId, UUID userId) {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Only AWAITING_PAYMENT orders can be cancelled. Current status: " + order.getStatus());
+                    "Chỉ có thể hủy đơn đang chờ thanh toán. Trạng thái hiện tại: " + order.getStatus());
         }
 
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
@@ -491,11 +491,11 @@ public class OrderService {
                 .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
 
         ConcertView concert = concertOrderPort.findConcertById(order.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         List<OrderItemResponse> itemResponses = items.stream()
                 .map(item -> {
-                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Unknown Type");
+                    String typeName = ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Không rõ hạng vé");
                     return orderMapper.toItemResponse(item, typeName);
                 })
                 .toList();
@@ -537,7 +537,7 @@ public class OrderService {
     @Transactional
     public void handlePaymentSuccess(UUID orderId, String provider, String providerRef) {
         Order order = orderRepository.findByIdForUpdate(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() == Order.Status.PAID) {
             return;
@@ -545,7 +545,7 @@ public class OrderService {
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Cannot mark order as PAID from status: " + order.getStatus());
+                    "Không thể đánh dấu đã thanh toán từ trạng thái: " + order.getStatus());
         }
 
         order.setStatus(Order.Status.PAID);

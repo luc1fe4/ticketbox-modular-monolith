@@ -60,7 +60,7 @@ public class ConcertReminderScheduler {
 
     public int sendReminderForConcert(UUID concertId) {
         ConcertReminderView concert = concertReminderPort.findReminderConcertById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found or not eligible for reminders"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert hoặc concert chưa đủ điều kiện gửi nhắc lịch"));
         List<UUID> userIds = ticketReminderRecipientPort.findDistinctUserIdsByConcertId(concert.id());
         for (UUID userId : userIds) {
             processReminder(concert, userId);

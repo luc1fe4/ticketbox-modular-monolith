@@ -41,9 +41,9 @@ public class TicketService {
                 .map(t -> new TicketResponse(
                         t.getId(),
                         t.getConcertId(),
-                        concertMap.getOrDefault(t.getConcertId(), "Unknown Concert"),
+                        concertMap.getOrDefault(t.getConcertId(), "Không rõ concert"),
                         t.getTicketTypeId(),
-                        ticketTypeMap.getOrDefault(t.getTicketTypeId(), "Unknown Type"),
+                        ticketTypeMap.getOrDefault(t.getTicketTypeId(), "Không rõ hạng vé"),
                         t.getQrCode(),
                         t.getStatus().name(),
                         t.getIssuedAt()
@@ -53,14 +53,14 @@ public class TicketService {
 
     public TicketResponse getTicketDetail(UUID ticketId, UUID userId) {
         Ticket t = ticketRepository.findByIdAndUserId(ticketId, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.TICKET_NOT_FOUND, "Ticket not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.TICKET_NOT_FOUND, "Không tìm thấy vé"));
 
         ConcertView concert = concertOrderPort.findConcertById(t.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         TicketTypeView ticketType = concertOrderPort.findTicketTypesByIds(List.of(t.getTicketTypeId())).stream()
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Ticket type not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hạng vé"));
 
         return new TicketResponse(
                 t.getId(),
@@ -103,7 +103,7 @@ public class TicketService {
                 .collect(Collectors.toMap(TicketTypeView::id, TicketTypeView::name));
 
         ConcertView concert = concertOrderPort.findConcertById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         return tickets.stream()
                 .map(t -> new TicketResponse(
@@ -111,7 +111,7 @@ public class TicketService {
                         t.getConcertId(),
                         concert.title(),
                         t.getTicketTypeId(),
-                        ticketTypeMap.getOrDefault(t.getTicketTypeId(), "Unknown Type"),
+                        ticketTypeMap.getOrDefault(t.getTicketTypeId(), "Không rõ hạng vé"),
                         t.getQrCode(),
                         t.getStatus().name(),
                         t.getIssuedAt()
@@ -131,7 +131,7 @@ public class TicketService {
             UUID requesterId,
             boolean admin) {
         Ticket t = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new AppException(ErrorCode.TICKET_NOT_FOUND, "Ticket not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.TICKET_NOT_FOUND, "Không tìm thấy vé"));
         if (!admin) {
             requireOwnedConcert(t.getConcertId(), requesterId);
         }
@@ -140,11 +140,11 @@ public class TicketService {
         ticketRepository.save(t);
 
         ConcertView concert = concertOrderPort.findConcertById(t.getConcertId())
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
 
         TicketTypeView ticketType = concertOrderPort.findTicketTypesByIds(List.of(t.getTicketTypeId())).stream()
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Ticket type not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hạng vé"));
 
         return new TicketResponse(
                 t.getId(),
@@ -160,7 +160,7 @@ public class TicketService {
 
     private void requireOwnedConcert(UUID concertId, UUID organizerId) {
         if (!concertOrderPort.isConcertOwnedBy(concertId, organizerId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not manage this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn không quản lý concert này");
         }
     }
 }

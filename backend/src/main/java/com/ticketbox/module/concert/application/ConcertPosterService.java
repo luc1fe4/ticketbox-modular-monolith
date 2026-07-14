@@ -87,14 +87,14 @@ public class ConcertPosterService {
 
     private Concert editableConcert(UUID concertId, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found with id: " + concertId));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert với ID: " + concertId));
 
         if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn không có quyền chỉnh sửa concert này");
         }
         if (concert.getStatus() == Concert.Status.COMPLETED || concert.getStatus() == Concert.Status.CANCELLED) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Cannot update concert poster in " + concert.getStatus() + " status");
+                    "Không thể cập nhật poster concert ở trạng thái " + concert.getStatus());
         }
         return concert;
     }

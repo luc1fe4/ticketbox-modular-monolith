@@ -110,7 +110,7 @@ public class ConcertService {
         );
         Concert concert = concertRepository.findByIdAndStatusInAndPublicVisibleTrue(concertId, publicStatuses)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + concertId));
+                        "Không tìm thấy concert với ID: " + concertId));
 
         ConcertDetailResponse result = composePublicDetail(concert);
         try {
@@ -121,7 +121,7 @@ public class ConcertService {
 
     public ConcertDetailResponse getConcertForEdit(UUID concertId, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found with id: " + concertId));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert với ID: " + concertId));
         verifyOwnership(concert, requesterId, isAdmin);
         return composeManagementDetail(concert);
     }
@@ -149,7 +149,7 @@ public class ConcertService {
     public ConcertSeatMapResponse getConcertSeatMap(UUID concertId) {
         Concert concert = concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + concertId));
+                        "Không tìm thấy concert với ID: " + concertId));
 
         return new ConcertSeatMapResponse(concert.getId(), concert.getSeatMapSvg());
     }
@@ -190,13 +190,13 @@ public class ConcertService {
     public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + id));
+                        "Không tìm thấy concert với ID: " + id));
 
         verifyOwnership(concert, requesterId, isAdmin);
 
         if (concert.getStatus() == Concert.Status.COMPLETED || concert.getStatus() == Concert.Status.CANCELLED) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Cannot update concert information in " + concert.getStatus() + " status");
+                    "Không thể cập nhật thông tin concert ở trạng thái " + concert.getStatus());
         }
 
         validateDates(request.eventDate(), request.doorsOpenAt(), request.saleStartAt(), request.saleEndAt());
@@ -212,7 +212,7 @@ public class ConcertService {
     public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + id));
+                        "Không tìm thấy concert với ID: " + id));
 
         verifyOwnership(concert, requesterId, isAdmin);
 
@@ -228,13 +228,13 @@ public class ConcertService {
     public void deleteConcert(UUID id, UUID requesterId, boolean isAdmin) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + id));
+                        "Không tìm thấy concert với ID: " + id));
 
         verifyOwnership(concert, requesterId, isAdmin);
 
         if (concert.getStatus() != Concert.Status.DRAFT) {
             throw new AppException(ErrorCode.CONCERT_NOT_DELETABLE,
-                    "Cannot delete a concert with status: " + concert.getStatus());
+                    "Không thể xóa concert ở trạng thái " + concert.getStatus());
         }
 
         ticketTypeRepository.deleteByConcertId(id);
@@ -257,7 +257,7 @@ public class ConcertService {
     public void updateArtistBio(UUID concertId, String artistBio) {
         Concert concert = concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + concertId));
+                        "Không tìm thấy concert với ID: " + concertId));
         concert.setArtistBio(artistBio);
         concertRepository.save(concert);
         evictConcertCaches(concertId);
@@ -270,20 +270,20 @@ public class ConcertService {
             OffsetDateTime saleEndAt
     ) {
         if (eventDate.isBefore(OffsetDateTime.now())) {
-            throw new AppException(ErrorCode.INVALID_DATE, "Event date must be in the future");
+            throw new AppException(ErrorCode.INVALID_DATE, "Ngày diễn phải ở tương lai");
         }
         if (doorsOpenAt != null && doorsOpenAt.isAfter(eventDate)) {
-            throw new AppException(ErrorCode.INVALID_DATE, "Doors open time must be before event date");
+            throw new AppException(ErrorCode.INVALID_DATE, "Thời gian mở cửa phải trước ngày diễn");
         }
         if (saleStartAt == null || saleStartAt.isAfter(eventDate)) {
-            throw new AppException(ErrorCode.INVALID_DATE, "Sale start date must be before or equal to event date");
+            throw new AppException(ErrorCode.INVALID_DATE, "Ngày mở bán phải trước hoặc bằng ngày diễn");
         }
         if (saleEndAt != null) {
             if (saleEndAt.isBefore(saleStartAt)) {
-                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be after sale start date");
+                throw new AppException(ErrorCode.INVALID_DATE, "Ngày kết thúc bán phải sau ngày mở bán");
             }
             if (saleEndAt.isAfter(eventDate)) {
-                throw new AppException(ErrorCode.INVALID_DATE, "Sale end date must be before or equal to event date");
+                throw new AppException(ErrorCode.INVALID_DATE, "Ngày kết thúc bán phải trước hoặc bằng ngày diễn");
             }
         }
     }
@@ -295,13 +295,13 @@ public class ConcertService {
         Set<Concert.Status> allowed = VALID_TRANSITIONS.get(currentStatus);
         if (allowed == null || !allowed.contains(newStatus)) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "Cannot transition concert status from " + currentStatus + " to " + newStatus);
+                    "Không thể chuyển trạng thái concert từ " + currentStatus + " sang " + newStatus);
         }
     }
 
     private void verifyOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
         if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn không có quyền chỉnh sửa concert này");
         }
     }
 

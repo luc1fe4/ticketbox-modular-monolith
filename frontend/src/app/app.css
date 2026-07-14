@@ -2,21 +2,21 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: "DM Sans", sans-serif;
-  color: #f7f4ee;
-  background: #0b0b0d;
+  color: #182133;
+  background: #f6f7f9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #0b0b0d;
-  --surface: #121216;
-  --surface-2: #19191f;
-  --line: rgba(255, 255, 255, 0.12);
-  --muted: #a7a4ad;
-  --coral: #ff765f;
-  --coral-light: #ff9a86;
-  --violet: #8f7aff;
-  --cream: #f7f4ee;
+  --ink: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f3f7;
+  --line: #d9dee8;
+  --muted: #667085;
+  --coral: #1457d9;
+  --coral-light: #1457d9;
+  --violet: #003b95;
+  --cream: #182133;
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +28,7 @@ button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 h1, h2, h3, p { margin-top: 0; }
-select { color-scheme: dark; }
+select { color-scheme: light; }
 
 :focus-visible { outline: 2px solid var(--coral); outline-offset: 4px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -585,9 +585,9 @@ button.back-link { border: 0; padding: 0; background: transparent; cursor: point
 .admin-status.status-sold_out { color: #c0b6ff; border-color: rgba(143,122,255,.3); }
 .admin-status.status-completed { color: #9ebfe8; border-color: rgba(115,185,255,.25); }
 .admin-status.status-cancelled { color: var(--coral-light); border-color: rgba(255,118,95,.3); }
-.admin-row-actions { display: flex; justify-content: flex-end; gap: 6px; }
-.admin-row-actions button { width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid var(--line); background: transparent; color: var(--muted); }
-.admin-row-actions button:hover:not(:disabled) { color: var(--cream); border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.04); }
+.admin-row-actions { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.admin-row-actions button, .admin-row-actions a { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.admin-row-actions button:hover:not(:disabled), .admin-row-actions a:hover { color: var(--cream); border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.04); }
 .admin-row-actions button:disabled { opacity: .28; cursor: not-allowed; }
 .admin-empty-state { min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
 .admin-empty-state > svg { margin-bottom: 18px; color: var(--coral); }
@@ -836,7 +836,7 @@ button.back-link { border: 0; padding: 0; background: transparent; cursor: point
 
 .revenue-export-actions { display: flex; gap: 10px; }
 .revenue-filter-panel { position: relative; display: grid; grid-template-columns: minmax(260px,1fr) auto; align-items: end; gap: 18px 28px; margin-bottom: 30px; padding: 22px 24px; border: 1px solid var(--line); background: #0e0e11; }
-.revenue-filter-panel select, .revenue-filter-panel input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; background: #111115; color: var(--cream); outline: 0; color-scheme: dark; }
+.revenue-filter-panel select, .revenue-filter-panel input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; background: #111115; color: var(--cream); outline: 0; color-scheme: light; }
 .revenue-filter-panel select:focus, .revenue-filter-panel input:focus { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255,118,95,.08); }
 .revenue-date-form { display: grid; grid-template-columns: 150px 150px auto; align-items: end; gap: 10px; }
 .revenue-date-error { grid-column: 1 / -1; margin: -5px 0 0; color: var(--coral-light); font-size: 11px; }
@@ -1076,6 +1076,7 @@ button.back-link { border: 0; padding: 0; background: transparent; cursor: point
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; transition-duration: .01ms!important; }
+  .route-transition { animation: none!important; }
 }
 
 /* Marketplace refresh — utility-first ticket discovery inspired by leading ticket platforms. */
@@ -1232,7 +1233,8 @@ h1 em, h2 em { color: inherit; font-family: inherit; font-style: normal; font-we
 .ticket-status, .notification-badge { border-radius: 999px; }
 .ticket-action { border-color: #d9dee8; }
 
-.auth-layout, .auth-content { background: #f6f7f9; }
+.auth-layout { background: #f6f7f9; }
+.auth-content { background: #fff; }
 .auth-form, .auth-card { border-color: #d9dee8; background: #fff; }
 .field input, .field select, .admin-field input, .admin-field select, .admin-field textarea { border-color: #cfd5df; background: #fff; color: #182133; color-scheme: light; }
 .field input:focus, .admin-field input:focus, .admin-field select:focus, .admin-field textarea:focus { border-color: #1457d9; box-shadow: 0 0 0 3px rgba(20,87,217,.1); }
@@ -2215,8 +2217,8 @@ h1 em, h2 em { color: inherit; font-family: inherit; font-style: normal; font-we
 .admin-table tbody tr:hover { background: #f8fafc; }
 .admin-table tbody tr:hover td,
 .admin-table tbody tr:hover strong { color: #182133; }
-.admin-row-actions button { border-color: #d0d5dd; border-radius: 6px; background: #fff; color: #475467; }
-.admin-row-actions button:hover:not(:disabled) { border-color: #9db7ed; background: #eef4ff; color: #1457d9; }
+.admin-row-actions button, .admin-row-actions a { border-color: #d0d5dd; border-radius: 6px; background: #fff; color: #475467; }
+.admin-row-actions button:hover:not(:disabled), .admin-row-actions a:hover { border-color: #9db7ed; background: #eef4ff; color: #1457d9; }
 .admin-row-actions button:disabled { border-color: #e4e7ec; background: #f8fafc; color: #98a2b3; opacity: .62; }
 .admin-toggle { color: #667085; }
 .admin-toggle:hover:not(:disabled) { color: #344054; }
@@ -3114,6 +3116,12 @@ body,
   color: #fff;
 }
 
+.operations-nav a,
+.operations-sidebar-footer a,
+.operations-sidebar-footer button {
+  border-radius: 10px;
+}
+
 .operations-account-menu {
   border-color: #d0d5dd;
   border-radius: 12px;
@@ -3137,6 +3145,223 @@ body,
   color: #b42318;
 }
 
+.operations-topbar {
+  padding-inline: clamp(24px, 4vw, 56px);
+}
+
+.admin-page-header {
+  padding: 28px;
+  border: 1px solid #d9dee8;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, .05);
+}
+
+@media (min-width: 921px) {
+  .admin-page-header {
+    align-items: center;
+  }
+
+  .admin-page-actions {
+    align-self: center;
+  }
+}
+
+.admin-toolbar {
+  justify-content: flex-start;
+}
+
+.admin-toolbar .admin-search-control {
+  flex: 1 1 360px;
+}
+
+.admin-dialog-backdrop {
+  z-index: 2000;
+}
+
+.admin-dialog {
+  width: min(100%, 960px);
+}
+
+.toast-viewport {
+  z-index: 2200;
+}
+
+.route-transition {
+  animation: route-enter .22s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Light-theme tab and panel stabilization: remove dark residue from tab switches. */
+.ticket-tabs,
+.profile-tabs {
+  border-bottom-color: #d9dee8;
+}
+
+.ticket-tabs button,
+.profile-tabs button {
+  color: #667085;
+}
+
+.ticket-tabs button:hover,
+.profile-tabs button:hover {
+  color: #1457d9;
+}
+
+.ticket-tabs button.active,
+.profile-tabs button.active {
+  color: #1457d9;
+}
+
+.ticket-tabs button.active::after,
+.profile-tabs button.active::after {
+  background: #1457d9;
+}
+
+.inline-message,
+.waiting-room-panel,
+.payment-timer-card,
+.zone-map-panel,
+.payment-option,
+.admin-data-panel,
+.admin-concert-switcher,
+.guest-import-workspace,
+.ai-bio-workspace,
+.staff-panel,
+.staff-scan-result,
+.staff-guest-card,
+.revenue-filter-panel,
+.revenue-chart-panel,
+.revenue-chart-empty {
+  border-color: #d9dee8;
+  background: #fff;
+  color: #182133;
+}
+
+.payment-timer-card,
+.payment-option,
+.waiting-room-panel {
+  background: #fff;
+}
+
+.payment-option.selected {
+  border-color: #1457d9;
+  background: #eef4ff;
+}
+
+.detail-skeleton {
+  background: #f6f7f9;
+  color: #182133;
+}
+
+.zone-item.focused {
+  background: #eef4ff;
+}
+
+.event-skeleton div,
+.event-skeleton span,
+.detail-skeleton-hero,
+.detail-skeleton-copy span,
+.admin-row-skeleton span,
+.revenue-page-skeleton > span,
+.revenue-report-skeleton > span,
+.revenue-report-skeleton > div > span {
+  background: linear-gradient(100deg, #eef2f7 20%, #f8fafc 40%, #eef2f7 60%);
+  background-size: 200% 100%;
+}
+
+.waiting-room-event strong,
+.waiting-room-position strong,
+.waiting-room-stat strong {
+  color: #182133;
+}
+
+.waiting-room-event > span,
+.waiting-room-copy,
+.waiting-room-status,
+.waiting-room-stat span {
+  color: #667085;
+}
+
+.detail-story {
+  display: grid;
+  gap: 24px;
+}
+
+.detail-section {
+  max-width: 760px;
+  margin: 0;
+  padding: 30px;
+  border: 1px solid #d9dee8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, .06);
+}
+
+.detail-section .eyebrow {
+  margin-bottom: 16px;
+}
+
+.detail-section h2 {
+  max-width: 680px;
+  margin: 0 0 20px;
+  color: #182133;
+  font-size: clamp(30px, 3.4vw, 44px);
+  line-height: 1.12;
+}
+
+.detail-section > p:not(.eyebrow),
+.detail-section .artist-biography {
+  max-width: 680px;
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.artist-section,
+.artist-section-featured,
+.ticket-types-section {
+  margin-top: 0;
+  padding-top: 30px;
+  border-color: #d9dee8;
+}
+
+.feature-row {
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.detail-feature {
+  padding: 16px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.detail-feature h3 {
+  margin: 14px 0 8px;
+  color: #182133;
+}
+
+.detail-feature p {
+  color: #667085;
+}
+
+.ticket-types-section h2 {
+  margin-bottom: 22px;
+}
+
 @media (max-width: 980px) {
   .auth-cta-group {
     display: none;
@@ -3144,6 +3369,19 @@ body,
 
   .ticket-detail-panel {
     padding: 30px 22px;
+  }
+
+  .operations-topbar {
+    padding-inline: 24px;
+  }
+
+  .admin-page-header {
+    padding: 24px;
+  }
+
+  .detail-section {
+    max-width: none;
+    padding: 24px;
   }
 }
 
@@ -3163,6 +3401,18 @@ body,
   .profile-ticket h2,
   .profile-ticket > p {
     white-space: normal;
+  }
+
+  .detail-section {
+    padding: 22px 18px;
+  }
+
+  .operations-topbar {
+    padding-inline: 16px;
+  }
+
+  .admin-page-header {
+    padding: 20px;
   }
 
   .discover-groups {

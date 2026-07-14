@@ -149,7 +149,7 @@ public class GuestListImportTasklet implements Tasklet {
                 insertRows(batchLogId, pending);
             }
         } catch (IllegalArgumentException ex) {
-            throw new GuestListImportException("Malformed CSV: " + ex.getMessage(), ex);
+            throw new GuestListImportException("CSV không đúng định dạng: " + ex.getMessage(), ex);
         }
         return totalRows;
     }
@@ -157,7 +157,7 @@ public class GuestListImportTasklet implements Tasklet {
     private void validateHeaders(CSVParser parser) {
         Set<String> missing = GuestListCsvSchema.missingRequiredHeaders(parser.getHeaderMap().keySet());
         if (!missing.isEmpty()) {
-            throw new GuestListImportException("Missing required CSV header(s): " + missing);
+            throw new GuestListImportException("Thiếu cột bắt buộc trong CSV: " + missing);
         }
     }
 
@@ -172,22 +172,22 @@ public class GuestListImportTasklet implements Tasklet {
 
         List<String> errors = new ArrayList<>();
         if (phone == null) {
-            errors.add("Invalid phone");
+            errors.add("Số điện thoại không hợp lệ");
         }
         if (fullName == null) {
-            errors.add("full_name is required");
+            errors.add("full_name là bắt buộc");
         } else if (fullName.length() > 255) {
-            errors.add("full_name exceeds 255 characters");
+            errors.add("full_name vượt quá 255 ký tự");
         }
         if (category != null && category.length() > 100) {
-            errors.add("category exceeds 100 characters");
+            errors.add("category vượt quá 100 ký tự");
         }
         if (sponsorName != null && sponsorName.length() > 255) {
-            errors.add("sponsor_name exceeds 255 characters");
+            errors.add("sponsor_name vượt quá 255 ký tự");
         }
         Boolean active = activeStatus(status);
         if (active == null) {
-            errors.add("status must be ACTIVE or CANCELLED");
+            errors.add("status phải là ACTIVE hoặc CANCELLED");
             active = true;
         }
 

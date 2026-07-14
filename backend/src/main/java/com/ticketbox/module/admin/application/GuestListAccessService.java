@@ -20,7 +20,7 @@ public class GuestListAccessService {
                 ? concertReportingPort.findConcert(concertId).isPresent()
                 : concertReportingPort.findOwnedConcert(concertId, userId).isPresent();
         if (!exists) {
-            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found");
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert");
         }
     }
 }

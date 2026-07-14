@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const push = useCallback((type: ToastType, message: string) => {
     const toast = { id: ++nextId.current, message, type };
-    setToasts((current) => [...current, toast]);
+    setToasts([toast]);
   }, []);
 
   const value = useMemo(

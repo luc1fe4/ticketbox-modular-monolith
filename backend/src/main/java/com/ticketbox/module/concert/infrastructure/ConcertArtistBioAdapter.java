@@ -33,7 +33,7 @@ public class ConcertArtistBioAdapter implements ConcertArtistBioPort {
             boolean admin) {
         Concert concert = requireEntity(concertId);
         if (!admin && !concert.getCreatedBy().equals(requesterId)) {
-            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found");
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert");
         }
         return toView(concert);
     }
@@ -54,12 +54,12 @@ public class ConcertArtistBioAdapter implements ConcertArtistBioPort {
             boolean overwrite) {
         Concert concert = requireEntity(concertId);
         if (!admin && !concert.getCreatedBy().equals(requesterId)) {
-            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found");
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy concert");
         }
         if (!overwrite && concert.getArtistBio() != null && !concert.getArtistBio().isBlank()) {
             throw new AppException(
                     ErrorCode.ARTIST_BIO_ALREADY_EXISTS,
-                    "Concert already has an artist bio; set overwrite=true to replace it");
+                    "Concert đã có giới thiệu nghệ sĩ; hãy bật overwrite=true để thay thế");
         }
         concert.setArtistBio(artistBio);
         concertRepository.save(concert);
@@ -70,7 +70,7 @@ public class ConcertArtistBioAdapter implements ConcertArtistBioPort {
         return concertRepository.findById(concertId)
                 .orElseThrow(() -> new AppException(
                         ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found"));
+                        "Không tìm thấy concert"));
     }
 
     private ConcertArtistBioView toView(Concert concert) {

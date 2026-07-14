@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateOrderRequest(
-    @NotNull(message = "Concert ID is required")
+    @NotNull(message = "Vui lòng chọn concert")
     UUID concertId,
 
-    @NotEmpty(message = "Order items cannot be empty")
+    @NotEmpty(message = "Đơn hàng phải có ít nhất một hạng vé")
     @Valid
     List<OrderItemRequest> items
 ) {}

@@ -47,7 +47,7 @@ public class NotificationService {
     @Transactional
     public NotificationResponse markAsRead(UUID userId, UUID notificationId) {
         Notification notification = notificationRepository.findByIdAndUserId(notificationId, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Notification not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy thông báo"));
 
         notification.markAsRead(OffsetDateTime.now());
         notificationRepository.save(notification);

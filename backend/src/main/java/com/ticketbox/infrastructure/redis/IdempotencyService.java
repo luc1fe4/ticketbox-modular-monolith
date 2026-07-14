@@ -124,7 +124,7 @@ public class IdempotencyService {
         {
             throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "Idempotency-Key header is required"
+                    "Thiếu header Idempotency-Key"
             );
         }
 
@@ -132,7 +132,7 @@ public class IdempotencyService {
         if (key.length() > MAX_KEY_LENGTH) {
             throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "Idempotency-Key must not exceed 128 characters"
+                    "Idempotency-Key không được vượt quá 128 ký tự"
             );
         }
 

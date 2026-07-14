@@ -114,18 +114,18 @@ public class CheckinService {
 
         TicketView ticket = ticketCheckinPort.findByQrCode(request.qrCode()).orElse(null);
         if (ticket == null) {
-            return new ScanTicketResponse(null, request.concertId(), "FAILED", "Invalid QR code", now);
+            return new ScanTicketResponse(null, request.concertId(), "FAILED", "Mã QR không hợp lệ", now);
         }
 
         if (!ticket.concertId().equals(request.concertId())) {
-            return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Ticket does not belong to this concert", now);
+            return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Vé không thuộc concert này", now);
         }
 
         // Atomic UPDATE: sets status = USED only if current status = VALID.
         // Handles concurrent scans correctly — only one will get rowsAffected = 1.
         boolean marked = ticketCheckinPort.markAsUsedIfValid(ticket.id(), now);
         if (!marked) {
-            return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Ticket is not valid for check-in", now);
+            return new ScanTicketResponse(ticket.id(), ticket.concertId(), "FAILED", "Vé không hợp lệ để check-in", now);
         }
 
         // Log after successful atomic mark — safe, no exception risk from duplicate constraint
@@ -144,7 +144,7 @@ public class CheckinService {
                 ticket.id(),
                 ticket.concertId(),
                 "SUCCESS",
-                "Check-in successful",
+                "Check-in thành công",
                 now
         );
     }
@@ -203,32 +203,32 @@ public class CheckinService {
 
             TicketView ticket = ticketCheckinPort.findByQrCode(entry.qrCode()).orElse(null);
             if (ticket == null) {
-                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "QR code not found"));
+                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Không tìm thấy mã QR"));
                 invalid++;
                 continue;
             }
 
             if (!qrJwtService.verify(entry.qrCode(), ticket.qrSecret())) {
-                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Invalid QR signature"));
+                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Chữ ký QR không hợp lệ"));
                 invalid++;
                 continue;
             }
 
             if (!ticket.concertId().equals(request.concertId())) {
-                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Ticket does not belong to this concert"));
+                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Vé không thuộc concert này"));
                 invalid++;
                 continue;
             }
 
             if ("CANCELLED".equals(ticket.status())
                     || "TRANSFERRED".equals(ticket.status())) {
-                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Ticket is cancelled or transferred"));
+                results.add(new SyncResultEntry(entry.qrCode(), "INVALID", "Vé đã bị hủy hoặc đã chuyển nhượng"));
                 invalid++;
                 continue;
             }
 
             if ("USED".equals(ticket.status())) {
-                results.add(new SyncResultEntry(entry.qrCode(), "SKIPPED", "Ticket was already used on the server"));
+                results.add(new SyncResultEntry(entry.qrCode(), "SKIPPED", "Vé đã được sử dụng trên máy chủ"));
                 skipped++;
                 continue;
             }
@@ -251,7 +251,7 @@ public class CheckinService {
         return concertCheckinPort.findById(concertId)
                 .orElseThrow(() -> new AppException(
                         ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found with id: " + concertId
+                        "Không tìm thấy concert với ID: " + concertId
                 ));
     }
 

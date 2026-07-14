@@ -415,7 +415,13 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
 
       {/* Tabs */}
       <div
-        style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 28 }}
+        style={{
+          display: 'flex',
+          gap: 0,
+          borderBottom: '1px solid #d9dee8',
+          marginBottom: 28,
+          background: '#fff',
+        }}
       >
         {(['orders', 'tickets'] as TabId[]).map((tab) => (
           <button
@@ -426,10 +432,10 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
               alignItems: 'center',
               gap: 8,
               padding: '12px 22px',
-              background: 'none',
+              background: activeTab === tab ? '#eef4ff' : 'transparent',
               border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--coral)' : '2px solid transparent',
-              color: activeTab === tab ? 'var(--cream)' : 'var(--muted)',
+              borderBottom: activeTab === tab ? '2px solid #1457d9' : '2px solid transparent',
+              color: activeTab === tab ? '#1457d9' : '#667085',
               fontFamily: 'Manrope, sans-serif',
               fontWeight: 700,
               fontSize: 13,

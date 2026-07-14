@@ -136,7 +136,7 @@ public class OrganizerRevenueService {
                 .findOwnedConcert(concertId, organizerId)
                 .orElseThrow(() -> new AppException(
                         ErrorCode.RESOURCE_NOT_FOUND,
-                        "Concert not found"));
+                        "Không tìm thấy concert"));
 
         if (!COMPLETED_STATUS.equals(concert.status())) {
             throw new AppException(ErrorCode.CONCERT_NOT_COMPLETED);
@@ -176,7 +176,7 @@ public class OrganizerRevenueService {
         if (from.isAfter(to)) {
             throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "'from' date must be before or equal to 'to' date");
+                    "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc");
         }
     }
 }

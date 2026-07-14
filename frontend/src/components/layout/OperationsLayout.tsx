@@ -19,7 +19,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type UserSummary } from '../../features/auth/AuthContext';
 import { Logo } from './PublicLayout';
 
@@ -67,6 +67,7 @@ function roleLabel(role: UserSummary['role']) {
 export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staff' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const navigation =
@@ -119,10 +120,6 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
         </nav>
 
         <div className="operations-sidebar-footer">
-          <Link to={workspaceHome}>
-            <ArrowLeft aria-hidden="true" size={17} />
-            Về tổng quan
-          </Link>
           <button type="button" onClick={logOut}>
             <LogOut aria-hidden="true" size={17} />
             Đăng xuất
@@ -192,7 +189,9 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
           </div>
         </header>
         <main className="operations-content">
-          <Outlet />
+          <div key={location.pathname} className="route-transition">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

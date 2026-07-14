@@ -484,7 +484,7 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
           style={{
             marginTop: 14,
             padding: '12px 14px',
-            background: 'rgba(255,255,255,0.02)',
+            background: '#f8fafc',
             border: '1px solid var(--line)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -506,9 +506,9 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
               style={{
                 height: 34,
                 padding: '0 28px 0 8px',
-                background: '#111115',
+                background: '#fff',
                 border: '1px solid var(--line)',
-                color: 'var(--cream)',
+                color: '#182133',
                 fontSize: 12,
               }}
             >
@@ -564,7 +564,7 @@ function TicketHistory({ tickets }: { tickets: TicketResponse[] }) {
             </span>
           </div>
           <h2>{ticket.concertTitle}</h2>
-          <p style={{ fontWeight: 600, color: 'var(--cream)' }}>{ticket.ticketTypeName}</p>
+          <p style={{ fontWeight: 600, color: '#182133' }}>{ticket.ticketTypeName}</p>
           {ticket.status === 'VALID' || ticket.status === 'UNUSED' ? (
             <div
               className="profile-qr"

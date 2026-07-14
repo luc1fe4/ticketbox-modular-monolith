@@ -94,8 +94,8 @@ public class MomoPaymentGateway implements PaymentGateway {
             String payUrl = json.path("payUrl").asText();
 
             if (payUrl == null || payUrl.isBlank()) {
-                String message = json.path("message").asText("No payUrl returned from MoMo");
-                throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "MoMo error: " + message);
+                String message = json.path("message").asText("MoMo không trả về payUrl");
+                throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "Lỗi MoMo: " + message);
             }
 
             return new PaymentInitiationResult(provider(), payUrl, requestId, responseBody);
@@ -104,7 +104,7 @@ public class MomoPaymentGateway implements PaymentGateway {
             throw ex;
         } catch (Exception ex) {
             throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE,
-                    "Failed to initiate MoMo payment: " + ex.getMessage());
+                    "Không thể khởi tạo thanh toán MoMo: " + ex.getMessage());
         }
     }
 
@@ -158,7 +158,7 @@ public class MomoPaymentGateway implements PaymentGateway {
     @SuppressWarnings("unused")
     private PaymentInitiationResult fallbackInitiatePayment(OrderView order, Throwable throwable) {
         throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE,
-                "MoMo payment gateway is temporarily unavailable");
+                "Cổng thanh toán MoMo tạm thời không khả dụng");
     }
 
     private void requireConfigured() {
@@ -168,7 +168,7 @@ public class MomoPaymentGateway implements PaymentGateway {
                 || isBlank(properties.returnUrl())
                 || isBlank(properties.ipnUrl())) {
             throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE,
-                    "MoMo configuration is incomplete");
+                    "Cấu hình MoMo chưa đầy đủ");
         }
     }
 
@@ -183,7 +183,7 @@ public class MomoPaymentGateway implements PaymentGateway {
             }
             return hash.toString();
         } catch (Exception ex) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Could not sign MoMo payload");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể ký dữ liệu MoMo");
         }
     }
 

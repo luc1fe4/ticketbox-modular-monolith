@@ -10,19 +10,19 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record UpdateTicketTypeRequest(
-        @NotBlank(message = "Name must not be blank")
+        @NotBlank(message = "Tên hạng vé không được để trống")
         String name,
 
-        @NotNull(message = "Price must not be null")
-        @DecimalMin(value = "0.0", message = "Price must be non-negative")
+        @NotNull(message = "Vui lòng nhập giá vé")
+        @DecimalMin(value = "0.0", message = "Giá vé không được âm")
         BigDecimal price,
 
-        @Min(value = 1, message = "Total quantity must be at least 1")
+        @Min(value = 1, message = "Tổng số lượng phải ít nhất là 1")
         int totalQuantity,
 
-        @Min(value = 1, message = "Max per account must be at least 1")
+        @Min(value = 1, message = "Giới hạn mỗi tài khoản phải ít nhất là 1")
         int maxPerAccount,
 
-        @Pattern(regexp = "^#([A-Fa-f0-9]{6})$", message = "Zone color must be a valid hex color code (e.g. #E11D48)")
+        @Pattern(regexp = "^#([A-Fa-f0-9]{6})$", message = "Màu khu vực phải là mã màu hex hợp lệ, ví dụ #E11D48")
         String zoneColor
 ) {}
