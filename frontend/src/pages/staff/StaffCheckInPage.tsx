@@ -1,5 +1,13 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle2, ImagePlus, RefreshCw, ScanLine, Smartphone, XCircle } from 'lucide-react';
+import {
+  Camera,
+  CheckCircle2,
+  ImagePlus,
+  RefreshCw,
+  ScanLine,
+  Smartphone,
+  XCircle,
+} from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   getStaffConcerts,
@@ -52,10 +60,16 @@ export function StaffCheckInPage() {
       try {
         const data = await getStaffConcerts('ON_SALE', controller.signal);
         setConcerts(data.content);
-        setSelectedConcertId((current) => current || selectInitialConcert(data.content, searchParams.get('concert')));
+        setSelectedConcertId(
+          (current) => current || selectInitialConcert(data.content, searchParams.get('concert')),
+        );
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
-          setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách concert.');
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Không thể tải danh sách concert.',
+          );
         }
       } finally {
         if (!controller.signal.aborted) setLoadingConcerts(false);
@@ -95,7 +109,9 @@ export function StaffCheckInPage() {
       const qrValue = await decodeQrFromImage(file);
       setDecodedQr(qrValue);
     } catch (decodeFailure) {
-      setDecodeError(decodeFailure instanceof Error ? decodeFailure.message : 'Không đọc được QR trong ảnh.');
+      setDecodeError(
+        decodeFailure instanceof Error ? decodeFailure.message : 'Không đọc được QR trong ảnh.',
+      );
     } finally {
       setDecoding(false);
     }
@@ -121,7 +137,8 @@ export function StaffCheckInPage() {
         toast.error(result.data.message);
       }
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'Không thể check-in vé.';
+      const message =
+        requestError instanceof Error ? requestError.message : 'Không thể check-in vé.';
       setError(message);
       toast.error(message);
     } finally {
@@ -132,24 +149,33 @@ export function StaffCheckInPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Gate desk"
+        eyebrow="Bàn kiểm soát cổng"
         title="Check-in bằng ảnh QR"
-        description="Tải ảnh QR từ vé điện tử, web sẽ đọc mã và gọi API check-in online. Dùng Mobile Scanner khi cần camera trực tiếp và offline sync."
+        description="Tải ảnh QR từ vé điện tử, web sẽ đọc mã và gọi API check-in online. Dùng scanner mobile khi cần camera trực tiếp và đồng bộ offline."
         actions={
-          <a className="admin-secondary-action" href="http://localhost:8081" target="_blank" rel="noreferrer">
+          <a
+            className="admin-secondary-action"
+            href="http://localhost:8081"
+            target="_blank"
+            rel="noreferrer"
+          >
             <Smartphone aria-hidden="true" size={17} />
             Mobile Scanner
           </a>
         }
       />
 
-      {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="admin-notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <section className="staff-desk-grid">
         <div className="staff-panel">
           <div className="guest-section-heading">
             <div>
-              <span>Online scan</span>
+              <span>Quét online</span>
               <h2>Thông tin ca trực</h2>
             </div>
             <ScanLine aria-hidden="true" size={22} />
@@ -169,14 +195,20 @@ export function StaffCheckInPage() {
 
           <label className="admin-field">
             Cổng
-            <input value={gate} onChange={(event) => setGate(event.target.value)} placeholder="VD: A, B, WEB" />
+            <input
+              value={gate}
+              onChange={(event) => setGate(event.target.value)}
+              placeholder="VD: A, B, WEB"
+            />
           </label>
 
           <div className="staff-selected-concert">
             {selectedConcert ? (
               <>
                 <strong>{selectedConcert.title}</strong>
-                <span>{selectedConcert.venueName}, {selectedConcert.venueAddress}</span>
+                <span>
+                  {selectedConcert.venueName}, {selectedConcert.venueAddress}
+                </span>
                 <span>{staffDateTime.format(new Date(selectedConcert.eventDate))}</span>
               </>
             ) : (
@@ -188,24 +220,28 @@ export function StaffCheckInPage() {
         <div className="staff-panel">
           <div className="guest-section-heading">
             <div>
-              <span>QR upload</span>
+              <span>Tải QR</span>
               <h2>Tải ảnh vé</h2>
             </div>
             <ImagePlus aria-hidden="true" size={22} />
           </div>
 
           <label className={`staff-qr-picker ${previewUrl ? 'has-file' : ''}`}>
-            <input accept="image/png,image/jpeg,image/webp" type="file" onChange={(event) => void handleFileChange(event)} />
+            <input
+              accept="image/png,image/jpeg,image/webp"
+              type="file"
+              onChange={(event) => void handleFileChange(event)}
+            />
             {previewUrl ? <img alt="" src={previewUrl} /> : <Camera aria-hidden="true" size={34} />}
             <span>{fileName || 'Chọn ảnh có mã QR'}</span>
-            <small>Chrome/Edge có hỗ trợ đọc QR trực tiếp từ ảnh upload.</small>
+            <small>Chrome/Edge có hỗ trợ đọc QR trực tiếp từ ảnh tải lên.</small>
           </label>
 
-          {decoding ? (
-            <div className="admin-notice">Đang đọc mã QR từ ảnh...</div>
-          ) : null}
+          {decoding ? <div className="admin-notice">Đang đọc mã QR từ ảnh...</div> : null}
           {decodeError ? (
-            <div className="admin-notice error" role="alert">{decodeError}</div>
+            <div className="admin-notice error" role="alert">
+              {decodeError}
+            </div>
           ) : null}
           {decodedQr ? (
             <div className="staff-decoded-qr">
@@ -223,20 +259,33 @@ export function StaffCheckInPage() {
             type="button"
             onClick={() => void submitScan()}
           >
-            {submitting ? <RefreshCw aria-hidden="true" size={16} /> : <ScanLine aria-hidden="true" size={16} />}
+            {submitting ? (
+              <RefreshCw aria-hidden="true" size={16} />
+            ) : (
+              <ScanLine aria-hidden="true" size={16} />
+            )}
             {submitting ? 'Đang check-in' : 'Xác nhận check-in'}
           </button>
         </div>
       </section>
 
       {scanResult ? (
-        <section className={`staff-scan-result ${scanResult.status === 'SUCCESS' ? 'success' : 'failed'}`} aria-live="polite">
-          {scanResult.status === 'SUCCESS' ? <CheckCircle2 aria-hidden="true" size={30} /> : <XCircle aria-hidden="true" size={30} />}
+        <section
+          className={`staff-scan-result ${scanResult.status === 'SUCCESS' ? 'success' : 'failed'}`}
+          aria-live="polite"
+        >
+          {scanResult.status === 'SUCCESS' ? (
+            <CheckCircle2 aria-hidden="true" size={30} />
+          ) : (
+            <XCircle aria-hidden="true" size={30} />
+          )}
           <div>
-            <span>{scanResult.status === 'SUCCESS' ? 'Check-in thành công' : 'Server từ chối'}</span>
+            <span>
+              {scanResult.status === 'SUCCESS' ? 'Check-in thành công' : 'Máy chủ từ chối'}
+            </span>
             <h2>{scanResult.message}</h2>
             <p>
-              {scanResult.ticketId ? `Ticket ${scanResult.ticketId}` : 'Không tìm thấy ticket phù hợp'}
+              {scanResult.ticketId ? `Vé ${scanResult.ticketId}` : 'Không tìm thấy vé phù hợp'}
               {' - '}
               {staffDateTime.format(new Date(scanResult.checkAt))}
             </p>
@@ -250,7 +299,9 @@ export function StaffCheckInPage() {
 async function decodeQrFromImage(file: File) {
   const BarcodeDetector = (window as WindowWithBarcodeDetector).BarcodeDetector;
   if (!BarcodeDetector) {
-    throw new Error('Trình duyệt này chưa hỗ trợ đọc QR từ ảnh. Hãy dùng Chrome/Edge hoặc Mobile Scanner.');
+    throw new Error(
+      'Trình duyệt này chưa hỗ trợ đọc QR từ ảnh. Hãy dùng Chrome/Edge hoặc Mobile Scanner.',
+    );
   }
 
   const image = await createImageBitmap(file);

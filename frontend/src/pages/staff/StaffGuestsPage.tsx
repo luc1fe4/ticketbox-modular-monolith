@@ -33,10 +33,16 @@ export function StaffGuestsPage() {
       try {
         const data = await getStaffConcerts('ON_SALE', controller.signal);
         setConcerts(data.content);
-        setSelectedConcertId((current) => current || selectInitialConcert(data.content, searchParams.get('concert')));
+        setSelectedConcertId(
+          (current) => current || selectInitialConcert(data.content, searchParams.get('concert')),
+        );
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
-          setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách concert.');
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Không thể tải danh sách concert.',
+          );
         }
       } finally {
         if (!controller.signal.aborted) setLoadingConcerts(false);
@@ -55,7 +61,9 @@ export function StaffGuestsPage() {
     try {
       setLookupResult(await lookupStaffGuest(selectedConcertId, phone.trim()));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể tra cứu khách mời.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể tra cứu khách mời.',
+      );
     } finally {
       setLookupLoading(false);
     }
@@ -66,10 +74,16 @@ export function StaffGuestsPage() {
     setCheckinLoading(true);
     setError('');
     try {
-      const response = await checkInStaffGuest(lookupResult.guestId, selectedConcertId, gate.trim() || 'VIP');
+      const response = await checkInStaffGuest(
+        lookupResult.guestId,
+        selectedConcertId,
+        gate.trim() || 'VIP',
+      );
       setLookupResult(response.data);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể check-in khách mời.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể check-in khách mời.',
+      );
     } finally {
       setCheckinLoading(false);
     }
@@ -78,18 +92,22 @@ export function StaffGuestsPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Guest desk"
+        eyebrow="Bàn khách mời"
         title="Tra cứu khách mời"
-        description="Xác minh khách mời tại cổng theo concert và số điện thoại. Danh sách import đầy đủ thuộc workspace admin/organizer."
+        description="Xác minh khách mời tại cổng theo concert và số điện thoại. Danh sách import đầy đủ nằm trong không gian admin/nhà tổ chức."
       />
 
-      {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="admin-notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <section className="staff-desk-grid">
         <form className="staff-panel" onSubmit={(event) => void submitLookup(event)}>
           <div className="guest-section-heading">
             <div>
-              <span>Lookup</span>
+              <span>Tra cứu</span>
               <h2>Kiểm tra tại cổng</h2>
             </div>
             <UserCheck aria-hidden="true" size={22} />
@@ -117,8 +135,16 @@ export function StaffGuestsPage() {
             />
           </label>
 
-          <button className="admin-primary-action" disabled={!selectedConcertId || !phone.trim() || lookupLoading} type="submit">
-            {lookupLoading ? <RefreshCw aria-hidden="true" size={16} /> : <Search aria-hidden="true" size={16} />}
+          <button
+            className="admin-primary-action"
+            disabled={!selectedConcertId || !phone.trim() || lookupLoading}
+            type="submit"
+          >
+            {lookupLoading ? (
+              <RefreshCw aria-hidden="true" size={16} />
+            ) : (
+              <Search aria-hidden="true" size={16} />
+            )}
             {lookupLoading ? 'Đang tra cứu' : 'Tra cứu khách'}
           </button>
         </form>
@@ -126,7 +152,7 @@ export function StaffGuestsPage() {
         <div className="staff-panel">
           <div className="guest-section-heading">
             <div>
-              <span>Result</span>
+              <span>Kết quả</span>
               <h2>Kết quả</h2>
             </div>
             <Users aria-hidden="true" size={22} />
@@ -146,7 +172,10 @@ export function StaffGuestsPage() {
               <div className="admin-empty-state staff-empty-compact">
                 <Search aria-hidden="true" size={28} />
                 <h2>Không tìm thấy khách</h2>
-                <p>Số điện thoại này không nằm trong guest list đang kích hoạt của concert đã chọn.</p>
+                <p>
+                  Số điện thoại này không nằm trong danh sách khách đang kích hoạt của concert đã
+                  chọn.
+                </p>
               </div>
             )
           ) : (
@@ -162,7 +191,14 @@ export function StaffGuestsPage() {
   );
 }
 
-function GuestCard({ guest, featured = false, gate, checkinLoading, onGateChange, onCheckIn }: {
+function GuestCard({
+  guest,
+  featured = false,
+  gate,
+  checkinLoading,
+  onGateChange,
+  onCheckIn,
+}: {
   guest: StaffGuestLookup;
   featured?: boolean;
   gate: string;
@@ -177,17 +213,50 @@ function GuestCard({ guest, featured = false, gate, checkinLoading, onGateChange
         <span>{guest.phone ?? 'Chưa có số điện thoại'}</span>
       </div>
       <dl>
-        <div><dt>Hạng</dt><dd>{guest.category ?? 'Chưa phân loại'}</dd></div>
-        <div><dt>Sponsor</dt><dd>{guest.sponsorName ?? 'Không có'}</dd></div>
-        <div><dt>Ghi chú</dt><dd>{guest.notes ?? 'Không có ghi chú'}</dd></div>
-        <div><dt>Trạng thái</dt><dd>{guest.checkedInAt ? `Đã check-in lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(guest.checkedInAt))}` : 'Chưa check-in'}</dd></div>
+        <div>
+          <dt>Hạng</dt>
+          <dd>{guest.category ?? 'Chưa phân loại'}</dd>
+        </div>
+        <div>
+          <dt>Đơn vị mời</dt>
+          <dd>{guest.sponsorName ?? 'Không có'}</dd>
+        </div>
+        <div>
+          <dt>Ghi chú</dt>
+          <dd>{guest.notes ?? 'Không có ghi chú'}</dd>
+        </div>
+        <div>
+          <dt>Trạng thái</dt>
+          <dd>
+            {guest.checkedInAt
+              ? `Đã check-in lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(guest.checkedInAt))}`
+              : 'Chưa check-in'}
+          </dd>
+        </div>
       </dl>
       {guest.checkedInAt ? (
-        <div className="staff-guest-checked"><UserCheck size={17} /> Đã xác nhận tại cổng {guest.checkinGate ?? 'VIP'}</div>
+        <div className="staff-guest-checked">
+          <UserCheck size={17} /> Đã xác nhận tại cổng {guest.checkinGate ?? 'VIP'}
+        </div>
       ) : (
         <div className="staff-guest-checkin-actions">
-          <label><span>Cổng vào</span><input value={gate} maxLength={100} onChange={(event) => onGateChange(event.target.value)} /></label>
-          <button className="admin-primary-action" type="button" disabled={checkinLoading} onClick={onCheckIn}><UserCheck size={16} />{checkinLoading ? 'Đang xác nhận...' : 'Xác nhận vào cổng'}</button>
+          <label>
+            <span>Cổng vào</span>
+            <input
+              value={gate}
+              maxLength={100}
+              onChange={(event) => onGateChange(event.target.value)}
+            />
+          </label>
+          <button
+            className="admin-primary-action"
+            type="button"
+            disabled={checkinLoading}
+            onClick={onCheckIn}
+          >
+            <UserCheck size={16} />
+            {checkinLoading ? 'Đang xác nhận...' : 'Xác nhận vào cổng'}
+          </button>
         </div>
       )}
     </article>

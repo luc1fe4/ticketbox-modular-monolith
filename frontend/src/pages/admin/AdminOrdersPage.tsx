@@ -19,23 +19,35 @@ type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'muted';
 
 function orderStatusVariant(status: OrderStatus): BadgeVariant {
   switch (status) {
-    case 'PAID': return 'success';
-    case 'AWAITING_PAYMENT': return 'warning';
-    case 'EXPIRED': return 'muted';
-    case 'CANCELLED': return 'muted';
-    case 'PAYMENT_FAILED': return 'error';
-    case 'REFUNDED': return 'info';
-    default: return 'muted';
+    case 'PAID':
+      return 'success';
+    case 'AWAITING_PAYMENT':
+      return 'warning';
+    case 'EXPIRED':
+      return 'muted';
+    case 'CANCELLED':
+      return 'muted';
+    case 'PAYMENT_FAILED':
+      return 'error';
+    case 'REFUNDED':
+      return 'info';
+    default:
+      return 'muted';
   }
 }
 
 function ticketStatusVariant(status: string): BadgeVariant {
   switch (status) {
-    case 'VALID': return 'success';
-    case 'USED': return 'info';
-    case 'CANCELLED': return 'error';
-    case 'TRANSFERRED': return 'warning';
-    default: return 'muted';
+    case 'VALID':
+      return 'success';
+    case 'USED':
+      return 'info';
+    case 'CANCELLED':
+      return 'error';
+    case 'TRANSFERRED':
+      return 'warning';
+    default:
+      return 'muted';
   }
 }
 
@@ -69,13 +81,7 @@ function fmtDate(iso: string) {
 
 // ---- Order detail modal ----
 
-function OrderDetailModal({
-  order,
-  onClose,
-}: {
-  order: Order;
-  onClose: () => void;
-}) {
+function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
   return (
     <div className="admin-dialog-backdrop" onClick={onClose}>
       <div className="admin-dialog admin-dialog-compact" onClick={(e) => e.stopPropagation()}>
@@ -84,7 +90,9 @@ function OrderDetailModal({
             <span>Chi tiết đơn hàng</span>
             <h2>{order.concertTitle}</h2>
           </div>
-          <button onClick={onClose} aria-label="Đóng">×</button>
+          <button onClick={onClose} aria-label="Đóng">
+            ×
+          </button>
         </header>
         <div style={{ padding: 24, display: 'grid', gap: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -98,7 +106,15 @@ function OrderDetailModal({
           </div>
 
           <div>
-            <p style={{ marginBottom: 8, color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em' }}>
+            <p
+              style={{
+                marginBottom: 8,
+                color: 'var(--muted)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '.1em',
+              }}
+            >
               Sản phẩm
             </p>
             <div className="admin-table-wrap">
@@ -141,7 +157,16 @@ function InfoRow({
 }) {
   return (
     <div>
-      <span style={{ display: 'block', color: '#77747e', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>
+      <span
+        style={{
+          display: 'block',
+          color: '#77747e',
+          fontSize: 10,
+          textTransform: 'uppercase',
+          letterSpacing: '.1em',
+          marginBottom: 4,
+        }}
+      >
         {label}
       </span>
       {children ?? <span style={{ fontSize: 13, fontWeight: 600 }}>{value}</span>}
@@ -151,7 +176,13 @@ function InfoRow({
 
 // ---- Ticket tab ----
 
-function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope: ManagementApiScope }) {
+function TicketTab({
+  concerts,
+  apiScope,
+}: {
+  concerts: ConcertDetail[];
+  apiScope: ManagementApiScope;
+}) {
   const [concertId, setConcertId] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [tickets, setTickets] = useState<TicketType[]>([]);
@@ -174,7 +205,9 @@ function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope
     }
   }, [apiScope, concertId, statusFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function handleStatusChange(ticketId: string, newStatus: string) {
     setSavingId(ticketId);
@@ -199,10 +232,16 @@ function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope
           <select value={concertId} onChange={(e) => setConcertId(e.target.value)}>
             <option value="">— Chọn concert —</option>
             {concerts.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} disabled={!concertId}>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            disabled={!concertId}
+          >
             <option value="">Tất cả trạng thái</option>
             <option value="VALID">VALID</option>
             <option value="USED">USED</option>
@@ -251,7 +290,10 @@ function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope
                 <tbody>
                   {tickets.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}>
+                      <td
+                        colSpan={6}
+                        style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}
+                      >
                         Không có vé nào.
                       </td>
                     </tr>
@@ -259,7 +301,17 @@ function TicketTab({ concerts, apiScope }: { concerts: ConcertDetail[]; apiScope
                   {tickets.map((t) => (
                     <tr key={t.id}>
                       <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{t.id.slice(0, 8)}…</td>
-                      <td style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td
+                        style={{
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: 'var(--muted)',
+                          maxWidth: 160,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {t.qrCode.slice(0, 24)}…
                       </td>
                       <td>{t.ticketTypeName}</td>
@@ -316,17 +368,22 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
 
   // Load concerts once
   useEffect(() => {
-    getAdminConcerts(0, 200, undefined, undefined, apiScope).then((p) => setConcerts(p.content)).catch(() => {});
+    getAdminConcerts(0, 200, undefined, undefined, apiScope)
+      .then((p) => setConcerts(p.content))
+      .catch(() => {});
   }, [apiScope]);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
     setOrdersError('');
     try {
-      const data = await getAdminOrders({
-        concertId: concertFilter || undefined,
-        status: (statusFilter as OrderStatus) || undefined,
-      }, apiScope);
+      const data = await getAdminOrders(
+        {
+          concertId: concertFilter || undefined,
+          status: (statusFilter as OrderStatus) || undefined,
+        },
+        apiScope,
+      );
       setOrders(data);
     } catch {
       setOrdersError('Không thể tải danh sách đơn hàng.');
@@ -342,7 +399,9 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
   const stats = useMemo(() => {
     const total = orders.length;
     const paid = orders.filter((o) => o.status === 'PAID').length;
-    const revenue = orders.filter((o) => o.status === 'PAID').reduce((s, o) => s + o.totalAmount, 0);
+    const revenue = orders
+      .filter((o) => o.status === 'PAID')
+      .reduce((s, o) => s + o.totalAmount, 0);
     return { total, paid, revenue };
   }, [orders]);
 
@@ -355,7 +414,9 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
       />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 28 }}>
+      <div
+        style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 28 }}
+      >
         {(['orders', 'tickets'] as TabId[]).map((tab) => (
           <button
             key={tab}
@@ -409,10 +470,15 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
               <select value={concertFilter} onChange={(e) => setConcertFilter(e.target.value)}>
                 <option value="">Tất cả concert</option>
                 {concerts.map((c) => (
-                  <option key={c.id} value={c.id}>{c.title}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
                 ))}
               </select>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as OrderStatus | '')}>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as OrderStatus | '')}
+              >
                 <option value="">Tất cả trạng thái</option>
                 <option value="AWAITING_PAYMENT">AWAITING_PAYMENT</option>
                 <option value="PAID">PAID</option>
@@ -447,26 +513,44 @@ export function AdminOrdersPage({ apiScope = 'admin' }: { apiScope?: ManagementA
                 <tbody>
                   {loadingOrders && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}>
+                      <td
+                        colSpan={7}
+                        style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}
+                      >
                         Đang tải…
                       </td>
                     </tr>
                   )}
                   {!loadingOrders && orders.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}>
+                      <td
+                        colSpan={7}
+                        style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}
+                      >
                         Không có đơn hàng nào.
                       </td>
                     </tr>
                   )}
                   {orders.map((order) => (
                     <tr key={order.id}>
-                      <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{order.id.slice(0, 8)}…</td>
-                      <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                        {order.id.slice(0, 8)}…
+                      </td>
+                      <td
+                        style={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {order.concertTitle}
                       </td>
                       <td>
-                        <StatusBadge label={order.status} variant={orderStatusVariant(order.status)} />
+                        <StatusBadge
+                          label={order.status}
+                          variant={orderStatusVariant(order.status)}
+                        />
                       </td>
                       <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {fmt(order.totalAmount)}

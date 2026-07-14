@@ -35,7 +35,8 @@ export function WaitingRoomPage() {
         if (active) setConcert(detail);
       })
       .catch((requestError) => {
-        if (active && !isRequestCanceled(requestError)) setError('This concert could not be loaded.');
+        if (active && !isRequestCanceled(requestError))
+          setError('This concert could not be loaded.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -77,7 +78,11 @@ export function WaitingRoomPage() {
       try {
         const joined = await joinQueue(concertId, controller.signal);
         handleStatus(joined);
-        if (joined.status !== 'ADMITTED' && joined.status !== 'EXPIRED' && joined.status !== 'LEFT') {
+        if (
+          joined.status !== 'ADMITTED' &&
+          joined.status !== 'EXPIRED' &&
+          joined.status !== 'LEFT'
+        ) {
           connectRealtime();
         }
       } catch (requestError) {
@@ -100,20 +105,26 @@ export function WaitingRoomPage() {
         heartbeatOutgoing: 10_000,
         onConnect: () => {
           if (!active || !stompClient) return;
-          subscription = stompClient.subscribe(`/user/queue/concerts/${concertId}`, (message: IMessage) => {
-            try {
-              handleStatus(JSON.parse(message.body) as QueueStatusResponse);
-            } catch {
-              setError('A live queue update could not be read. Reconnecting…');
-            }
+          subscription = stompClient.subscribe(
+            `/user/queue/concerts/${concertId}`,
+            (message: IMessage) => {
+              try {
+                handleStatus(JSON.parse(message.body) as QueueStatusResponse);
+              } catch {
+                setError('Không đọc được cập nhật hàng chờ trực tiếp. Đang kết nối lại...');
+              }
+            },
+          );
+          stompClient.publish({
+            destination: '/app/queue/subscribe',
+            body: JSON.stringify({ concertId }),
           });
-          stompClient.publish({ destination: '/app/queue/subscribe', body: JSON.stringify({ concertId }) });
         },
         onStompError: () => {
-          if (active) setError('Live queue connection interrupted. Reconnecting…');
+          if (active) setError('Kết nối hàng chờ trực tiếp bị gián đoạn. Đang kết nối lại...');
         },
         onWebSocketClose: () => {
-          if (active) setError('Live queue connection interrupted. Reconnecting…');
+          if (active) setError('Kết nối hàng chờ trực tiếp bị gián đoạn. Đang kết nối lại...');
         },
       });
       stompClient.activate();
@@ -135,7 +146,7 @@ export function WaitingRoomPage() {
   }, []);
 
   const waitLabel = useMemo(() => {
-    if (!queueStatus?.estimatedWaitSeconds) return 'Calculating';
+    if (!queueStatus?.estimatedWaitSeconds) return 'Đang tính';
     const minutes = Math.max(1, Math.ceil(queueStatus.estimatedWaitSeconds / 60));
     return minutes === 1 ? 'About 1 min' : `About ${minutes} mins`;
   }, [queueStatus]);
@@ -153,7 +164,15 @@ export function WaitingRoomPage() {
   }
 
   if (loading) {
-    return <div className="selection-loading page-width"><div className="event-skeleton"><div /><span /><span /></div></div>;
+    return (
+      <div className="selection-loading page-width">
+        <div className="event-skeleton">
+          <div />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
   }
 
   const isWaiting = queueStatus?.status === 'WAITING';
@@ -168,18 +187,38 @@ export function WaitingRoomPage() {
   return (
     <div className="waiting-room-page page-width">
       <div className="flow-topbar">
-        <button className="back-link" type="button" onClick={() => void leave()}>{'<'} Event details</button>
-        <div className="flow-steps" aria-label="Booking progress">
-          <span className={isWaitingRoom ? 'active' : ''}>1 <i>Waiting room</i></span><b /><span className={isWaiting ? 'active' : ''}>2 <i>Queue</i></span><b /><span>3 <i>Tickets</i></span><b /><span>4 <i>Checkout</i></span>
+        <button className="back-link" type="button" onClick={() => void leave()}>
+          {'<'} Chi tiết sự kiện
+        </button>
+        <div className="flow-steps" aria-label="Tiến trình đặt vé">
+          <span className={isWaitingRoom ? 'active' : ''}>
+            1 <i>Phòng chờ</i>
+          </span>
+          <b />
+          <span className={isWaiting ? 'active' : ''}>
+            2 <i>Hàng chờ</i>
+          </span>
+          <b />
+          <span>
+            3 <i>Vé</i>
+          </span>
+          <b />
+          <span>
+            4 <i>Thanh toán</i>
+          </span>
         </div>
-        <div className="timer" role="status">{isWaitingRoom ? `Sale opens in ${countdown(concert?.saleStartAt, now)}` : 'Live queue'}</div>
+        <div className="timer" role="status">
+          {isWaitingRoom
+            ? `Mở bán sau ${countdown(concert?.saleStartAt, now)}`
+            : 'Hàng chờ trực tiếp'}
+        </div>
       </div>
 
       <section className="waiting-room-shell">
         <div className="waiting-room-panel" aria-live="polite">
           <div className="waiting-room-event">
-            <span>{isWaitingRoom ? 'Waiting room' : 'Ticket queue'}</span>
-            <strong>{concert?.title ?? 'Waiting room'}</strong>
+            <span>{isWaitingRoom ? 'Phòng chờ' : 'Hàng chờ mua vé'}</span>
+            <strong>{concert?.title ?? 'Phòng chờ'}</strong>
             <p>
               {concert
                 ? `${eventDate.format(new Date(concert.eventDate))} / ${concert.venueName}`
@@ -188,7 +227,11 @@ export function WaitingRoomPage() {
           </div>
 
           {isWaitingRoom ? (
-            <div className="waiting-room-countdown" role="timer" aria-label={`Ticket sales open in ${countdown(concert?.saleStartAt, now)}`}>
+            <div
+              className="waiting-room-countdown"
+              role="timer"
+              aria-label={`Mở bán sau ${countdown(concert?.saleStartAt, now)}`}
+            >
               <span>Ticket sales open in</span>
               <strong>{countdown(concert?.saleStartAt, now)}</strong>
             </div>
@@ -200,27 +243,58 @@ export function WaitingRoomPage() {
           )}
 
           <div className="queue-status-copy">
-            <span>{joining ? 'Joining waiting room' : isWaitingRoom ? 'You are safely in the waiting room' : isWaiting ? 'You are in line' : isClosed ? 'Queue closed' : 'Checking access'}</span>
-            <h2>{isWaitingRoom ? 'Your place will be assigned automatically' : isWaiting ? `${peopleAhead} ahead of you` : isClosed ? 'Your queue session ended' : 'Preparing your place'}</h2>
+            <span>
+              {joining
+                ? 'Đang vào phòng chờ'
+                : isWaitingRoom
+                  ? 'Bạn đã ở trong phòng chờ an toàn'
+                  : isWaiting
+                    ? 'Bạn đang xếp hàng'
+                    : isClosed
+                      ? 'Hàng chờ đã đóng'
+                      : 'Đang kiểm tra quyền truy cập'}
+            </span>
+            <h2>
+              {isWaitingRoom
+                ? 'Vị trí của bạn sẽ được phân tự động'
+                : isWaiting
+                  ? `${peopleAhead} người phía trước bạn`
+                  : isClosed
+                    ? 'Phiên hàng chờ của bạn đã kết thúc'
+                    : 'Đang chuẩn bị vị trí của bạn'}
+            </h2>
             <p>
               {isWaitingRoom
-                ? `${waitingRoomCount} people are in the waiting room. At sale time TicketBox will snapshot this room once, randomly assign Queue places, then move everyone to the Queue automatically.`
+                ? `${waitingRoomCount} người đang ở trong phòng chờ. Khi mở bán, TicketBox sẽ chụp trạng thái phòng một lần, phân vị trí hàng chờ ngẫu nhiên rồi tự động chuyển mọi người sang hàng chờ.`
                 : isWaiting
-                ? peopleAhead === 0
-                  ? `You are first in the Queue. ${activeShoppers > 0 ? 'A ticket-selection slot is currently in use; you will be moved in automatically when it opens.' : 'We are preparing your ticket-selection slot.'}`
-                  : `Estimated wait: ${waitLabel}. This page will move you forward automatically.`
-                : isClosed
-                  ? 'Join again to request a new shopping session for this concert.'
-                  : 'Keep this tab open while we confirm your shopping session.'}
+                  ? peopleAhead === 0
+                    ? `Bạn đang đứng đầu hàng chờ. ${activeShoppers > 0 ? 'Một lượt chọn vé đang được sử dụng; bạn sẽ được chuyển vào tự động khi lượt đó mở.' : 'Chúng tôi đang chuẩn bị lượt chọn vé cho bạn.'}`
+                    : `Thời gian chờ dự kiến: ${waitLabel}. Trang này sẽ tự động chuyển bạn sang bước tiếp theo.`
+                  : isClosed
+                    ? 'Hãy tham gia lại để yêu cầu phiên mua vé mới cho concert này.'
+                    : 'Hãy giữ tab này mở trong khi chúng tôi xác nhận phiên mua vé của bạn.'}
             </p>
           </div>
 
-          {error ? <div className="waiting-room-error" role="alert">{error}</div> : null}
+          {error ? (
+            <div className="waiting-room-error" role="alert">
+              {error}
+            </div>
+          ) : null}
 
           <div className="queue-metrics">
-            <div><span>{isWaitingRoom ? 'Sale starts' : 'Position'}</span><strong>{isWaitingRoom ? countdown(concert?.saleStartAt, now) : position}</strong></div>
-            <div><span>{isWaitingRoom ? 'In waiting room' : 'People ahead'}</span><strong>{isWaitingRoom ? waitingRoomCount : peopleAhead}</strong></div>
-            <div><span>{isWaitingRoom ? 'Assignment' : 'Waiting in Queue'}</span><strong>{isWaitingRoom ? 'Random at sale time' : queueSize}</strong></div>
+            <div>
+              <span>{isWaitingRoom ? 'Mở bán sau' : 'Vị trí'}</span>
+              <strong>{isWaitingRoom ? countdown(concert?.saleStartAt, now) : position}</strong>
+            </div>
+            <div>
+              <span>{isWaitingRoom ? 'Trong phòng chờ' : 'Người phía trước'}</span>
+              <strong>{isWaitingRoom ? waitingRoomCount : peopleAhead}</strong>
+            </div>
+            <div>
+              <span>{isWaitingRoom ? 'Phân vị trí' : 'Đang chờ'}</span>
+              <strong>{isWaitingRoom ? 'Ngẫu nhiên khi mở bán' : queueSize}</strong>
+            </div>
           </div>
         </div>
       </section>
@@ -239,12 +313,12 @@ function countdown(saleStartAt: string | undefined, now: number) {
 
 function messageForQueueError(error: unknown) {
   if (error instanceof ApiClientError && error.status === 429) {
-    return 'Too many queue requests. Please wait a moment before retrying.';
+    return 'Có quá nhiều yêu cầu hàng chờ. Vui lòng đợi một chút trước khi thử lại.';
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return 'The waiting room could not be reached. Please try again.';
+  return 'Không thể truy cập phòng chờ. Vui lòng thử lại.';
 }

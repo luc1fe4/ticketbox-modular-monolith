@@ -45,7 +45,11 @@ interface TicketResponse {
 
 type ProfileTab = 'profile' | 'orders' | 'tickets';
 
-const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+  maximumFractionDigits: 0,
+});
 const dateTime = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
 
 const roleLabels: Record<UserRole, string> = {
@@ -137,7 +141,11 @@ export function ProfilePage() {
       } catch (error) {
         if (!cancelled) {
           const isForbidden = error instanceof ApiClientError && error.status === 403;
-          setLoadError(isForbidden ? 'Tài khoản hiện tại không có quyền xem dữ liệu này.' : errorMessage(error, 'Không thể tải hồ sơ.'));
+          setLoadError(
+            isForbidden
+              ? 'Tài khoản hiện tại không có quyền xem dữ liệu này.'
+              : errorMessage(error, 'Không thể tải hồ sơ.'),
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -190,7 +198,10 @@ export function ProfilePage() {
       } satisfies UserSummary);
       setMessage({ type: 'success', text: 'Cập nhật thông tin cá nhân thành công.' });
     } catch (error) {
-      setMessage({ type: 'error', text: errorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại.') });
+      setMessage({
+        type: 'error',
+        text: errorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại.'),
+      });
     } finally {
       setSaving(false);
     }
@@ -219,10 +230,18 @@ export function ProfilePage() {
     return (
       <main className="profile-page page-width">
         <div className="state-panel" role="alert">
-          <span className="state-icon" aria-hidden="true">!</span>
+          <span className="state-icon" aria-hidden="true">
+            !
+          </span>
           <h1>Không thể mở hồ sơ</h1>
           <p>{loadError ?? 'Không tìm thấy thông tin tài khoản hiện tại.'}</p>
-          <button className="button button-secondary" type="button" onClick={() => window.location.reload()}>Thử lại</button>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            Thử lại
+          </button>
         </div>
       </main>
     );
@@ -231,26 +250,60 @@ export function ProfilePage() {
   return (
     <main className="profile-page page-width">
       <section className="profile-hero">
-        <div className="profile-avatar" aria-hidden="true">{initials(profile.fullName)}</div>
+        <div className="profile-avatar" aria-hidden="true">
+          {initials(profile.fullName)}
+        </div>
         <div>
-          <p className="eyebrow"><span /> Account center</p>
+          <p className="eyebrow">
+            <span /> Account center
+          </p>
           <h1>{profile.fullName}</h1>
           <p>Quản lý hồ sơ, quyền truy cập và lịch sử đặt vé của tài khoản TicketBox.</p>
         </div>
-        <span className={`role-badge role-${profile.role.toLowerCase()}`}>{roleLabels[profile.role]}</span>
+        <span className={`role-badge role-${profile.role.toLowerCase()}`}>
+          {roleLabels[profile.role]}
+        </span>
       </section>
 
-      <div className="profile-tabs" role="tablist" aria-label="Profile sections">
-        <button type="button" role="tab" aria-selected={activeTab === 'profile'} className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>Profile</button>
+      <div className="profile-tabs" role="tablist" aria-label="Các mục hồ sơ">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'profile'}
+          className={activeTab === 'profile' ? 'active' : ''}
+          onClick={() => setActiveTab('profile')}
+        >
+          Profile
+        </button>
         {showAudienceHistory ? (
           <>
-            <button type="button" role="tab" aria-selected={activeTab === 'orders'} className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>Orders ({orders.length})</button>
-            <button type="button" role="tab" aria-selected={activeTab === 'tickets'} className={activeTab === 'tickets' ? 'active' : ''} onClick={() => setActiveTab('tickets')}>Tickets ({tickets.length})</button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'orders'}
+              className={activeTab === 'orders' ? 'active' : ''}
+              onClick={() => setActiveTab('orders')}
+            >
+              Orders ({orders.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tickets'}
+              className={activeTab === 'tickets' ? 'active' : ''}
+              onClick={() => setActiveTab('tickets')}
+            >
+              Tickets ({tickets.length})
+            </button>
           </>
         ) : null}
       </div>
 
-      {message ? <div className={`inline-message ${message.type}`} role="status">{message.text}</div> : null}
+      {message ? (
+        <div className={`inline-message ${message.type}`} role="status">
+          {message.text}
+        </div>
+      ) : null}
 
       {activeTab === 'profile' ? (
         <section className="profile-grid">
@@ -260,31 +313,57 @@ export function ProfilePage() {
                 <span>Identity</span>
                 <h2>Personal details</h2>
               </div>
-              {!isEditing ? <button className="button button-secondary" type="button" onClick={() => setIsEditing(true)}>Edit</button> : null}
+              {!isEditing ? (
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </button>
+              ) : null}
             </div>
 
             <label className="field">
-              <span>Email address</span>
+              <span>Địa chỉ email</span>
               <input type="email" value={profile.email} disabled />
             </label>
             <label className="field">
               <span>Full name</span>
-              <input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} disabled={!isEditing} autoComplete="name" required />
+              <input
+                type="text"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                disabled={!isEditing}
+                autoComplete="name"
+                required
+              />
             </label>
             <label className="field">
               <span>Phone number</span>
-              <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} disabled={!isEditing} autoComplete="tel" placeholder="0901234567" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                disabled={!isEditing}
+                autoComplete="tel"
+                placeholder="0901234567"
+              />
             </label>
 
             {isEditing ? (
               <div className="profile-actions">
-                <button className="button button-secondary" type="button" onClick={cancelEditing}>Cancel</button>
-                <button className="button button-primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+                <button className="button button-secondary" type="button" onClick={cancelEditing}>
+                  Cancel
+                </button>
+                <button className="button button-primary" type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save changes'}
+                </button>
               </div>
             ) : null}
           </form>
 
-          <aside className="profile-panel profile-summary" aria-label="Account summary">
+          <aside className="profile-panel profile-summary" aria-label="Tóm tắt tài khoản">
             <div className="panel-heading">
               <div>
                 <span>Access</span>
@@ -314,11 +393,19 @@ export function ProfilePage() {
 
 function OrderHistory({ orders }: { orders: OrderResponse[] }) {
   if (orders.length === 0) {
-    return <div className="state-panel compact"><span className="state-icon" aria-hidden="true">◇</span><h2>Chưa có đơn hàng</h2><p>Các đơn mua vé sẽ xuất hiện tại đây sau khi bạn đặt vé.</p></div>;
+    return (
+      <div className="state-panel compact">
+        <span className="state-icon" aria-hidden="true">
+          ◇
+        </span>
+        <h2>Chưa có đơn hàng</h2>
+        <p>Các đơn mua vé sẽ xuất hiện tại đây sau khi bạn đặt vé.</p>
+      </div>
+    );
   }
 
   return (
-    <section className="history-list" aria-label="Order history">
+    <section className="history-list" aria-label="Lịch sử đơn hàng">
       {orders.map((order) => (
         <OrderHistoryItem key={order.id} order={order} />
       ))}
@@ -338,8 +425,11 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
       // 1. Lưu session-storage tạm để trang Payment Result khôi phục context nếu cần
       const pendingPayment = {
         orderId: order.id,
-        selection: order.items.map(item => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
-        event: { id: order.concertId, title: order.concertTitle }
+        selection: order.items.map((item) => ({
+          ticketTypeId: item.ticketTypeId,
+          quantity: item.quantity,
+        })),
+        event: { id: order.concertId, title: order.concertTitle },
       };
       sessionStorage.setItem('ticketbox.pending-payment', JSON.stringify(pendingPayment));
 
@@ -348,7 +438,7 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
 
       const payment = await api.post<unknown, { paymentUrl: string }>(
         `/api/payments/${encodeURIComponent(order.id)}/initiate`,
-        { provider }
+        { provider },
       );
 
       if (!payment.paymentUrl) {
@@ -373,32 +463,42 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
     <article className="history-item" style={{ position: 'relative' }}>
       <div className="history-topline">
         <span>Order {order.id.slice(0, 8).toUpperCase()}</span>
-        <span className={`status-chip status-${order.status.toLowerCase().replace('_', '-')}`}>{orderLabels[order.status]}</span>
+        <span className={`status-chip status-${order.status.toLowerCase().replace('_', '-')}`}>
+          {orderLabels[order.status]}
+        </span>
       </div>
       <h2>{order.concertTitle}</h2>
       <div className="history-lines">
         {order.items.map((item) => (
           <div key={item.ticketTypeId}>
-            <span>{item.ticketTypeName} x{item.quantity}</span>
+            <span>
+              {item.ticketTypeName} x{item.quantity}
+            </span>
             <strong>{money.format(item.subtotal || item.unitPrice * item.quantity)}</strong>
           </div>
         ))}
       </div>
-      
+
       {order.status === 'AWAITING_PAYMENT' && (
-        <div style={{
-          marginTop: 14,
-          padding: '12px 14px',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid var(--line)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12
-        }}>
+        <div
+          style={{
+            marginTop: 14,
+            padding: '12px 14px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--line)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
           <div>
-            <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Phương thức thanh toán</label>
+            <label
+              style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}
+            >
+              Phương thức thanh toán
+            </label>
             <select
               value={provider}
               onChange={(e) => setProvider(e.target.value as 'MOCK' | 'VNPAY' | 'MOMO')}
@@ -409,7 +509,7 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
                 background: '#111115',
                 border: '1px solid var(--line)',
                 color: 'var(--cream)',
-                fontSize: 12
+                fontSize: 12,
               }}
             >
               <option value="MOCK">Thẻ Test (Mock)</option>
@@ -429,9 +529,7 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
       )}
 
       {error && (
-        <div style={{ color: 'var(--coral-light)', fontSize: 11, marginTop: 8 }}>
-          {error}
-        </div>
+        <div style={{ color: 'var(--coral-light)', fontSize: 11, marginTop: 8 }}>{error}</div>
       )}
 
       <div className="history-total">
@@ -444,21 +542,34 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
 
 function TicketHistory({ tickets }: { tickets: TicketResponse[] }) {
   if (tickets.length === 0) {
-    return <div className="state-panel compact"><span className="state-icon" aria-hidden="true">◇</span><h2>Chưa có vé</h2><p>Vé điện tử và mã QR sẽ hiển thị sau khi thanh toán thành công.</p></div>;
+    return (
+      <div className="state-panel compact">
+        <span className="state-icon" aria-hidden="true">
+          ◇
+        </span>
+        <h2>Chưa có vé</h2>
+        <p>Vé điện tử và mã QR sẽ hiển thị sau khi thanh toán thành công.</p>
+      </div>
+    );
   }
 
   return (
-    <section className="ticket-history-grid" aria-label="Ticket history">
+    <section className="ticket-history-grid" aria-label="Lịch sử vé">
       {tickets.map((ticket) => (
         <article className="profile-ticket" key={ticket.id}>
           <div className="history-topline">
             <span>Ticket {ticket.id.slice(0, 8).toUpperCase()}</span>
-            <span className={`status-chip status-${ticket.status.toLowerCase()}`}>{ticketLabels[ticket.status]}</span>
+            <span className={`status-chip status-${ticket.status.toLowerCase()}`}>
+              {ticketLabels[ticket.status]}
+            </span>
           </div>
           <h2>{ticket.concertTitle}</h2>
           <p style={{ fontWeight: 600, color: 'var(--cream)' }}>{ticket.ticketTypeName}</p>
           {ticket.status === 'VALID' || ticket.status === 'UNUSED' ? (
-            <div className="profile-qr" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <div
+              className="profile-qr"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}
+            >
               <QRCodeSVG
                 value={ticket.qrCode}
                 size={140}

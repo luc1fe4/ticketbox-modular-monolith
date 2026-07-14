@@ -22,7 +22,7 @@ export function RegisterPage() {
     const password = String(data.get('password'));
     const confirmation = String(data.get('confirmPassword'));
     if (password !== confirmation) {
-      setError('The passwords do not match.');
+      setError('Mật khẩu xác nhận không khớp.');
       return;
     }
     setError(null);
@@ -36,35 +36,98 @@ export function RegisterPage() {
       );
       navigate('/login', { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Your account could not be created.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể tạo tài khoản của bạn.',
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <AuthLayout quote="The crowd was loud. The memory is louder." credit="TicketBox Selects · Hanoi">
+    <AuthLayout
+      quote="Âm thanh khán giả rất lớn. Ký ức còn vang hơn."
+      credit="TicketBox tuyển chọn · Hà Nội"
+    >
       <div className="auth-card">
         <div className="auth-heading">
-          <p className="eyebrow"><span /> Join the crowd</p>
-          <h1>Make room for <em>more memories.</em></h1>
-          <p>Create an account to book events and keep every ticket close.</p>
+          <p className="eyebrow">
+            <span /> Tham gia cùng khán giả
+          </p>
+          <h1>
+            Dành chỗ cho <em>nhiều ký ức hơn.</em>
+          </h1>
+          <p>Tạo tài khoản để đặt sự kiện và lưu mọi vé trong tầm tay.</p>
         </div>
-        {error ? <div className="state-panel auth-error" role="alert"><p>{error}</p></div> : null}
+        {error ? (
+          <div className="state-panel auth-error" role="alert">
+            <p>{error}</p>
+          </div>
+        ) : null}
         <form className="auth-form" onSubmit={submit}>
-          <label className="field"><span>Full name</span><input name="fullName" autoComplete="name" placeholder="Minh Quan..." required /></label>
+          <label className="field">
+            <span>Họ và tên</span>
+            <input name="fullName" autoComplete="name" placeholder="Minh Quan..." required />
+          </label>
           <div className="form-grid form-grid-two">
-            <label className="field"><span>Email address</span><input type="email" name="email" autoComplete="email" spellCheck={false} placeholder="you@example.com..." required /></label>
-            <label className="field"><span>Phone number</span><input type="tel" name="phone" autoComplete="tel" placeholder="0901234567" required /></label>
+            <label className="field">
+              <span>Địa chỉ email</span>
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                spellCheck={false}
+                placeholder="ban@example.com..."
+                required
+              />
+            </label>
+            <label className="field">
+              <span>Số điện thoại</span>
+              <input type="tel" name="phone" autoComplete="tel" placeholder="0901234567" required />
+            </label>
           </div>
           <div className="form-grid form-grid-two">
-            <label className="field"><span>Password</span><input type="password" name="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters..." required /></label>
-            <label className="field"><span>Confirm password</span><input type="password" name="confirmPassword" autoComplete="new-password" minLength={8} placeholder="Repeat password..." required /></label>
+            <label className="field">
+              <span>Mật khẩu</span>
+              <input
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                minLength={8}
+                placeholder="Ít nhất 8 ký tự..."
+                required
+              />
+            </label>
+            <label className="field">
+              <span>Xác nhận mật khẩu</span>
+              <input
+                type="password"
+                name="confirmPassword"
+                autoComplete="new-password"
+                minLength={8}
+                placeholder="Nhập lại mật khẩu..."
+                required
+              />
+            </label>
           </div>
-          <label className="terms-check"><input type="checkbox" required /><span>I agree to the <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</span></label>
-          <button className="button button-primary button-block" type="submit" disabled={submitting}>{submitting ? 'Creating account...' : 'Create account'}</button>
+          <label className="terms-check">
+            <input type="checkbox" required />
+            <span>
+              Tôi đồng ý với <a href="#terms">Điều khoản</a> và{' '}
+              <a href="#privacy">Chính sách quyền riêng tư</a>.
+            </span>
+          </label>
+          <button
+            className="button button-primary button-block"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+          </button>
         </form>
-        <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
+        <p className="auth-switch">
+          Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
+        </p>
       </div>
     </AuthLayout>
   );

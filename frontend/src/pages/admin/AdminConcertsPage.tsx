@@ -109,9 +109,7 @@ function toPayload(form: ConcertFormState): ConcertMutation {
     venueName: form.venueName.trim(),
     venueAddress: form.venueAddress.trim(),
     eventDate: new Date(form.eventDate).toISOString(),
-    doorsOpenAt: form.doorsOpenAt
-      ? new Date(form.doorsOpenAt).toISOString()
-      : null,
+    doorsOpenAt: form.doorsOpenAt ? new Date(form.doorsOpenAt).toISOString() : null,
     saleStartAt: new Date(form.saleStartAt).toISOString(),
     saleEndAt: form.saleEndAt ? new Date(form.saleEndAt).toISOString() : null,
     seatMapSvg: form.seatMapSvg.trim() || null,
@@ -145,9 +143,7 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       setLoading(true);
       setError('');
       try {
-        setPageData(
-          await getAdminConcerts(page, 10, status || undefined, signal, apiScope),
-        );
+        setPageData(await getAdminConcerts(page, 10, status || undefined, signal, apiScope));
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           setError(
@@ -176,15 +172,16 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
     }
 
     const controller = new AbortController();
-    Promise.allSettled(pageData.content.map((concert) => getAdminCheckinSummary(concert.id, controller.signal)))
-      .then((results) => {
-        if (controller.signal.aborted) return;
-        const next: Record<string, CheckinSummary> = {};
-        results.forEach((result) => {
-          if (result.status === 'fulfilled') next[result.value.concertId] = result.value;
-        });
-        setCheckinSummaries(next);
+    Promise.allSettled(
+      pageData.content.map((concert) => getAdminCheckinSummary(concert.id, controller.signal)),
+    ).then((results) => {
+      if (controller.signal.aborted) return;
+      const next: Record<string, CheckinSummary> = {};
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') next[result.value.concertId] = result.value;
       });
+      setCheckinSummaries(next);
+    });
 
     return () => controller.abort();
   }, [apiScope, pageData?.content]);
@@ -250,10 +247,12 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
         }
       }
 
-      toast.success(commandMessage(
-        result.message,
-        editing ? 'Đã cập nhật concert.' : 'Đã tạo concert ở trạng thái bản nháp.',
-      ));
+      toast.success(
+        commandMessage(
+          result.message,
+          editing ? 'Đã cập nhật concert.' : 'Đã tạo concert ở trạng thái bản nháp.',
+        ),
+      );
       closeForm();
       await loadConcerts();
     } catch (requestError) {
@@ -288,7 +287,9 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       toast.success(commandMessage(result.message, 'Đã xóa poster concert.'));
       await loadConcerts();
     } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Không thể xóa poster concert.');
+      toast.error(
+        requestError instanceof Error ? requestError.message : 'Không thể xóa poster concert.',
+      );
     } finally {
       setRemovingPoster(false);
     }
@@ -298,10 +299,14 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
     setBusyId(concert.id);
     try {
       const result = await updateConcertStatus(concert.id, next, apiScope);
-      toast.success(commandMessage(result.message, `Đã chuyển "${concert.title}" sang ${statusLabel(next)}.`));
+      toast.success(
+        commandMessage(result.message, `Đã chuyển "${concert.title}" sang ${statusLabel(next)}.`),
+      );
       await loadConcerts();
     } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Không thể đổi trạng thái concert.');
+      toast.error(
+        requestError instanceof Error ? requestError.message : 'Không thể đổi trạng thái concert.',
+      );
     } finally {
       setBusyId('');
     }
@@ -316,7 +321,11 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       setDeleteTarget(null);
       await loadConcerts();
     } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Chỉ concert bản nháp mới có thể xóa.');
+      toast.error(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Chỉ concert bản nháp mới có thể xóa.',
+      );
     } finally {
       setBusyId('');
     }
@@ -337,9 +346,18 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
       />
 
       <section className="admin-inline-stats" aria-label="Tóm tắt concert">
-        <div><span>Tổng concert</span><strong>{counts.total}</strong></div>
-        <div><span>Đang bán trên trang này</span><strong>{counts.onSale}</strong></div>
-        <div><span>Bản nháp trên trang này</span><strong>{counts.draft}</strong></div>
+        <div>
+          <span>Tổng concert</span>
+          <strong>{counts.total}</strong>
+        </div>
+        <div>
+          <span>Đang bán trên trang này</span>
+          <strong>{counts.onSale}</strong>
+        </div>
+        <div>
+          <span>Bản nháp trên trang này</span>
+          <strong>{counts.draft}</strong>
+        </div>
       </section>
 
       <div className="admin-toolbar">
@@ -353,7 +371,9 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
             }}
           >
             {statuses.map((item) => (
-              <option key={item.value || 'all'} value={item.value}>{item.label}</option>
+              <option key={item.value || 'all'} value={item.value}>
+                {item.label}
+              </option>
             ))}
           </select>
         </label>
@@ -363,7 +383,11 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
         </button>
       </div>
 
-      {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="admin-notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <section className="admin-data-panel">
         {loading ? (
@@ -378,7 +402,9 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                   <th>Thời gian</th>
                   <th>Trạng thái</th>
                   <th>Điều phối</th>
-                  <th><span className="sr-only">Thao tác</span></th>
+                  <th>
+                    <span className="sr-only">Thao tác</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -387,11 +413,18 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                     <td>
                       <div className="admin-concert-cell">
                         <div className="admin-concert-poster">
-                          {concert.posterUrl ? <img src={concert.posterUrl} alt="" /> : <CalendarPlus size={20} />}
+                          {concert.posterUrl ? (
+                            <img src={concert.posterUrl} alt="" />
+                          ) : (
+                            <CalendarPlus size={20} />
+                          )}
                         </div>
                         <div>
                           <strong>{concert.title}</strong>
-                          <span><MapPin size={13} />{concert.venueName}</span>
+                          <span>
+                            <MapPin size={13} />
+                            {concert.venueName}
+                          </span>
                         </div>
                       </div>
                     </td>
@@ -400,10 +433,12 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                         {checkinSummaries[concert.id] ? (
                           <>
                             <strong className="admin-table-primary">
-                              {checkinSummaries[concert.id].checkedIn} / {checkinSummaries[concert.id].totalTickets}
+                              {checkinSummaries[concert.id].checkedIn} /{' '}
+                              {checkinSummaries[concert.id].totalTickets}
                             </strong>
                             <span className="admin-table-secondary">
-                              Online {checkinSummaries[concert.id].onlineCheckins} · Offline {checkinSummaries[concert.id].offlineCheckins}
+                              Online {checkinSummaries[concert.id].onlineCheckins} · Offline{' '}
+                              {checkinSummaries[concert.id].offlineCheckins}
                             </span>
                           </>
                         ) : (
@@ -412,11 +447,23 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                       </td>
                     ) : null}
                     <td>
-                      <strong className="admin-table-primary">{dateTime.format(new Date(concert.eventDate))}</strong>
-                      <span className="admin-table-secondary">Bán vé: {dateTime.format(new Date(concert.saleStartAt))}</span>
-                      <span className="admin-table-secondary">{concert.saleEndAt ? `Đến ${dateTime.format(new Date(concert.saleEndAt))}` : 'Đến khi concert diễn ra'}</span>
+                      <strong className="admin-table-primary">
+                        {dateTime.format(new Date(concert.eventDate))}
+                      </strong>
+                      <span className="admin-table-secondary">
+                        Bán vé: {dateTime.format(new Date(concert.saleStartAt))}
+                      </span>
+                      <span className="admin-table-secondary">
+                        {concert.saleEndAt
+                          ? `Đến ${dateTime.format(new Date(concert.saleEndAt))}`
+                          : 'Đến khi concert diễn ra'}
+                      </span>
                     </td>
-                    <td><span className={`admin-status status-${concert.status.toLowerCase()}`}>{statusLabel(concert.status)}</span></td>
+                    <td>
+                      <span className={`admin-status status-${concert.status.toLowerCase()}`}>
+                        {statusLabel(concert.status)}
+                      </span>
+                    </td>
                     <td>
                       <ActionMenu
                         label="Chuyển trạng thái"
@@ -432,11 +479,30 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
                     </td>
                     <td>
                       <div className="admin-row-actions">
-                        <Link className="admin-row-link" aria-label={`Mở workspace ${concert.title}`} to={`${apiScope === 'admin' ? '/admin' : '/organizer'}/concerts/${concert.id}`}><ExternalLink size={16} /></Link>
-                        <button type="button" aria-label={`Sửa ${concert.title}`} onClick={() => openEdit(concert)} disabled={busyId === concert.id || ['COMPLETED', 'CANCELLED'].includes(concert.status)}>
+                        <Link
+                          className="admin-row-link"
+                          aria-label={`Mở không gian quản lý ${concert.title}`}
+                          to={`${apiScope === 'admin' ? '/admin' : '/organizer'}/concerts/${concert.id}`}
+                        >
+                          <ExternalLink size={16} />
+                        </Link>
+                        <button
+                          type="button"
+                          aria-label={`Sửa ${concert.title}`}
+                          onClick={() => openEdit(concert)}
+                          disabled={
+                            busyId === concert.id ||
+                            ['COMPLETED', 'CANCELLED'].includes(concert.status)
+                          }
+                        >
                           <Edit3 size={16} />
                         </button>
-                        <button type="button" aria-label={`Xóa ${concert.title}`} onClick={() => setDeleteTarget(concert)} disabled={concert.status !== 'DRAFT' || busyId === concert.id}>
+                        <button
+                          type="button"
+                          aria-label={`Xóa ${concert.title}`}
+                          onClick={() => setDeleteTarget(concert)}
+                          disabled={concert.status !== 'DRAFT' || busyId === concert.id}
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -451,17 +517,35 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
             <CalendarPlus aria-hidden="true" size={28} />
             <h2>Chưa có concert phù hợp</h2>
             <p>Thay đổi bộ lọc hoặc tạo concert đầu tiên.</p>
-            <button className="admin-primary-action" type="button" onClick={openCreate}>Tạo concert</button>
+            <button className="admin-primary-action" type="button" onClick={openCreate}>
+              Tạo concert
+            </button>
           </div>
         )}
       </section>
 
       {pageData && pageData.totalPages > 1 ? (
         <div className="admin-pagination">
-          <span>Trang {pageData.number + 1} / {pageData.totalPages}</span>
+          <span>
+            Trang {pageData.number + 1} / {pageData.totalPages}
+          </span>
           <div>
-            <button type="button" aria-label="Trang trước" disabled={pageData.first} onClick={() => setPage((value) => value - 1)}><ChevronLeft size={17} /></button>
-            <button type="button" aria-label="Trang sau" disabled={pageData.last} onClick={() => setPage((value) => value + 1)}><ChevronRight size={17} /></button>
+            <button
+              type="button"
+              aria-label="Trang trước"
+              disabled={pageData.first}
+              onClick={() => setPage((value) => value - 1)}
+            >
+              <ChevronLeft size={17} />
+            </button>
+            <button
+              type="button"
+              aria-label="Trang sau"
+              disabled={pageData.last}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              <ChevronRight size={17} />
+            </button>
           </div>
         </div>
       ) : null}
@@ -498,7 +582,9 @@ export function AdminConcertsPage({ apiScope = 'admin' }: { apiScope?: Managemen
 function ConcertRowsSkeleton() {
   return (
     <div className="admin-row-skeleton" aria-label="Đang tải concert" aria-live="polite">
-      {[1, 2, 3, 4].map((item) => <span key={item} />)}
+      {[1, 2, 3, 4].map((item) => (
+        <span key={item} />
+      ))}
     </div>
   );
 }
@@ -575,13 +661,20 @@ function ConcertForm({
 
   return (
     <div className="admin-dialog-backdrop" role="presentation">
-      <section className="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="concert-form-title">
+      <section
+        className="admin-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="concert-form-title"
+      >
         <header>
           <div>
             <span>{editing ? 'Chỉnh sửa chương trình' : 'Chương trình mới'}</span>
             <h2 id="concert-form-title">{editing ? editing.title : 'Tạo concert'}</h2>
           </div>
-          <button type="button" aria-label="Đóng" onClick={onClose}><X size={20} /></button>
+          <button type="button" aria-label="Đóng" onClick={onClose}>
+            <X size={20} />
+          </button>
         </header>
         <form onSubmit={onSubmit}>
           <div className="admin-form-grid">
@@ -598,11 +691,11 @@ function ConcertForm({
               <input type="datetime-local" {...field('doorsOpenAt')} />
             </label>
             <label className="admin-field">
-              <span>Sale starts</span>
+              <span>Bắt đầu bán vé</span>
               <input required type="datetime-local" {...field('saleStartAt')} />
             </label>
             <label className="admin-field">
-              <span>Sale ends</span>
+              <span>Kết thúc bán vé</span>
               <input type="datetime-local" {...field('saleEndAt')} />
             </label>
             <label className="admin-field">
@@ -617,7 +710,11 @@ function ConcertForm({
               <span>Poster concert</span>
               <div className="admin-poster-field">
                 <div className="admin-poster-preview">
-                  {posterPreview ? <img src={posterPreview} alt="Xem trước poster concert" /> : <ImagePlus aria-hidden="true" size={25} />}
+                  {posterPreview ? (
+                    <img src={posterPreview} alt="Xem trước poster concert" />
+                  ) : (
+                    <ImagePlus aria-hidden="true" size={25} />
+                  )}
                 </div>
                 <div className="admin-poster-controls">
                   <label className="admin-secondary-action">
@@ -630,9 +727,20 @@ function ConcertForm({
                     />
                   </label>
                   {posterFile ? (
-                    <button className="admin-secondary-action" type="button" onClick={() => onPosterChange(null)}>Bỏ ảnh đã chọn</button>
+                    <button
+                      className="admin-secondary-action"
+                      type="button"
+                      onClick={() => onPosterChange(null)}
+                    >
+                      Bỏ ảnh đã chọn
+                    </button>
                   ) : editing?.posterUrl ? (
-                    <button className="admin-secondary-action" type="button" onClick={onRemovePoster} disabled={removingPoster}>
+                    <button
+                      className="admin-secondary-action"
+                      type="button"
+                      onClick={onRemovePoster}
+                      disabled={removingPoster}
+                    >
                       {removingPoster ? 'Đang xóa...' : 'Xóa poster'}
                     </button>
                   ) : null}
@@ -645,13 +753,19 @@ function ConcertForm({
               <textarea rows={4} {...field('description')} />
             </label>
             <div className="admin-field admin-field-wide">
-              <span>Seat map SVG</span>
+              <span>Sơ đồ chỗ SVG</span>
               <div className="admin-poster-field">
                 <div className="admin-poster-preview">
                   {form.seatMapSvg ? (
-                    <div 
-                      style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      dangerouslySetInnerHTML={{ __html: form.seatMapSvg }} 
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: form.seatMapSvg }}
                     />
                   ) : (
                     <Map aria-hidden="true" size={25} />
@@ -671,9 +785,9 @@ function ConcertForm({
                     />
                   </label>
                   {form.seatMapSvg ? (
-                    <button 
-                      className="admin-secondary-action" 
-                      type="button" 
+                    <button
+                      className="admin-secondary-action"
+                      type="button"
                       onClick={() => onChange({ ...form, seatMapSvg: '' })}
                     >
                       Xóa sơ đồ
@@ -685,8 +799,12 @@ function ConcertForm({
             </div>
           </div>
           <footer>
-            <button className="admin-secondary-action" type="button" onClick={onClose}>Hủy</button>
-            <button className="admin-primary-action" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Tạo bản nháp'}</button>
+            <button className="admin-secondary-action" type="button" onClick={onClose}>
+              Hủy
+            </button>
+            <button className="admin-primary-action" type="submit" disabled={saving}>
+              {saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Tạo bản nháp'}
+            </button>
           </footer>
         </form>
       </section>

@@ -28,7 +28,8 @@ export function AdminNotificationsPage() {
   const [notice, setNotice] = useState('');
 
   const failedEmailCount = useMemo(
-    () => notifications.filter((item) => item.channel === 'EMAIL' && item.status === 'FAILED').length,
+    () =>
+      notifications.filter((item) => item.channel === 'EMAIL' && item.status === 'FAILED').length,
     [notifications],
   );
 
@@ -45,7 +46,11 @@ export function AdminNotificationsPage() {
       setSelectedConcertId((current) => current || concertPage.content[0]?.id || '');
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
-        setError(requestError instanceof Error ? requestError.message : 'Không thể tải notification ops.');
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Không thể tải vận hành thông báo.',
+        );
       }
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -65,10 +70,14 @@ export function AdminNotificationsPage() {
     setNotice('');
     try {
       const result = await retryAdminNotification(item.id);
-      setNotifications((current) => current.map((existing) => (existing.id === item.id ? result.data : existing)));
-      setNotice(`Đã đưa notification ${item.id.slice(0, 8)} vào email queue.`);
+      setNotifications((current) =>
+        current.map((existing) => (existing.id === item.id ? result.data : existing)),
+      );
+      setNotice(`Đã đưa thông báo ${item.id.slice(0, 8)} vào hàng chờ email.`);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể retry notification.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể thử gửi lại thông báo.',
+      );
     } finally {
       setSavingId(null);
     }
@@ -81,10 +90,12 @@ export function AdminNotificationsPage() {
     setNotice('');
     try {
       const result = await sendAdminConcertReminder(selectedConcertId);
-      setNotice(`Đã tạo reminder cho ${result.data.recipients} người giữ vé hợp lệ.`);
+      setNotice(`Đã tạo nhắc lịch cho ${result.data.recipients} người giữ vé hợp lệ.`);
       await load();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể gửi reminder thủ công.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể gửi nhắc lịch thủ công.',
+      );
     } finally {
       setSendingReminder(false);
     }
@@ -93,32 +104,62 @@ export function AdminNotificationsPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Notification ops"
+        eyebrow="Vận hành thông báo"
         title="Vận hành thông báo"
-        description="Theo dõi app/email notification, retry email lỗi và kích hoạt reminder thủ công cho concert."
+        description="Theo dõi thông báo app/email, thử gửi lại email lỗi và kích hoạt nhắc lịch thủ công cho concert."
         actions={
-          <button className="admin-secondary-action" type="button" onClick={() => void load()} disabled={loading}>
+          <button
+            className="admin-secondary-action"
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+          >
             <RefreshCw aria-hidden="true" size={16} className={loading ? 'spin' : ''} />
             Làm mới
           </button>
         }
       />
 
-      {notice ? <div className="admin-notice success" role="status">{notice}</div> : null}
-      {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+      {notice ? (
+        <div className="admin-notice success" role="status">
+          {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="admin-notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <div className="admin-toolbar">
-        <ConcertPicker concerts={concerts} value={selectedConcertId} onChange={setSelectedConcertId} label="Concert gửi reminder" placeholder="Chọn concert" disabled={loading || !concerts.length} />
-        <button type="button" onClick={() => void sendReminder()} disabled={!selectedConcertId || sendingReminder}>
+        <ConcertPicker
+          concerts={concerts}
+          value={selectedConcertId}
+          onChange={setSelectedConcertId}
+          label="Concert gửi nhắc lịch"
+          placeholder="Chọn concert"
+          disabled={loading || !concerts.length}
+        />
+        <button
+          type="button"
+          onClick={() => void sendReminder()}
+          disabled={!selectedConcertId || sendingReminder}
+        >
           <Send aria-hidden="true" size={16} />
-          {sendingReminder ? 'Đang gửi...' : 'Gửi reminder'}
+          {sendingReminder ? 'Đang gửi...' : 'Gửi nhắc lịch'}
         </button>
       </div>
 
       <section className="admin-data-panel">
         {loading ? (
-          <div className="admin-row-skeleton" aria-label="Đang tải notification ops" aria-live="polite">
-            {[1, 2, 3].map((item) => <span key={item} />)}
+          <div
+            className="admin-row-skeleton"
+            aria-label="Đang tải vận hành thông báo"
+            aria-live="polite"
+          >
+            {[1, 2, 3].map((item) => (
+              <span key={item} />
+            ))}
           </div>
         ) : notifications.length ? (
           <div className="admin-table-wrap">
@@ -129,7 +170,9 @@ export function AdminNotificationsPage() {
                   <th>Kênh</th>
                   <th>Trạng thái</th>
                   <th>Thời gian</th>
-                  <th><span className="sr-only">Thao tác</span></th>
+                  <th>
+                    <span className="sr-only">Thao tác</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -137,23 +180,44 @@ export function AdminNotificationsPage() {
                   <tr key={item.id}>
                     <td>
                       <strong className="admin-table-primary">{item.subject}</strong>
-                      <span className="admin-table-secondary">{item.eventType} / {item.id.slice(0, 8)}</span>
+                      <span className="admin-table-secondary">
+                        {item.eventType} / {item.id.slice(0, 8)}
+                      </span>
                     </td>
-                    <td><strong className="admin-table-primary">{item.channel}</strong></td>
                     <td>
-                      <span className={`status-badge ${item.status === 'FAILED' ? 'badge-error' : item.status === 'SENT' ? 'badge-success' : 'badge-warning'}`}>
+                      <strong className="admin-table-primary">{item.channel}</strong>
+                    </td>
+                    <td>
+                      <span
+                        className={`status-badge ${item.status === 'FAILED' ? 'badge-error' : item.status === 'SENT' ? 'badge-success' : 'badge-warning'}`}
+                      >
                         {item.status}
                       </span>
                     </td>
                     <td>
-                      <strong className="admin-table-primary">{dateTime.format(new Date(item.createdAt))}</strong>
-                      <span className="admin-table-secondary">{item.sentAt ? `Sent ${dateTime.format(new Date(item.sentAt))}` : 'Chưa gửi'}</span>
+                      <strong className="admin-table-primary">
+                        {dateTime.format(new Date(item.createdAt))}
+                      </strong>
+                      <span className="admin-table-secondary">
+                        {item.sentAt
+                          ? `Sent ${dateTime.format(new Date(item.sentAt))}`
+                          : 'Chưa gửi'}
+                      </span>
                     </td>
                     <td>
                       {item.channel === 'EMAIL' && item.status === 'FAILED' ? (
-                        <button className="admin-secondary-action" type="button" disabled={savingId !== null} onClick={() => void retry(item)}>
-                          <RotateCw aria-hidden="true" size={15} className={savingId === item.id ? 'spin' : ''} />
-                          Retry
+                        <button
+                          className="admin-secondary-action"
+                          type="button"
+                          disabled={savingId !== null}
+                          onClick={() => void retry(item)}
+                        >
+                          <RotateCw
+                            aria-hidden="true"
+                            size={15}
+                            className={savingId === item.id ? 'spin' : ''}
+                          />
+                          Thử lại
                         </button>
                       ) : null}
                     </td>
@@ -165,16 +229,16 @@ export function AdminNotificationsPage() {
         ) : (
           <div className="admin-empty-state">
             <Bell aria-hidden="true" size={28} />
-            <h2>Chưa có notification</h2>
-            <p>Notification sẽ xuất hiện sau payment success hoặc reminder job.</p>
+            <h2>Chưa có thông báo</h2>
+            <p>Thông báo sẽ xuất hiện sau khi thanh toán thành công hoặc tác vụ nhắc lịch chạy.</p>
           </div>
         )}
       </section>
 
       <div className="admin-toolbar">
         <div>
-          <strong className="admin-table-primary">{notifications.length} notification gần nhất</strong>
-          <span className="admin-table-secondary">{failedEmailCount} email lỗi có thể retry</span>
+          <strong className="admin-table-primary">{notifications.length} thông báo gần nhất</strong>
+          <span className="admin-table-secondary">{failedEmailCount} email lỗi có thể thử lại</span>
         </div>
       </div>
     </>

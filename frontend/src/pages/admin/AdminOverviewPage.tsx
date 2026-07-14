@@ -25,13 +25,13 @@ const workspaces = [
   {
     to: '/admin/artist-bio',
     title: 'AI Artist Bio',
-    copy: 'Tải press-kit PDF, review bio do AI tạo và áp dụng vào concert.',
+    copy: 'Tải hồ sơ báo chí PDF, rà soát giới thiệu do AI tạo và áp dụng vào concert.',
     icon: Sparkles,
   },
   {
     to: '/admin/notifications',
     title: 'Thông báo',
-    copy: 'Theo dõi notification, retry email lỗi và gửi reminder thủ công.',
+    copy: 'Theo dõi thông báo, thử gửi lại email lỗi và gửi nhắc lịch thủ công.',
     icon: Bell,
   },
   {
@@ -48,7 +48,7 @@ export function AdminOverviewPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Control room"
+        eyebrow="Trung tâm điều phối"
         title={`Chào ${user?.fullName ?? 'bạn'}`}
         description="Điều phối chương trình, hạng vé và dữ liệu vận hành từ một không gian thống nhất."
         actions={
