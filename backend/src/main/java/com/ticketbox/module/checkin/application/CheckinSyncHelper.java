@@ -34,7 +34,7 @@ public class CheckinSyncHelper {
             return new SyncResultEntry(
                     entry.qrCode(),
                     "SKIPPED",
-                    "Ticket was already checked in on the server"
+                    "Vé đã được check-in trên máy chủ"
             );
         }
 
@@ -54,10 +54,10 @@ public class CheckinSyncHelper {
             return new SyncResultEntry(
                     entry.qrCode(),
                     "SKIPPED",
-                    "Ticket was already checked in; the server record was kept"
+                    "Vé đã được check-in; bản ghi trên máy chủ được giữ nguyên"
             );
         }
 
-        return new SyncResultEntry(entry.qrCode(), "ACCEPTED", "Check-in recorded successfully");
+        return new SyncResultEntry(entry.qrCode(), "ACCEPTED", "Đã ghi nhận check-in thành công");
     }
 }

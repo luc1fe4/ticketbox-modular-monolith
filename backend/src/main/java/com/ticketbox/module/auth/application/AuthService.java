@@ -28,7 +28,7 @@ public class AuthService {
     @Transactional
     public AuthResponse.UserSummary register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS, "Email is already registered");
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS, "Email đã được đăng ký");
         }
 
         User user = new User();
@@ -51,14 +51,14 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "Invalid email or password"));
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "Email hoặc mật khẩu không đúng"));
 
         if (!user.isActive()) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED, "User account is deactivated");
+            throw new AppException(ErrorCode.UNAUTHENTICATED, "Tài khoản đã bị vô hiệu hóa");
         }
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED, "Invalid email or password");
+            throw new AppException(ErrorCode.UNAUTHENTICATED, "Email hoặc mật khẩu không đúng");
         }
 
         String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole().name(), user.getFullName());
@@ -76,7 +76,7 @@ public class AuthService {
 
     public CurrentUserResponse getCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED, "Không tìm thấy người dùng"));
         return CurrentUserResponse.from(user);
     }
 }

@@ -4,5 +4,19 @@ public record ArtistBioGenerationRequest(
         String concertTitle,
         String sourceText,
         String language,
-        int desiredLength) {
+        int desiredLength,
+        String compositionInstruction) {
+
+    public ArtistBioGenerationRequest(
+            String concertTitle,
+            String sourceText,
+            String language,
+            int desiredLength) {
+        this(
+                concertTitle,
+                sourceText,
+                language,
+                desiredLength,
+                "Write one cohesive artist biography from the supplied document text.");
+    }
 }

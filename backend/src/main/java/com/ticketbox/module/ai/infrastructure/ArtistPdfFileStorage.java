@@ -59,7 +59,7 @@ public class ArtistPdfFileStorage {
             deleteQuietly(stored);
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Could not store artist PDF");
+                    "Không thể lưu file PDF nghệ sĩ");
         }
     }
 
@@ -80,20 +80,20 @@ public class ArtistPdfFileStorage {
 
     private void validateMetadata(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "PDF file is required");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Vui lòng chọn file PDF");
         }
         String name = file.getOriginalFilename();
         if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Only .pdf files are accepted");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ chấp nhận file .pdf");
         }
         String contentType = file.getContentType();
         if (contentType != null
                 && !contentType.isBlank()
                 && !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Invalid PDF content type");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Định dạng nội dung PDF không hợp lệ");
         }
         if (file.getSize() > properties.getMaxFileSize().toBytes()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "PDF exceeds maximum file size");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "PDF vượt quá dung lượng tối đa");
         }
     }
 
@@ -102,7 +102,7 @@ public class ArtistPdfFileStorage {
         try (InputStream input = Files.newInputStream(path)) {
             if (input.read(magic) != magic.length
                     || !"%PDF-".equals(new String(magic, java.nio.charset.StandardCharsets.US_ASCII))) {
-                throw new AppException(ErrorCode.INVALID_REQUEST, "File is not a valid PDF");
+                throw new AppException(ErrorCode.INVALID_REQUEST, "File không phải PDF hợp lệ");
             }
         }
     }
@@ -123,7 +123,7 @@ public class ArtistPdfFileStorage {
     private Path requireUnderRoot(Path path) {
         Path normalized = path.toAbsolutePath().normalize();
         if (!normalized.startsWith(root)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Invalid artist PDF path");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Đường dẫn PDF nghệ sĩ không hợp lệ");
         }
         return normalized;
     }

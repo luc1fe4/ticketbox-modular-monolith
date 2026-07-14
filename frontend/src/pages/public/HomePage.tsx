@@ -148,9 +148,7 @@ export function HomePage() {
             <p className="eyebrow">
               <span /> Danh mục chọn lọc
             </p>
-            <h2>Concert được sắp xếp để dễ chọn vé.</h2>
           </div>
-          <p className="concert-count">{filteredConcerts.length} concert phù hợp</p>
         </div>
         <div className="category-row" aria-label="Trạng thái concert">
           {statusFilters.map((status) => (

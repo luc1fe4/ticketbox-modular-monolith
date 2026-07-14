@@ -65,7 +65,7 @@ public class GuestListImportJobListener implements JobExecutionListener {
                 log.setFilePath(finalPath.toString());
             }
         } catch (Exception ex) {
-            log.setErrorDetail(append(log.getErrorDetail(), "File move failed: " + ex.getMessage()));
+            log.setErrorDetail(append(log.getErrorDetail(), "Không thể di chuyển file: " + ex.getMessage()));
         }
 
         log.setCompletedAt(OffsetDateTime.now());
@@ -77,7 +77,7 @@ public class GuestListImportJobListener implements JobExecutionListener {
                 .map(Throwable::getMessage)
                 .filter(value -> value != null && !value.isBlank())
                 .findFirst()
-                .orElse("Guest-list import failed");
+                .orElse("Import danh sách khách mời thất bại");
         return message.length() <= 4000 ? message : message.substring(0, 4000);
     }
 

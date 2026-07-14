@@ -134,7 +134,7 @@ export function StaffCheckInPage() {
       if (result.data.status === 'SUCCESS') {
         toast.success(message);
       } else {
-        toast.error(result.data.message);
+        toast.error(message);
       }
     } catch (requestError) {
       const message =

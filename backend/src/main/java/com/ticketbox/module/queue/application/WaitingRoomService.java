@@ -228,12 +228,12 @@ public class WaitingRoomService implements QueueAccessPort {
     @Override
     public void validateAccess(UUID concertId, UUID userId, String queueAccessToken) {
         if (queueAccessToken == null || queueAccessToken.isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "Join the waiting room before creating an order.");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Vui lòng vào phòng chờ trước khi tạo đơn hàng");
         }
 
         String storedToken = redisTemplate.opsForValue().get(sessionKey(concertId, userId));
         if (!queueAccessToken.equals(storedToken)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "Your shopping session is not active or has expired.");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Phiên mua vé của bạn không còn hoạt động hoặc đã hết hạn");
         }
     }
 
@@ -259,7 +259,7 @@ public class WaitingRoomService implements QueueAccessPort {
         );
 
         if (raw == null || raw.isEmpty()) {
-            throw new AppException(ErrorCode.REDIS_UNAVAILABLE, "Waiting room is temporarily unavailable.");
+            throw new AppException(ErrorCode.REDIS_UNAVAILABLE, "Phòng chờ tạm thời không khả dụng");
         }
 
         QueueStatus status = QueueStatus.valueOf(String.valueOf(raw.get(0)));
@@ -294,16 +294,16 @@ public class WaitingRoomService implements QueueAccessPort {
 
     private ConcertView validateConcertForWaitingRoom(UUID concertId) {
         ConcertView concert = concertOrderPort.findConcertById(concertId)
-                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Concert not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.CONCERT_NOT_FOUND, "Không tìm thấy concert"));
         if (!"ON_SALE".equals(concert.status())) {
-            throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert is not currently on sale");
+            throw new AppException(ErrorCode.CONCERT_NOT_ON_SALE, "Concert hiện không mở bán");
         }
         OffsetDateTime now = OffsetDateTime.now();
         if (concert.saleStartAt() == null || concert.saleStartAt().minus(waitingRoomOpenBefore).isAfter(now)) {
-            throw new AppException(ErrorCode.SALE_NOT_OPEN, "The waiting room opens one hour before ticket sales start");
+            throw new AppException(ErrorCode.SALE_NOT_OPEN, "Phòng chờ mở trước thời điểm bán vé một giờ");
         }
         if (concert.saleEndAt() != null && concert.saleEndAt().isBefore(now)) {
-            throw new AppException(ErrorCode.SALE_NOT_OPEN, "Ticket sale has ended");
+            throw new AppException(ErrorCode.SALE_NOT_OPEN, "Thời gian bán vé đã kết thúc");
         }
         return concert;
     }
@@ -353,14 +353,14 @@ public class WaitingRoomService implements QueueAccessPort {
             }
         }
         if (!"READY".equals(redisTemplate.opsForValue().get(stateKey))) {
-            throw new AppException(ErrorCode.REDIS_UNAVAILABLE, "Waiting room is preparing the queue. Please retry.");
+            throw new AppException(ErrorCode.REDIS_UNAVAILABLE, "Phòng chờ đang chuẩn bị hàng đợi. Vui lòng thử lại");
         }
     }
 
     private void consumeRateLimit(UUID userId, String action, RateLimitProperties.Policy policy) {
         String key = RedisKeyConstants.RATE_LIMIT_USER + userId + ":queue:" + action;
         if (!rateLimiter.tryConsume(key, policy)) {
-            throw new AppException(ErrorCode.RATE_LIMIT_EXCEEDED, "Too many queue requests. Please retry later.");
+            throw new AppException(ErrorCode.RATE_LIMIT_EXCEEDED, "Bạn gửi quá nhiều yêu cầu vào hàng chờ. Vui lòng thử lại sau");
         }
     }
 

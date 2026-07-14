@@ -63,7 +63,7 @@ public class RevenueReportExportService {
                     filenamePrefix + "-revenue-report.pdf");
             default -> throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "Unsupported export format. Supported formats: csv, pdf");
+                    "Định dạng xuất báo cáo không được hỗ trợ. Định dạng hỗ trợ: csv, pdf");
         };
     }
 
@@ -161,7 +161,7 @@ public class RevenueReportExportService {
         } catch (DocumentException | java.io.IOException exception) {
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Failed to generate PDF revenue report");
+                    "Không thể tạo báo cáo doanh thu PDF");
         }
     }
 

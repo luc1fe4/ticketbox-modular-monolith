@@ -2,7 +2,6 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useSta
 import {
   CalendarDays,
   ClipboardCheck,
-  ExternalLink,
   FileUp,
   ListChecks,
   Music2,
@@ -404,14 +403,9 @@ export function ConcertWorkspacePage({ apiScope = 'admin' }: { apiScope?: Manage
         title={concert.title}
         description={`${concert.venueName} · ${dateTime.format(new Date(concert.eventDate))}`}
         actions={
-          <>
-            <Link className="admin-secondary-action" to={`/concerts/${concert.id}`} target="_blank">
-              Xem trang công khai <ExternalLink size={15} />
-            </Link>
-            <span className={`admin-status status-${concert.status.toLowerCase()}`}>
-              {concert.status.replace('_', ' ')}
-            </span>
-          </>
+          <span className={`admin-status status-${concert.status.toLowerCase()}`}>
+            {concert.status.replace('_', ' ')}
+          </span>
         }
       />
 

@@ -69,7 +69,7 @@ class NotificationControllerTest {
         mockMvc.perform(get("/api/notifications"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401))
-                .andExpect(jsonPath("$.message").value("Authentication required"));
+                .andExpect(jsonPath("$.message").value("Vui lòng đăng nhập để tiếp tục"));
     }
 
     @Test

@@ -32,30 +32,30 @@ public class GuestListProcessor implements ItemProcessor<GuestListRow, GuestList
     public GuestList process(GuestListRow item) throws Exception {
         // Validate phone
         if (item.getPhone() == null || item.getPhone().trim().length() < 8) {
-            throw new IllegalArgumentException("Invalid phone number: " + item.getPhone());
+            throw new IllegalArgumentException("Số điện thoại không hợp lệ: " + item.getPhone());
         }
 
         // Validate full name
         if (!StringUtils.hasText(item.getFullName())) {
-            throw new IllegalArgumentException("Full name must not be empty");
+            throw new IllegalArgumentException("Họ tên không được để trống");
         }
 
         // Determine concert ID
         String concertIdStr = StringUtils.hasText(item.getConcertId()) ? item.getConcertId() : jobConcertId;
         if (!StringUtils.hasText(concertIdStr)) {
-            throw new IllegalArgumentException("Concert ID is missing in row and job parameters");
+            throw new IllegalArgumentException("Thiếu concert ID trong dòng CSV và tham số job");
         }
 
         UUID concertId;
         try {
             concertId = UUID.fromString(concertIdStr.trim());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid concert ID format: " + concertIdStr);
+            throw new IllegalArgumentException("Định dạng concert ID không hợp lệ: " + concertIdStr);
         }
 
         // Check if concert exists
         if (concertOrderPort.findConcertById(concertId).isEmpty()) {
-            throw new IllegalArgumentException("Concert does not exist with ID: " + concertId);
+            throw new IllegalArgumentException("Concert không tồn tại với ID: " + concertId);
         }
 
         String phone = item.getPhone().trim();

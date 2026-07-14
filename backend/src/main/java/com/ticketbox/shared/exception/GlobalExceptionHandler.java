@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
                 .stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
-                        fe -> Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value"),
+                        fe -> Optional.ofNullable(fe.getDefaultMessage()).orElse("Giá trị không hợp lệ"),
                         (existing, replacement) -> existing
                 ));
 
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
         log.warn("Malformed JSON request", ex);
         ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.INVALID_REQUEST.getHttpStatus().value(),
-                "Malformed JSON request"
+                "Dữ liệu JSON không hợp lệ"
         );
         return ResponseEntity.badRequest().body(response);
     }
@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException ex) {
         ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus().value(),
-                "The requested resource was not found"
+                "Không tìm thấy tài nguyên được yêu cầu"
         );
         return ResponseEntity.status(ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus()).body(response);
     }

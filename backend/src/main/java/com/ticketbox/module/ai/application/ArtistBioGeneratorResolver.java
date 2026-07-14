@@ -39,7 +39,7 @@ public class ArtistBioGeneratorResolver {
                     : resolveAutoWithoutKey();
             default -> throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "Unsupported AI provider: " + properties.getProvider());
+                    "Nhà cung cấp AI không được hỗ trợ: " + properties.getProvider());
         };
     }
 
@@ -47,7 +47,7 @@ public class ArtistBioGeneratorResolver {
         if (!hasApiKey()) {
             throw new AppException(
                     ErrorCode.AI_PROVIDER_UNAVAILABLE,
-                    "AI API key is not configured");
+                    "Chưa cấu hình API key cho AI");
         }
         return openAiCompatibleGenerator;
     }
@@ -58,7 +58,7 @@ public class ArtistBioGeneratorResolver {
         }
         throw new AppException(
                 ErrorCode.AI_PROVIDER_UNAVAILABLE,
-                "AI API key is not configured");
+                "Chưa cấu hình API key cho AI");
     }
 
     private boolean hasApiKey() {

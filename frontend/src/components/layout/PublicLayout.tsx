@@ -258,7 +258,9 @@ export function PublicLayout() {
         </header>
       ) : null}
       <main id="main-content">
-        <Outlet />
+        <div key={location.pathname} className="route-transition">
+          <Outlet />
+        </div>
       </main>
       {!isBookingFlow ? <Footer homePath={homePath} homeLabel={homeLabel} /> : null}
     </div>

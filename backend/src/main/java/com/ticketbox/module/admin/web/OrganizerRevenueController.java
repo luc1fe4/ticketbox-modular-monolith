@@ -82,7 +82,7 @@ public class OrganizerRevenueController {
         if (!"day".equalsIgnoreCase(groupBy)) {
             throw new AppException(
                     ErrorCode.INVALID_REQUEST,
-                    "Only groupBy=day is currently supported");
+                    "Hiện chỉ hỗ trợ groupBy=day");
         }
 
         UUID organizerId = getOrganizerId(authentication);

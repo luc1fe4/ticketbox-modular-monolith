@@ -43,12 +43,12 @@ public class GuestListService {
         int updated = guestListRepository.checkInIfEligible(
                 guestId, concertId, staffId, normalizedGate, java.time.OffsetDateTime.now());
         GuestList guest = guestListRepository.findById(guestId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Guest not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy khách mời"));
         if (!guest.getConcertId().equals(concertId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "Guest does not belong to this concert");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Khách mời không thuộc concert này");
         }
         if (updated == 0 && guest.getCheckedInAt() == null) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Guest is inactive and cannot be checked in");
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Khách mời không hoạt động nên không thể check-in");
         }
         return toResponse(guest);
     }

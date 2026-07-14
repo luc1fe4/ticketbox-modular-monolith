@@ -78,7 +78,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(201))
-                .andExpect(jsonPath("$.message").value("Created"))
+                .andExpect(jsonPath("$.message").value("Đã tạo thành công"))
                 .andExpect(jsonPath("$.data.email").value("audience@example.com"))
                 .andExpect(jsonPath("$.data.fullName").value("Audience User"));
     }
@@ -92,7 +92,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.message").value("Dữ liệu chưa hợp lệ"))
                 .andExpect(jsonPath("$.details.email").exists())
                 .andExpect(jsonPath("$.details.password").exists())
                 .andExpect(jsonPath("$.details.fullName").exists());
@@ -113,7 +113,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.message").value("Thành công"))
                 .andExpect(jsonPath("$.data.accessToken").value("jwt_token"))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.expiresIn").value(3600))
@@ -125,7 +125,7 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401))
-                .andExpect(jsonPath("$.message").value("Authentication required"));
+                .andExpect(jsonPath("$.message").value("Vui lòng đăng nhập để tiếp tục"));
     }
 
     @Test
@@ -140,7 +140,7 @@ class AuthControllerTest {
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.message").value("Thành công"))
                 .andExpect(jsonPath("$.data.email").value("audience@example.com"))
                 .andExpect(jsonPath("$.data.fullName").value("Audience User"))
                 .andExpect(jsonPath("$.data.role").value("AUDIENCE"));

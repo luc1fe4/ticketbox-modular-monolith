@@ -71,7 +71,7 @@ public class GuestListImportService {
             if (stored != null) {
                 fileStorage.deleteQuietly(stored);
             }
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Could not store CSV file");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể lưu file CSV");
         }
     }
 
@@ -115,7 +115,7 @@ public class GuestListImportService {
             }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Could not queue CSV file for scheduled import");
+                    "Không thể đưa file CSV vào hàng chờ import theo lịch");
         }
     }
 
@@ -134,7 +134,7 @@ public class GuestListImportService {
                         concertId,
                         claimedFile,
                         originalFileName,
-                        "CSV exceeds configured maximum file size",
+                        "CSV vượt quá dung lượng tối đa đã cấu hình",
                         queuedPath);
             }
             String checksum = fileStorage.checksum(claimedFile);
@@ -160,7 +160,7 @@ public class GuestListImportService {
                     concertId,
                     claimedFile,
                     originalFileName,
-                    "Could not inspect CSV file: " + ex.getMessage(),
+                    "Không thể kiểm tra file CSV: " + ex.getMessage(),
                     queuedPath);
         }
     }
@@ -238,7 +238,7 @@ public class GuestListImportService {
         skipped.setStartedAt(OffsetDateTime.now());
         skipped.setCompletedAt(OffsetDateTime.now());
         skipped.setStatus(BatchLog.Status.SKIPPED);
-        skipped.setErrorDetail("Duplicate of batch " + original.getId());
+        skipped.setErrorDetail("Trùng với batch " + original.getId());
         return batchLogRepository.save(skipped);
     }
 
@@ -259,7 +259,7 @@ public class GuestListImportService {
         skipped.setStartedAt(OffsetDateTime.now());
         skipped.setCompletedAt(OffsetDateTime.now());
         skipped.setStatus(BatchLog.Status.SKIPPED);
-        skipped.setErrorDetail("Duplicate of batch " + original.getId());
+        skipped.setErrorDetail("Trùng với batch " + original.getId());
         return batchLogRepository.save(skipped);
     }
 
@@ -290,7 +290,7 @@ public class GuestListImportService {
             failed.setFilePath(fileStorage.quarantine(file, concertId).toString());
         } catch (IOException ex) {
             failed.setFilePath(file.toString());
-            failed.setErrorDetail(reason + "; File move failed: " + ex.getMessage());
+            failed.setErrorDetail(reason + "; Không thể di chuyển file: " + ex.getMessage());
         }
         return batchLogRepository.save(failed);
     }
@@ -305,14 +305,14 @@ public class GuestListImportService {
 
     private void validateUpload(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "CSV file is required");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Vui lòng chọn file CSV");
         }
         String name = file.getOriginalFilename();
         if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".csv")) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Only .csv files are accepted");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ chấp nhận file .csv");
         }
         if (file.getSize() > properties.getMaxFileSize().toBytes()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "CSV exceeds maximum file size");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "CSV vượt quá dung lượng tối đa");
         }
     }
 

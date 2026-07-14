@@ -30,10 +30,10 @@ public class AdminNotificationService {
     @Transactional
     public NotificationResponse retryEmailNotification(UUID notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Notification not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy thông báo"));
 
         if (notification.getChannel() != Notification.Channel.EMAIL) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Only EMAIL notifications can be retried");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể gửi lại thông báo EMAIL");
         }
 
         notification.setStatus(Notification.Status.PENDING);

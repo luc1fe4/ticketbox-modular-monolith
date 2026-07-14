@@ -75,6 +75,7 @@ api.interceptors.response.use(
         window.location.assign('/login');
       }
     }
+
     throw new ApiClientError(
       error.response?.data?.message ??
         (error.response ? 'Đã có lỗi xảy ra, vui lòng thử lại.' : 'Không thể kết nối tới máy chủ.'),
@@ -117,7 +118,7 @@ export async function apiMultipartCommand<T>(
 
 export function commandMessage(serverMessage: string, fallback: string) {
   const normalized = serverMessage.trim().toLowerCase();
-  return normalized && !['success', 'created', 'accepted'].includes(normalized)
+  return normalized && !['success', 'created', 'accepted', 'thành công', 'đã tạo thành công', 'đã tiếp nhận yêu cầu'].includes(normalized)
     ? serverMessage
     : fallback;
 }

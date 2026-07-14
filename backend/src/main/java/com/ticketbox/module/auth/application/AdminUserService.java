@@ -26,14 +26,14 @@ public class AdminUserService {
 
     public UserResponse getUserDetail(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy người dùng"));
         return UserResponse.fromEntity(user);
     }
 
     @Transactional
     public UserResponse updateUserRole(UUID id, User.Role role) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy người dùng"));
         user.setRole(role);
         return UserResponse.fromEntity(userRepository.save(user));
     }
@@ -41,7 +41,7 @@ public class AdminUserService {
     @Transactional
     public UserResponse updateUserStatus(UUID id, boolean isActive) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy người dùng"));
         user.setActive(isActive);
         return UserResponse.fromEntity(userRepository.save(user));
     }

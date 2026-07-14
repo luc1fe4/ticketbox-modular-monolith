@@ -21,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Configuration
@@ -44,15 +45,17 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
+                    response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                     response.setContentType("application/json");
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
+                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập để tiếp tục");
                     response.getWriter().write(objectMapper.writeValueAsString(error));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                     response.setContentType("application/json");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+                    ApiResponse<Void> error = ApiResponse.error(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này");
                     response.getWriter().write(objectMapper.writeValueAsString(error));
                 })
             )

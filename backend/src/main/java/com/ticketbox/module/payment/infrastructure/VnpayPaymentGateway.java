@@ -112,7 +112,7 @@ public class VnpayPaymentGateway implements PaymentGateway {
 
     @SuppressWarnings("unused")
     private PaymentInitiationResult fallbackInitiatePayment(OrderView order, Throwable throwable) {
-        throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "VNPAY payment gateway is temporarily unavailable");
+        throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "Cổng thanh toán VNPAY tạm thời không khả dụng");
     }
 
     private void requireConfigured() {
@@ -120,7 +120,7 @@ public class VnpayPaymentGateway implements PaymentGateway {
                 || isBlank(properties.returnUrl())
                 || isBlank(properties.tmnCode())
                 || isBlank(properties.hashSecret())) {
-            throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "VNPAY configuration is incomplete");
+            throw new AppException(ErrorCode.PAYMENT_GATEWAY_UNAVAILABLE, "Cấu hình VNPAY chưa đầy đủ");
         }
     }
 
@@ -164,7 +164,7 @@ public class VnpayPaymentGateway implements PaymentGateway {
             }
             return hash.toString();
         } catch (Exception ex) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Could not sign VNPAY payload");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể ký dữ liệu VNPAY");
         }
     }
 

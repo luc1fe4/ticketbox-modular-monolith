@@ -73,7 +73,7 @@ class UserProfileControllerTest {
         mockMvc.perform(get("/api/users/me/profile"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401))
-                .andExpect(jsonPath("$.message").value("Authentication required"));
+                .andExpect(jsonPath("$.message").value("Vui lòng đăng nhập để tiếp tục"));
     }
 
     @Test
@@ -130,7 +130,7 @@ class UserProfileControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.message").value("Dữ liệu chưa hợp lệ"))
                 .andExpect(jsonPath("$.details.fullName").exists());
     }
 

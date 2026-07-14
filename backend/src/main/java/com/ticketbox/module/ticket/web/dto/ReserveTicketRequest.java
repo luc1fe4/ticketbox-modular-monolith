@@ -9,6 +9,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ReserveTicketRequest {
-    @Min(value = 1, message = "Quantity must be at least 1")
+    @Min(value = 1, message = "Số lượng phải ít nhất là 1")
     private int quantity = 1;
 }

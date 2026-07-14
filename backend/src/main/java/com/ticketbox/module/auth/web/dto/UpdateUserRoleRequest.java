@@ -4,6 +4,6 @@ import com.ticketbox.module.auth.domain.User;
 import jakarta.validation.constraints.NotNull;
 
 public record UpdateUserRoleRequest(
-        @NotNull(message = "Role is required")
+        @NotNull(message = "Vui lòng chọn vai trò")
         User.Role role
 ) {}

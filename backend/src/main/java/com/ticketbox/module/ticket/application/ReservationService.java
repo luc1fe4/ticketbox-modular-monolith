@@ -45,20 +45,20 @@ public class ReservationService {
         String sessionKey = RedisKeyConstants.QUEUE_SESSION + concertId + ":" + userId;
         Long expireSeconds = redisTemplate.getExpire(sessionKey, TimeUnit.SECONDS);
         if (expireSeconds == null || expireSeconds <= 0) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "Your shopping session has expired.");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Phiên mua vé của bạn đã hết hạn");
         }
         OffsetDateTime expiresAt = OffsetDateTime.now().plusSeconds(expireSeconds);
 
         List<TicketTypeView> ticketTypes = concertOrderPort.findTicketTypesByIds(List.of(ticketTypeId));
         if (ticketTypes.isEmpty()) {
-            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Ticket type not found: " + ticketTypeId);
+            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Không tìm thấy hạng vé: " + ticketTypeId);
         }
         TicketTypeView type = ticketTypes.get(0);
         if (!concertId.equals(type.concertId())) {
-            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Ticket type does not belong to this concert");
+            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Hạng vé không thuộc concert này");
         }
         if (!type.isActive()) {
-            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Ticket type is not active");
+            throw new AppException(ErrorCode.TICKET_TYPE_NOT_IN_CONCERT, "Hạng vé hiện không được mở bán");
         }
 
         int alreadyOrdered = orderItemRepository.sumQuantityByUserIdAndTicketTypeId(userId, ticketTypeId, ACTIVE_STATUSES);
@@ -67,12 +67,12 @@ public class ReservationService {
 
         if (alreadyOrdered + alreadyHeld + quantityRequest > type.maxPerAccount()) {
             throw new AppException(ErrorCode.TICKET_LIMIT_EXCEEDED,
-                    "Hold limit exceeded for zone: " + type.name() + " (Max: " + type.maxPerAccount() + ")");
+                    "Bạn đã vượt quá giới hạn giữ vé cho khu vực " + type.name() + " (tối đa: " + type.maxPerAccount() + ")");
         }
 
         boolean reserved = concertOrderPort.reserveInventory(ticketTypeId, quantityRequest);
         if (!reserved) {
-            throw new AppException(ErrorCode.TICKET_SOLD_OUT, "Tickets are sold out for zone: " + type.name());
+            throw new AppException(ErrorCode.TICKET_SOLD_OUT, "Vé đã bán hết cho khu vực " + type.name());
         }
 
         TicketHold hold;
@@ -97,10 +97,10 @@ public class ReservationService {
         queueAccessPort.validateAccess(concertId, userId, queueAccessToken);
 
         TicketHold hold = ticketHoldRepository.findByUserIdAndConcertIdAndTicketTypeId(userId, concertId, ticketTypeId)
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "No active hold found for this ticket type"));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy vé đang giữ cho hạng vé này"));
 
         if (hold.getQuantity() < quantityRequest) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot release more tickets than currently held");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể bỏ giữ nhiều vé hơn số vé đang giữ");
         }
 
         concertOrderPort.releaseInventory(ticketTypeId, quantityRequest);

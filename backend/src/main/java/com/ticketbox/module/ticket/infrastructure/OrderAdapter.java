@@ -60,7 +60,7 @@ public class OrderAdapter implements OrderPort {
             java.util.List<OrderNotificationItemView> items = orderItems.stream()
                     .map(item -> new OrderNotificationItemView(
                             item.getTicketTypeId(),
-                            ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Ticket"),
+                            ticketTypeNames.getOrDefault(item.getTicketTypeId(), "Vé"),
                             item.getQuantity(),
                             item.getUnitPrice(),
                             item.getSubtotal()
@@ -84,10 +84,10 @@ public class OrderAdapter implements OrderPort {
     @Transactional
     public void markPaymentInitiated(UUID orderId, String provider, String providerRef, String paymentUrl) {
         Order order = orderRepository.findByIdForUpdate(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Order is not in payable status");
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Đơn hàng không ở trạng thái có thể thanh toán");
         }
 
         order.setPaymentProvider(Order.PaymentProvider.valueOf(provider));

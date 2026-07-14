@@ -53,7 +53,7 @@ public class GuestListJobRunner {
         batchLogRepository.findById(batchLogId).ifPresent(log -> {
             log.setStatus(BatchLog.Status.FAILED);
             log.setCompletedAt(OffsetDateTime.now());
-            log.setErrorDetail("Could not launch import job: " + exception.getMessage());
+            log.setErrorDetail("Không thể khởi chạy job import: " + exception.getMessage());
             try {
                 Path source = Path.of(log.getFilePath());
                 if (Files.exists(source)) {
@@ -61,7 +61,7 @@ public class GuestListJobRunner {
                 }
             } catch (Exception moveException) {
                 log.setErrorDetail(log.getErrorDetail()
-                        + "; File move failed: " + moveException.getMessage());
+                        + "; Không thể di chuyển file: " + moveException.getMessage());
             }
             batchLogRepository.save(log);
         });

@@ -26,19 +26,19 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(HttpStatus.OK.value(), "Success", data, null);
+        return new ApiResponse<>(HttpStatus.OK.value(), "Thành công", data, null);
     }
     public static <T> ApiResponse<T> success(T data, String message) {
         return new ApiResponse<>(HttpStatus.OK.value(), message, data, null);
     }
     public static <T> ApiResponse<T> success() {
-        return new ApiResponse<>(HttpStatus.OK.value(), "Success", null, null);
+        return new ApiResponse<>(HttpStatus.OK.value(), "Thành công", null, null);
     }
     public static <T> ApiResponse<T> created(T data) {
-        return new ApiResponse<>(HttpStatus.CREATED.value(), "Created", data, null);
+        return new ApiResponse<>(HttpStatus.CREATED.value(), "Đã tạo thành công", data, null);
     }
     public static <T> ApiResponse<T> accepted(T data) {
-        return new ApiResponse<>(HttpStatus.ACCEPTED.value(), "Accepted", data, null);
+        return new ApiResponse<>(HttpStatus.ACCEPTED.value(), "Đã tiếp nhận yêu cầu", data, null);
     }
 
     public static <T> ApiResponse<T> error(int code, String message) {

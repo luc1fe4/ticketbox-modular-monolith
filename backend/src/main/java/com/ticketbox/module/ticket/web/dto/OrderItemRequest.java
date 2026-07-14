@@ -5,9 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record OrderItemRequest(
-    @NotNull(message = "Ticket type ID is required")
+    @NotNull(message = "Vui lòng chọn hạng vé")
     UUID ticketTypeId,
 
-    @Min(value = 1, message = "Quantity must be at least 1")
+    @Min(value = 1, message = "Số lượng phải ít nhất là 1")
     int quantity
 ) {}

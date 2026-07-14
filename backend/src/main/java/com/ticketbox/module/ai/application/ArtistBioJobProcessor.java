@@ -131,9 +131,9 @@ public class ArtistBioJobProcessor {
     private String safeError(Exception exception) {
         String message = exception instanceof AppException
                 ? exception.getMessage()
-                : "Artist biography generation failed";
+                : "Tạo giới thiệu nghệ sĩ thất bại";
         if (message == null || message.isBlank()) {
-            message = "Artist biography generation failed";
+            message = "Tạo giới thiệu nghệ sĩ thất bại";
         }
         return message.length() <= MAX_ERROR_LENGTH
                 ? message
