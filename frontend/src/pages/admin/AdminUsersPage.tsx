@@ -181,7 +181,7 @@ export function AdminUsersPage() {
                         <span
                           className={`status-badge ${active ? 'badge-success' : 'badge-muted'}`}
                         >
-                          {active ? 'ACTIVE' : 'LOCKED'}
+                          {active ? 'Hoạt động' : 'Đã khóa'}
                         </span>
                       </td>
                       <td>

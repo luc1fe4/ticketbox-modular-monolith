@@ -34,7 +34,7 @@ export const events: EventItem[] = [
     date: '2026-07-11',
     time: '19:30',
     venue: 'Thiskyhall Sala',
-    city: 'Ho Chi Minh City',
+    city: 'TP. Hồ Chí Minh',
     price: 890000,
     status: 'selling-fast',
     image:
@@ -49,7 +49,7 @@ export const events: EventItem[] = [
     date: '2026-06-26',
     time: '17:30',
     venue: 'Hoiana Resort & Golf',
-    city: 'Da Nang',
+    city: 'Đà Nẵng',
     price: 1000000,
     status: 'available',
     image:
@@ -64,7 +64,7 @@ export const events: EventItem[] = [
     date: '2026-08-15',
     time: '16:00',
     venue: 'Vạn Phúc City',
-    city: 'Ho Chi Minh City',
+    city: 'TP. Hồ Chí Minh',
     price: 1250000,
     status: 'selling-fast',
     image:
@@ -79,7 +79,7 @@ export const events: EventItem[] = [
     date: '2026-09-05',
     time: '20:00',
     venue: 'Cung Văn hóa Hữu nghị',
-    city: 'Hanoi',
+    city: 'Hà Nội',
     price: 650000,
     status: 'sold-out',
     image:
@@ -94,7 +94,7 @@ export const events: EventItem[] = [
     date: '2026-10-17',
     time: '19:00',
     venue: 'Nhà hát Hòa Bình',
-    city: 'Ho Chi Minh City',
+    city: 'TP. Hồ Chí Minh',
     price: 1500000,
     status: 'available',
     image:
@@ -109,7 +109,7 @@ export const events: EventItem[] = [
     date: '2026-11-21',
     time: '19:30',
     venue: 'Mỹ Đình Indoor Athletics',
-    city: 'Hanoi',
+    city: 'Hà Nội',
     price: 790000,
     status: 'available',
     image:
@@ -119,10 +119,10 @@ export const events: EventItem[] = [
 ];
 
 export const zones: Zone[] = [
-  { id: 'diamond', name: 'Diamond', note: 'Closest to stage · standing', price: 3200000, remaining: 8, color: '#ff775f' },
-  { id: 'platinum', name: 'Platinum', note: 'Premium view · standing', price: 2400000, remaining: 21, color: '#a797ff' },
-  { id: 'gold', name: 'Gold', note: 'Great central view', price: 1600000, remaining: 46, color: '#f8c96c' },
-  { id: 'silver', name: 'Silver', note: 'Elevated seating', price: 890000, remaining: 0, color: '#81c9dc' },
+  { id: 'diamond', name: 'Diamond', note: 'Gần sân khấu · Đứng', price: 3200000, remaining: 8, color: '#ff775f' },
+  { id: 'platinum', name: 'Platinum', note: 'Góc nhìn tốt nhất · Đứng', price: 2400000, remaining: 21, color: '#a797ff' },
+  { id: 'gold', name: 'Gold', note: 'Góc nhìn trung tâm', price: 1600000, remaining: 46, color: '#f8c96c' },
+  { id: 'silver', name: 'Silver', note: 'Khán đài', price: 890000, remaining: 0, color: '#81c9dc' },
 ];
 
 export const currency = new Intl.NumberFormat('vi-VN', {
@@ -131,7 +131,7 @@ export const currency = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
-export const eventDate = new Intl.DateTimeFormat('en-VN', {
+export const eventDate = new Intl.DateTimeFormat('vi-VN', {
   weekday: 'short',
   day: '2-digit',
   month: 'short',

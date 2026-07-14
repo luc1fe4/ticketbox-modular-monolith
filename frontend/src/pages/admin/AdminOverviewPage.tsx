@@ -6,7 +6,7 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 const workspaces = [
   {
     to: '/admin/concerts',
-    title: 'Concert',
+    title: 'Buổi diễn',
     copy: 'Tạo chương trình, cập nhật thông tin và điều phối trạng thái bán.',
     icon: CalendarDays,
   },
