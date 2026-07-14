@@ -242,10 +242,7 @@ export function ConcertDetailPage() {
             <span>Địa điểm</span>
             <strong>{concert.venueAddress}</strong>
           </div>
-          <div className="booking-detail">
-            <span>Vào cổng</span>
-            <strong>Vé mobile</strong>
-          </div>
+
           {canEnterWaitingRoom ? (
             <Link
               className="button button-primary button-block"
