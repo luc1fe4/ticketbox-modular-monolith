@@ -1,0 +1,63 @@
+sequenceDiagram
+    autonumber
+    actor Partner as Partner/Sponsor
+    actor Operator as Organizer/Admin
+    participant Web as Organizer/Admin Web
+    participant API as Spring Boot API
+    participant Storage as Guest CSV Storage
+    participant Batch as Spring Batch Importer
+    participant DB as PostgreSQL
+    actor Staff as Staff Gate Lookup
+
+    Partner->>Operator: Gửi file guest list CSV
+    Operator->>Web: Upload hoặc schedule CSV cho concert
+    Web->>API: POST import/schedule guest list
+    API->>DB: Kiểm tra quyền và concert
+
+    alt Import trực tiếp
+        API->>DB: Tạo batch_log RUNNING
+        API->>Storage: Lưu file vào processing
+        API->>Batch: Kick off import job
+    else Import theo lịch
+        API->>DB: Tạo batch_log PENDING
+        API->>Storage: Lưu file vào incoming/{concertId}
+        Batch->>Storage: Claim file đã ổn định
+        Batch->>DB: Cập nhật batch_log RUNNING
+    end
+
+    Batch->>Storage: Đọc CSV và header
+
+    alt Header thiếu hoặc alias không hợp lệ
+        Batch->>DB: Cập nhật batch_log FAILED và error_detail
+        Batch->>Storage: Chuyển file sang error
+    else Header hợp lệ
+        loop Từng dòng CSV
+            Batch->>Batch: Chuẩn hóa phone, trim text, map status
+            alt Dòng thiếu trường bắt buộc
+                Batch->>DB: Ghi row error
+            else Phone trùng trong cùng file
+                Batch->>DB: Ghi duplicate row error
+            else Dòng hợp lệ
+                Batch->>DB: Upsert guest_lists by (concert_id, phone)
+            end
+        end
+
+        alt Tất cả dòng hợp lệ
+            Batch->>DB: Cập nhật batch_log SUCCESS
+            Batch->>Storage: Chuyển file sang processed
+        else Có dòng lỗi và có dòng thành công
+            Batch->>DB: Cập nhật batch_log PARTIAL kèm error report
+            Batch->>Storage: Chuyển file sang processed
+        else Không có dòng thành công
+            Batch->>DB: Cập nhật batch_log FAILED kèm error report
+            Batch->>Storage: Chuyển file sang error
+        else File đã được xử lý trước đó
+            Batch->>DB: Cập nhật batch_log SKIPPED
+            Batch->>Storage: Giữ file ở processed hoặc bỏ qua theo batch policy
+        end
+    end
+
+    Staff->>API: Lookup guest by concert_id + phone
+    API->>DB: Đọc guest_lists đã commit và active
+    DB-->>API: Guest hợp lệ hoặc not found
+    API-->>Staff: Kết quả tra cứu tại cổng
