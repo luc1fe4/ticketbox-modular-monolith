@@ -24,10 +24,12 @@ public class PaymentController {
     @PostMapping("/{orderId}/initiate")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> initiatePayment(
             @PathVariable UUID orderId,
-            @RequestBody(required = false) InitiatePaymentRequest request
+            @RequestBody(required = false) InitiatePaymentRequest request,
+            Authentication authentication
     ) {
         String provider = request == null ? null : request.provider();
-        PaymentInitiationResponse response = paymentService.initiatePayment(orderId, provider);
+        UUID userId = UUID.fromString(authentication.getName());
+        PaymentInitiationResponse response = paymentService.initiatePayment(orderId, provider, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -3445,3 +3445,316 @@ body,
   background: linear-gradient(100deg, #f2f4f7 20%, #f9fafb 40%, #f2f4f7 60%) !important;
   background-size: 200% 100% !important;
 }
+
+/* Waiting room is an intentional dark-focus surface, independent of the shared light panels. */
+.waiting-room-page {
+  min-height: max(760px, calc(100vh - 72px));
+  background: #050505;
+  box-shadow: 0 0 0 100vmax #050505;
+  clip-path: inset(0 -100vmax);
+  color: #f8fafc;
+}
+
+.waiting-room-page .flow-topbar {
+  border-bottom-color: rgba(255, 255, 255, .12);
+}
+
+.waiting-room-page .back-link,
+.waiting-room-page .flow-steps i,
+.waiting-room-page .timer {
+  color: #cbd5e1;
+}
+
+.waiting-room-page .flow-step b {
+  border-color: #4b5563;
+  background: #111827;
+  color: #cbd5e1;
+}
+
+.waiting-room-page .flow-step.active b {
+  border-color: #60a5fa;
+  background: #2563eb;
+  color: #fff;
+}
+
+.waiting-room-page .flow-step.active i,
+.waiting-room-page .timer {
+  color: #bfdbfe;
+}
+
+.waiting-room-page .flow-step-connector {
+  background: #374151;
+}
+
+.waiting-room-page .waiting-room-panel {
+  border-color: #303030;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(37, 99, 235, .18), transparent 46%),
+    #000;
+  color: #f8fafc;
+}
+
+.waiting-room-page .waiting-room-event strong,
+.waiting-room-page .queue-orbit strong,
+.waiting-room-page .waiting-room-countdown strong,
+.waiting-room-page .queue-status-copy h2,
+.waiting-room-page .queue-metrics strong {
+  color: #f8fafc;
+}
+
+.waiting-room-page .waiting-room-event p,
+.waiting-room-page .queue-status-copy p,
+.waiting-room-page .queue-metrics span {
+  color: #cbd5e1;
+}
+
+.waiting-room-page .waiting-room-event > span,
+.waiting-room-page .waiting-room-countdown span,
+.waiting-room-page .queue-status-copy > span {
+  color: #bfdbfe;
+}
+
+.waiting-room-page .waiting-room-countdown,
+.waiting-room-page .queue-metrics,
+.waiting-room-page .queue-metrics div {
+  border-color: rgba(191, 219, 254, .2);
+}
+
+/* Operations page system: shared headers, metrics and command bars. */
+.admin-page-header {
+  align-items: center;
+  margin-bottom: 26px;
+  padding: 28px 30px;
+  border: 1px solid #d9e1ee;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 10px 28px rgba(16, 24, 40, .05);
+}
+
+.admin-page-header-copy { min-width: 0; }
+.admin-page-header p { margin-bottom: 10px; color: #496aab; font-size: 10px; }
+.admin-page-header h1 { margin-bottom: 10px; color: #17213a; font-size: clamp(30px, 3vw, 42px); line-height: 1.08; }
+.admin-page-header > .admin-page-header-copy > span { color: #66758b; font-size: 14px; line-height: 1.6; }
+.admin-page-actions { gap: 10px; }
+
+.admin-inline-stats {
+  margin: 0 0 20px;
+  overflow: hidden;
+  border: 1px solid #d9e1ee;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(16, 24, 40, .035);
+}
+
+.admin-inline-stats > div {
+  min-height: 122px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 11px;
+  padding: 24px 28px;
+  border-color: #e4e9f1;
+}
+
+.admin-inline-stats span { color: #62708a; font-size: 13px; font-weight: 700; }
+.admin-inline-stats strong { color: #17213a; font-size: clamp(32px, 3vw, 44px); letter-spacing: -.045em; }
+.admin-order-stats > div:last-child strong { font-size: clamp(25px, 2.45vw, 38px); }
+
+.admin-section-tabs {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 20px;
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid #d9e1ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(16, 24, 40, .03);
+}
+
+.admin-section-tab {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #60708a;
+  font: 800 13px/1 "Manrope", sans-serif;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.admin-section-tab:hover { border-color: #d9e5ff; background: #f4f7ff; color: #1f55ce; }
+.admin-section-tab.is-active { border-color: #c9d8ff; background: #eaf1ff; color: #1d55d5; box-shadow: inset 0 0 0 1px rgba(40, 86, 216, .04); }
+
+.admin-toolbar {
+  min-height: 72px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #d9e1ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(16, 24, 40, .03);
+}
+
+.admin-toolbar button {
+  min-height: 42px;
+  border-color: #cfd8e6;
+  border-radius: 9px;
+  background: #fff;
+  color: #344054;
+  font: 700 12px/1 "Manrope", sans-serif;
+}
+
+.admin-toolbar button:hover:not(:disabled) { border-color: #9db7ed; background: #f2f6ff; color: #1457d9; }
+
+.admin-filter-toolbar { justify-content: flex-start; }
+.admin-filter-controls { display: flex; align-items: center; flex: 1 1 auto; flex-wrap: wrap; gap: 10px; }
+.admin-filter-controls::before { content: 'Bộ lọc'; color: #66758b; font: 800 10px/1 "Manrope", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.admin-filter-controls > svg { flex: none; color: #315bd6 !important; }
+.admin-filter-controls select { min-width: 220px; }
+.admin-filter-controls select:first-of-type { min-width: min(340px, 100%); }
+.admin-filter-toolbar > button { margin-left: auto; }
+
+.admin-reminder-toolbar {
+  display: grid;
+  grid-template-columns: minmax(190px, .72fr) minmax(300px, 1.4fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding: 17px 18px;
+}
+
+.admin-reminder-copy { display: grid; gap: 5px; padding: 0 4px 3px; }
+.admin-reminder-copy span { color: #24324a; font: 800 14px/1.3 "Manrope", sans-serif; }
+.admin-reminder-copy small { color: #66758b; font-size: 12px; line-height: 1.45; }
+.admin-reminder-toolbar .concert-picker { width: 100%; min-width: 0; }
+.admin-reminder-toolbar .admin-primary-action { min-height: 44px; border-color: #2856d8; background: #2856d8; color: #fff; }
+.admin-reminder-toolbar .admin-primary-action:hover:not(:disabled) { border-color: #173fae; background: #173fae; color: #fff; }
+
+@media (max-width: 920px) {
+  .admin-page-header { align-items: flex-start; flex-direction: column; }
+  .admin-inline-stats > div { min-height: 108px; padding: 20px; }
+  .admin-reminder-toolbar { grid-template-columns: 1fr; align-items: stretch; }
+  .admin-reminder-toolbar .admin-primary-action { width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .admin-page-header { padding: 22px 20px; border-radius: 13px; }
+  .admin-page-header h1 { font-size: 29px; }
+  .admin-inline-stats { grid-template-columns: 1fr; }
+  .admin-inline-stats > div { min-height: 92px; border-right: 0; border-bottom: 1px solid #e4e9f1; }
+  .admin-inline-stats > div:last-child { border-bottom: 0; }
+  .admin-toolbar { align-items: stretch; flex-direction: column; }
+  .admin-filter-controls { width: 100%; align-items: stretch; flex-direction: column; }
+  .admin-filter-controls::before { padding: 4px 2px; }
+  .admin-filter-controls select, .admin-filter-controls select:first-of-type { width: 100%; min-width: 0; }
+  .admin-filter-toolbar > button { width: 100%; margin-left: 0; justify-content: center; }
+}
+
+/* Ticket selection: make progress, live inventory and map states unambiguous. */
+.flow-topbar { min-height: 98px; }
+.flow-steps { align-items: flex-start; gap: 12px; }
+.flow-steps .flow-step {
+  width: 78px;
+  height: 62px;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #667085;
+}
+
+.flow-steps .flow-step > b {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfd8e6;
+  border-radius: 50%;
+  background: #fff;
+  color: #475467;
+  font: 700 12px/1 "Manrope", sans-serif;
+}
+
+.flow-steps .flow-step > i {
+  position: static;
+  color: #667085;
+  font: 600 12px/1.15 "Manrope", sans-serif;
+  white-space: nowrap;
+}
+
+.flow-steps .flow-step.active { border: 0 !important; background: transparent !important; color: #1457d9; }
+.flow-steps .flow-step.active > b { border-color: #2f5bd7; background: #2f5bd7; color: #fff; box-shadow: 0 4px 10px rgba(47, 91, 215, .24); }
+.flow-steps .flow-step.active > i { color: #1457d9; font-weight: 800; }
+.flow-steps > .flow-step-connector { width: 54px; height: 2px; flex: none; margin-top: 16px; border: 0; background: #d5deec; }
+
+.map-legend {
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid #d9e1ee;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.map-legend i { width: 10px; height: 10px; margin: 0 !important; border: 2px solid #fff; box-shadow: 0 0 0 1px currentColor; }
+.map-legend i:first-of-type { background: #16a34a; color: #16a34a; }
+.map-legend i:nth-of-type(2) { background: #2563eb; color: #2563eb; }
+.map-legend i:nth-of-type(3) { background: #64748b; color: #64748b; }
+
+.concert-seat-map [data-ticket-type-id],
+.concert-seat-map [data-ticket-type-id] :is(path, polygon, rect) {
+  opacity: 1;
+  fill: #145f55 !important;
+  stroke: #5eead4 !important;
+  stroke-width: 3 !important;
+}
+
+.concert-seat-map [data-ticket-type-id].is-selected,
+.concert-seat-map [data-ticket-type-id].is-selected :is(path, polygon, rect) {
+  fill: #2563eb !important;
+  stroke: #bfdbfe !important;
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 14px rgba(59, 130, 246, .75));
+}
+
+.concert-seat-map [data-ticket-type-id].is-disabled,
+.concert-seat-map [data-ticket-type-id].is-disabled :is(path, polygon, rect) {
+  fill: #475569 !important;
+  stroke: #94a3b8 !important;
+  opacity: .64;
+  filter: none;
+}
+
+.zone-item { gap: 18px; }
+.zone-item.focused { border-left: 4px solid #2563eb; background: #eef4ff; box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .1); }
+.zone-focus small { color: #667085; font-size: 11px; }
+.zone-price { min-width: 104px; gap: 7px; }
+.zone-price strong { color: #17213a; font-size: 14px; }
+.zone-price small { justify-self: end; padding: 5px 8px; border: 1px solid; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.zone-price small.is-available { border-color: #a7e3c0; background: #ecfdf3; color: #067647; }
+.zone-price small.is-sold-out { border-color: #fecdca; background: #fff1f0; color: #b42318; }
+.quantity-control { border-radius: 8px; overflow: hidden; }
+.quantity-control span { width: 30px; color: #17213a; font-size: 13px; font-weight: 800; }
+
+@media (max-width: 760px) {
+  .flow-topbar { min-height: 76px; }
+  .flow-steps { display: none; }
+  .map-legend { width: 100%; justify-content: center; flex-wrap: wrap; border-radius: 10px; }
+  .zone-item { grid-template-columns: minmax(0, 1fr) auto; padding: 17px 18px; }
+  .zone-price { grid-column: 1; grid-row: 2; text-align: left; }
+  .zone-price small { justify-self: start; }
+  .quantity-control { grid-column: 2; grid-row: 1 / span 2; }
+}

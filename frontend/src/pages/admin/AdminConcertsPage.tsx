@@ -15,7 +15,6 @@ import {
   Map,
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
-import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   createConcert,
@@ -36,6 +35,7 @@ import { AdminConfirmDialog } from '../../components/admin/AdminConfirmDialog';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import { ActionMenu } from '../../components/admin/ActionMenu';
 import { useToast } from '../../components/feedback/toast-context';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 const statuses: Array<{ value: '' | ConcertStatus; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -841,5 +841,5 @@ function ConcertForm({
     </div>
   );
 
-  return createPortal(dialog, document.body);
+  return <ModalPortal>{dialog}</ModalPortal>;
 }

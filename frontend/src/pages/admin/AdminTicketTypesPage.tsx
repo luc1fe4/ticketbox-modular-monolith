@@ -17,6 +17,7 @@ import { AdminConfirmDialog } from '../../components/admin/AdminConfirmDialog';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 const currency = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -508,7 +509,8 @@ function TicketTypeForm({
   });
 
   return (
-    <div className="admin-dialog-backdrop" role="presentation">
+    <ModalPortal>
+      <div className="admin-dialog-backdrop" role="presentation">
       <section
         className="admin-dialog admin-dialog-compact"
         role="dialog"
@@ -579,6 +581,7 @@ function TicketTypeForm({
           </footer>
         </form>
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }

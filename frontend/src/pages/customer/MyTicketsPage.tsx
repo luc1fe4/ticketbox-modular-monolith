@@ -7,6 +7,7 @@ import { getConcert, type ConcertDetail } from '../../api/concerts';
 import { getMyTickets, type Ticket, type TicketStatus } from '../../api/tickets';
 import { RemoteImage } from '../../components/RemoteImage';
 import { eventDate } from '../../data/mockData';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 type TicketFilter = 'all' | TicketStatus;
 type TicketWithConcert = Ticket & { concert: ConcertDetail | null };
@@ -312,13 +313,14 @@ function TicketRow({ ticket, onOpen }: { ticket: TicketWithConcert; onOpen: () =
 
 function TicketDetail({ ticket, onClose }: { ticket: TicketWithConcert; onClose: () => void }) {
   return (
-    <div
-      className="ticket-detail-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <ModalPortal>
+      <div
+        className="ticket-detail-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      >
       <section
         className="ticket-detail-panel"
         role="dialog"
@@ -387,7 +389,8 @@ function TicketDetail({ ticket, onClose }: { ticket: TicketWithConcert; onClose:
           </div>
         ) : null}
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }
 

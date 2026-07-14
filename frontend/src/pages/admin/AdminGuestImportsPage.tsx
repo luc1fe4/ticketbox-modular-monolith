@@ -28,6 +28,7 @@ import { commandMessage, isRequestCanceled } from '../../api/client';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import { ConcertPicker } from '../../components/admin/ConcertPicker';
 import { useToast } from '../../components/feedback/toast-context';
+import { ModalPortal } from '../../components/feedback/ModalPortal';
 
 const statuses: Array<{ value: '' | BatchLogStatus; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -97,6 +98,11 @@ export function AdminGuestImportsPage({
   const [selectedLogGuests, setSelectedLogGuests] = useState<GuestListEntry[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedLogIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedLogIdRef.current = selectedLog?.id ?? null;
+  }, [selectedLog?.id]);
 
   const page = Math.max(0, Math.floor(Number(searchParams.get('page')) || 0));
   const concertFilter = searchParams.get('concertId') ?? '';
@@ -191,7 +197,30 @@ export function AdminGuestImportsPage({
         const updated = await getBatchLog(selectedLog.id, controller.signal, apiScope);
         setSelectedLog(updated);
         setLatestBatch((current) => (current?.id === updated.id ? updated : current));
-        if (!isActiveBatch(updated.status)) void loadLogs(undefined, true);
+        if (!isActiveBatch(updated.status)) {
+          void loadLogs(undefined, true);
+          if (updated.concertId) {
+            setDetailLoading(true);
+            void getConcertGuestList(updated.concertId, 0, 100, undefined, apiScope)
+              .then((guestPage) => {
+                if (selectedLogIdRef.current === updated.id) {
+                  setSelectedLogGuests(guestPage.content);
+                }
+              })
+              .catch((requestError) => {
+                if (!isRequestCanceled(requestError)) {
+                  toast.error(
+                    requestError instanceof Error
+                      ? requestError.message
+                      : 'KhĂ´ng thá»ƒ cáº­p nháº­t danh sĂ¡ch khĂ¡ch má»i.',
+                  );
+                }
+              })
+              .finally(() => {
+                if (selectedLogIdRef.current === updated.id) setDetailLoading(false);
+              });
+          }
+        }
       } catch (requestError) {
         if (!isRequestCanceled(requestError)) {
           toast.error(
@@ -298,7 +327,30 @@ export function AdminGuestImportsPage({
       try {
         const detail = await getBatchLog(result.data.batchLogId, undefined, apiScope);
         setLatestBatch(detail);
+        setSelectedLogGuests([]);
+        selectedLogIdRef.current = detail.id;
         setSelectedLog(detail);
+        if (!isActiveBatch(detail.status) && detail.concertId) {
+          setDetailLoading(true);
+          void getConcertGuestList(detail.concertId, 0, 100, undefined, apiScope)
+            .then((guestPage) => {
+              if (selectedLogIdRef.current === detail.id) {
+                setSelectedLogGuests(guestPage.content);
+              }
+            })
+            .catch((requestError) => {
+              if (!isRequestCanceled(requestError)) {
+                toast.error(
+                  requestError instanceof Error
+                    ? requestError.message
+                    : 'KhĂ´ng thá»ƒ táº£i danh sĂ¡ch khĂ¡ch má»i.',
+                );
+              }
+            })
+            .finally(() => {
+              if (selectedLogIdRef.current === detail.id) setDetailLoading(false);
+            });
+        }
       } catch (detailError) {
         toast.error(
           detailError instanceof Error
@@ -686,13 +738,14 @@ function BatchDetailDialog({
   }, [onClose]);
 
   return (
-    <div
-      className="admin-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <ModalPortal>
+      <div
+        className="admin-dialog-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      >
       <section
         className="admin-dialog admin-dialog-compact batch-detail-dialog"
         role="dialog"
@@ -841,6 +894,7 @@ function BatchDetailDialog({
           </section>
         </div>
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }

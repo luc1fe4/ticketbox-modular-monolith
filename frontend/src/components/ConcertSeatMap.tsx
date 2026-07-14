@@ -29,10 +29,12 @@ export function ConcertSeatMap({
   );
 
   useEffect(() => {
-    const zones = containerRef.current?.querySelectorAll<SVGElement>('[data-ticket-type-id]');
+    const container = containerRef.current;
+    const zones = container?.querySelectorAll<SVGGraphicsElement>('[data-ticket-type-id]');
     zones?.forEach((zone) => {
-      const isDisabled = disabledTicketTypeIds.has(zone.dataset.ticketTypeId ?? '');
-      zone.classList.toggle('is-selected', zone.dataset.ticketTypeId === selectedTicketTypeId);
+      const ticketTypeId = zone.dataset.ticketTypeId ?? '';
+      const isDisabled = disabledTicketTypeIds.has(ticketTypeId);
+      zone.classList.toggle('is-selected', ticketTypeId === selectedTicketTypeId);
       zone.classList.toggle('is-disabled', isDisabled);
       zone.setAttribute('aria-disabled', String(isDisabled));
       zone.setAttribute('tabindex', isDisabled ? '-1' : '0');

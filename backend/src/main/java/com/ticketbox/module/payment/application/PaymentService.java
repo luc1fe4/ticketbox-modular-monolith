@@ -29,11 +29,14 @@ public class PaymentService {
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentGatewayResolver gatewayResolver;
 
-    @Transactional
-    public PaymentInitiationResponse initiatePayment(UUID orderId, String providerName) {
+    @Transactional(noRollbackFor = AppException.class)
+    public PaymentInitiationResponse initiatePayment(UUID orderId, String providerName, UUID userId) {
         PaymentLog.Provider provider = parseProvider(providerName);
-        OrderView order = getPayableOrder(orderId);
+        OrderView order = orderPort.getPayableOrderForUser(orderId, userId);
 
+        // A provider session has the same lifetime as the order hold (15 minutes).
+        // Reusing it avoids duplicate third-party transactions when a customer comes
+        // back from the gateway before that hold expires.
         if (order.paymentUrl() != null && provider.name().equals(order.paymentProvider())) {
             return new PaymentInitiationResponse(order.id(), provider.name(), order.paymentRef(), order.paymentUrl());
         }
@@ -208,17 +211,6 @@ public class PaymentService {
         } catch (IllegalArgumentException ex) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Nhà cung cấp thanh toán không được hỗ trợ: " + providerName);
         }
-    }
-
-    private OrderView getPayableOrder(UUID orderId) {
-        OrderView order = orderPort.findOrderById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        if (!"AWAITING_PAYMENT".equals(order.status())) {
-            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION, "Đơn hàng không ở trạng thái có thể thanh toán");
-        }
-
-        return order;
     }
 
     public record WebhookHandleResult(String responseCode, String message) {

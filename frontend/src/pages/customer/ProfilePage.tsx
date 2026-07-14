@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api, ApiClientError } from '../../api/client';
-import { retryOrderPayment } from '../../api/orders';
 import { useAuth, type UserRole, type UserSummary } from '../../features/auth/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -414,51 +414,6 @@ function OrderHistory({ orders }: { orders: OrderResponse[] }) {
 }
 
 function OrderHistoryItem({ order }: { order: OrderResponse }) {
-  const [provider, setProvider] = useState<'MOCK' | 'VNPAY' | 'MOMO'>('MOCK');
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleRetryPayment() {
-    setProcessing(true);
-    setError(null);
-    try {
-      // 1. Lưu session-storage tạm để trang Payment Result khôi phục context nếu cần
-      const pendingPayment = {
-        orderId: order.id,
-        selection: order.items.map((item) => ({
-          ticketTypeId: item.ticketTypeId,
-          quantity: item.quantity,
-        })),
-        event: { id: order.concertId, title: order.concertTitle },
-      };
-      sessionStorage.setItem('ticketbox.pending-payment', JSON.stringify(pendingPayment));
-
-      // 2. Gọi initiate payment
-      await retryOrderPayment(order.id);
-
-      const payment = await api.post<unknown, { paymentUrl: string }>(
-        `/api/payments/${encodeURIComponent(order.id)}/initiate`,
-        { provider },
-      );
-
-      if (!payment.paymentUrl) {
-        throw new Error('Cổng thanh toán không trả về URL giao dịch.');
-      }
-
-      if (provider === 'VNPAY' || provider === 'MOMO') {
-        window.location.assign(payment.paymentUrl);
-        return;
-      }
-
-      // Đối với MOCK, complete trực tiếp luôn
-      await api.post<unknown, void>(payment.paymentUrl);
-      window.location.reload();
-    } catch (err) {
-      setError(errorMessage(err, 'Thanh toán thất bại. Vui lòng thử lại.'));
-      setProcessing(false);
-    }
-  }
-
   return (
     <article className="history-item" style={{ position: 'relative' }}>
       <div className="history-topline">
@@ -494,42 +449,17 @@ function OrderHistoryItem({ order }: { order: OrderResponse }) {
           }}
         >
           <div>
-            <label
-              style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}
-            >
-              Phương thức thanh toán
-            </label>
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as 'MOCK' | 'VNPAY' | 'MOMO')}
-              disabled={processing}
-              style={{
-                height: 34,
-                padding: '0 28px 0 8px',
-                background: '#fff',
-                border: '1px solid var(--line)',
-                color: '#182133',
-                fontSize: 12,
-              }}
-            >
-              <option value="MOCK">Thẻ Test (Mock)</option>
-              <option value="VNPAY">VNPAY Sandbox</option>
-              <option value="MOMO">MoMo Sandbox</option>
-            </select>
+            <strong style={{ display: 'block', fontSize: 13, color: '#182133' }}>Đơn đang chờ thanh toán</strong>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Mở lại đơn để chọn và tiếp tục thanh toán an toàn.</span>
           </div>
-          <button
+          <Link
             className="button button-primary"
             style={{ minHeight: 34, padding: '0 16px', fontSize: 12 }}
-            onClick={handleRetryPayment}
-            disabled={processing}
+            to={`/checkout?orderId=${encodeURIComponent(order.id)}`}
           >
-            {processing ? 'Đang mở...' : 'Thanh toán ngay'}
-          </button>
+            Tiếp tục thanh toán
+          </Link>
         </div>
-      )}
-
-      {error && (
-        <div style={{ color: 'var(--coral-light)', fontSize: 11, marginTop: 8 }}>{error}</div>
       )}
 
       <div className="history-total">

@@ -10,7 +10,7 @@ import { currency, eventDate } from '../../data/mockData';
 import { useTicketAvailability } from '../../features/concert/useTicketAvailability';
 import { useCountdown } from '../../hooks/useCountdown';
 
-export type CheckoutSelection = TicketType & { quantity: number };
+export type CheckoutSelection = Pick<TicketType, 'id' | 'name' | 'price'> & { quantity: number };
 
 type ZoneLoadingAction = 'reserve' | 'release';
 
@@ -326,16 +326,16 @@ export function SeatSelectionPage() {
           {'<'} Chi tiết sự kiện
         </button>
         <div className="flow-steps" aria-label="Tiến trình đặt vé">
-          <span className="active">
-            1 <i>Vé</i>
+          <span className="flow-step active">
+            <b>1</b><i>Vé</i>
           </span>
-          <b />
-          <span>
-            2 <i>Thanh toán</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step">
+            <b>2</b><i>Thanh toán</i>
           </span>
-          <b />
-          <span>
-            3 <i>Hoàn tất</i>
+          <b className="flow-step-connector" />
+          <span className="flow-step">
+            <b>3</b><i>Hoàn tất</i>
           </span>
         </div>
         <div
@@ -382,7 +382,7 @@ export function SeatSelectionPage() {
         <aside className="ticket-picker">
           <div className="panel-heading">
             <div>
-              <span>Số vé còn lại trực tiếp</span>
+              <span>Chọn hạng vé</span>
               <h2>Chọn vé</h2>
             </div>
           </div>
@@ -428,7 +428,9 @@ export function SeatSelectionPage() {
                   </button>
                   <div className="zone-price">
                     <strong>{currency.format(ticketType.price)}</strong>
-                    <small>{soldOut ? 'Hết vé' : `Còn ${ticketType.availableQty} vé`}</small>
+                    <small className={soldOut ? 'is-sold-out' : 'is-available'}>
+                      {soldOut ? 'Hết vé' : 'Còn vé'}
+                    </small>
                   </div>
                   <div className="quantity-control" aria-busy={loadingAction ? 'true' : undefined}>
                     <button
@@ -485,9 +487,6 @@ export function SeatSelectionPage() {
                 ))}
               </ul>
             ) : null}
-            <p>
-              Chỉ những vé đã được máy chủ giữ thành công mới xuất hiện ở đây. Bộ đếm thời gian này lấy từ phiên phòng chờ của bạn.
-            </p>
             <button
               className="button button-primary button-block"
               type="button"
