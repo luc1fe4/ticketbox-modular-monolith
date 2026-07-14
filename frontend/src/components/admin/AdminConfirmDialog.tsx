@@ -52,7 +52,9 @@ export function AdminConfirmDialog({
         aria-describedby={descriptionId}
       >
         <header>
-          <span className="admin-confirm-icon"><AlertTriangle aria-hidden="true" size={21} /></span>
+          <span className="admin-confirm-icon">
+            <AlertTriangle aria-hidden="true" size={21} />
+          </span>
           <button type="button" aria-label="Đóng" onClick={onClose} disabled={loading}>
             <X aria-hidden="true" size={19} />
           </button>
@@ -63,7 +65,13 @@ export function AdminConfirmDialog({
           <p id={descriptionId}>{description}</p>
         </div>
         <footer>
-          <button ref={cancelRef} className="admin-secondary-action" type="button" onClick={onClose} disabled={loading}>
+          <button
+            ref={cancelRef}
+            className="admin-secondary-action"
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+          >
             Hủy
           </button>
           <button

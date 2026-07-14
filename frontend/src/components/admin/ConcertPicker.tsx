@@ -27,7 +27,10 @@ const dateTime = new Intl.DateTimeFormat('vi-VN', {
 });
 
 function normalize(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 function statusLabel(status?: string | null) {
@@ -38,18 +41,18 @@ function statusLabel(status?: string | null) {
     COMPLETED: 'Đã kết thúc',
     CANCELLED: 'Đã hủy',
   };
-  return status ? labels[status] ?? status : '';
+  return status ? (labels[status] ?? status) : '';
 }
 
 export function ConcertPicker<T extends ConcertPickerItem>({
   concerts,
   value,
   onChange,
-  label = 'Concert',
-  placeholder = 'Chọn concert',
+  label = 'Buổi diễn',
+  placeholder = 'Chọn buổi diễn',
   disabled = false,
   allowAll = false,
-  allLabel = 'Tất cả concert',
+  allLabel = 'Tất cả buổi diễn',
   className = '',
 }: ConcertPickerProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -61,11 +64,11 @@ export function ConcertPicker<T extends ConcertPickerItem>({
   const filtered = useMemo(() => {
     const keyword = normalize(query.trim());
     if (!keyword) return concerts;
-    return concerts.filter((concert) => normalize([
-      concert.title,
-      concert.venueName,
-      statusLabel(concert.status),
-    ].filter(Boolean).join(' ')).includes(keyword));
+    return concerts.filter((concert) =>
+      normalize(
+        [concert.title, concert.venueName, statusLabel(concert.status)].filter(Boolean).join(' '),
+      ).includes(keyword),
+    );
   }, [concerts, query]);
 
   useEffect(() => {
@@ -99,11 +102,22 @@ export function ConcertPicker<T extends ConcertPickerItem>({
           <strong>{selected?.title ?? (allowAll && !value ? allLabel : placeholder)}</strong>
           <small>
             {selected
-              ? [selected.venueName, selected.eventDate ? dateTime.format(new Date(selected.eventDate)) : null].filter(Boolean).join(' · ')
-              : concerts.length ? 'Tìm theo tên, địa điểm hoặc trạng thái' : 'Chưa có concert phù hợp'}
+              ? [
+                  selected.venueName,
+                  selected.eventDate ? dateTime.format(new Date(selected.eventDate)) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : concerts.length
+                ? 'Tìm theo tên, địa điểm hoặc trạng thái'
+                : 'Chưa có buổi diễn phù hợp'}
           </small>
         </span>
-        {selected?.status ? <span className={`concert-picker-status status-${selected.status.toLowerCase()}`}>{statusLabel(selected.status)}</span> : null}
+        {selected?.status ? (
+          <span className={`concert-picker-status status-${selected.status.toLowerCase()}`}>
+            {statusLabel(selected.status)}
+          </span>
+        ) : null}
         <ChevronDown aria-hidden="true" size={18} />
       </button>
 
@@ -111,7 +125,7 @@ export function ConcertPicker<T extends ConcertPickerItem>({
         <div className="concert-picker-popover">
           <label className="concert-picker-search">
             <Search aria-hidden="true" size={17} />
-            <span className="sr-only">Tìm concert</span>
+            <span className="sr-only">Tìm buổi diễn</span>
             <input
               ref={searchRef}
               value={query}
@@ -122,27 +136,59 @@ export function ConcertPicker<T extends ConcertPickerItem>({
               }}
               placeholder="Tìm tên, địa điểm, trạng thái..."
             />
-            {query ? <button type="button" aria-label="Xóa từ khóa" onClick={() => setQuery('')}><X size={15} /></button> : null}
+            {query ? (
+              <button type="button" aria-label="Xóa từ khóa" onClick={() => setQuery('')}>
+                <X size={15} />
+              </button>
+            ) : null}
           </label>
           <div className="concert-picker-results" role="listbox" aria-label={label}>
             {allowAll ? (
-              <button className={!value ? 'is-selected' : ''} type="button" role="option" aria-selected={!value} onClick={() => choose('')}>
-                <span className="concert-picker-option-icon"><CalendarDays size={16} /></span>
-                <span><strong>{allLabel}</strong><small>Không giới hạn theo concert</small></span>
+              <button
+                className={!value ? 'is-selected' : ''}
+                type="button"
+                role="option"
+                aria-selected={!value}
+                onClick={() => choose('')}
+              >
+                <span className="concert-picker-option-icon">
+                  <CalendarDays size={16} />
+                </span>
+                <span>
+                  <strong>{allLabel}</strong>
+                  <small>Không giới hạn theo buổi diễn</small>
+                </span>
                 {!value ? <Check size={17} /> : null}
               </button>
             ) : null}
             {filtered.map((concert) => (
-              <button key={concert.id} className={concert.id === value ? 'is-selected' : ''} type="button" role="option" aria-selected={concert.id === value} onClick={() => choose(concert.id)}>
-                <span className="concert-picker-option-icon"><CalendarDays size={16} /></span>
+              <button
+                key={concert.id}
+                className={concert.id === value ? 'is-selected' : ''}
+                type="button"
+                role="option"
+                aria-selected={concert.id === value}
+                onClick={() => choose(concert.id)}
+              >
+                <span className="concert-picker-option-icon">
+                  <CalendarDays size={16} />
+                </span>
                 <span>
                   <strong>{concert.title}</strong>
-                  <small><MapPin size={12} />{concert.venueName || 'Chưa có địa điểm'}{concert.eventDate ? ` · ${dateTime.format(new Date(concert.eventDate))}` : ''}</small>
+                  <small>
+                    <MapPin size={12} />
+                    {concert.venueName || 'Chưa có địa điểm'}
+                    {concert.eventDate ? ` · ${dateTime.format(new Date(concert.eventDate))}` : ''}
+                  </small>
                 </span>
                 {concert.id === value ? <Check size={17} /> : null}
               </button>
             ))}
-            {!filtered.length ? <p className="concert-picker-empty">Không tìm thấy concert phù hợp với “{query}”.</p> : null}
+            {!filtered.length ? (
+              <p className="concert-picker-empty">
+                Không tìm thấy buổi diễn phù hợp với "{query}".
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -42,20 +42,20 @@ const paymentOptions: Array<{
 }> = [
   {
     value: 'MOCK',
-    title: 'Demo payment',
-    copy: 'Complete payment instantly in the local development environment.',
+    title: 'Thanh toán demo',
+    copy: 'Hoàn tất thanh toán ngay trong môi trường phát triển local.',
     badge: 'DEMO',
   },
   {
     value: 'VNPAY',
     title: 'VNPAY',
-    copy: 'Continue securely to the VNPAY sandbox payment page.',
+    copy: 'Tiếp tục an toàn sang trang thanh toán sandbox của VNPAY.',
     badge: 'VNPAY',
   },
   {
     value: 'MOMO',
     title: 'MoMo',
-    copy: 'Continue securely to the MoMo sandbox payment page.',
+    copy: 'Tiếp tục an toàn sang trang thanh toán sandbox của MoMo.',
     badge: 'MoMo',
   },
 ];
@@ -80,15 +80,20 @@ export function CheckoutPage() {
   const paymentWarningShown = useRef(false);
   const paymentExpiredShown = useRef(false);
   const paymentCountdown = useCountdown(createdOrder?.expiresAt, 180);
-  const displayedTotal = createdOrder?.totalAmount ?? selection.reduce((total, item) => total + item.price * item.quantity, 0);
+  const displayedTotal =
+    createdOrder?.totalAmount ??
+    selection.reduce((total, item) => total + item.price * item.quantity, 0);
 
   useEffect(() => {
     if (!event || !selection.length || creationStarted.current) return;
 
     if (!queueAccessToken) {
       clearStoredQueueAdmission();
-      setError('Your shopping session expired. Returning you to the waiting room.');
-      window.setTimeout(() => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }), 900);
+      setError('Phiên mua vé đã hết hạn. Đang đưa bạn về phòng chờ.');
+      window.setTimeout(
+        () => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }),
+        900,
+      );
       return;
     }
 
@@ -117,20 +122,35 @@ export function CheckoutPage() {
           if (!active) return;
           creationStarted.current = false;
 
-          if (requestError instanceof ApiClientError && (requestError.status === 401 || requestError.status === 403)) {
+          if (
+            requestError instanceof ApiClientError &&
+            (requestError.status === 401 || requestError.status === 403)
+          ) {
             clearStoredQueueAdmission();
-            setError('Your shopping session expired. Returning you to the waiting room.');
-            window.setTimeout(() => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }), 900);
+            setError('Phiên mua vé đã hết hạn. Đang đưa bạn về phòng chờ.');
+            window.setTimeout(
+              () => navigate(`/concerts/${event.id}/waiting-room`, { replace: true }),
+              900,
+            );
             return;
           }
 
           if (requestError instanceof ApiClientError && requestError.status === 409) {
-            setError('Ticket availability changed before your order was created. Return to ticket selection and review the latest inventory.');
-            window.setTimeout(() => navigate(`/concerts/${event.id}/seats`, { replace: true }), 1200);
+            setError(
+              'Tình trạng vé đã thay đổi trước khi đơn hàng được tạo. Hãy quay lại chọn vé để xem tồn kho mới nhất.',
+            );
+            window.setTimeout(
+              () => navigate(`/concerts/${event.id}/seats`, { replace: true }),
+              1200,
+            );
             return;
           }
 
-          setError(requestError instanceof Error ? requestError.message : 'Your order could not be created.');
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Không thể tạo đơn hàng của bạn.',
+          );
         })
         .finally(() => {
           if (active) setCreatingOrder(false);
@@ -145,26 +165,31 @@ export function CheckoutPage() {
   }, [event, navigate, queueAccessToken, selection]);
 
   useEffect(() => {
-    if (!paymentCountdown.isWarning || paymentCountdown.isExpired || paymentWarningShown.current) return;
+    if (!paymentCountdown.isWarning || paymentCountdown.isExpired || paymentWarningShown.current)
+      return;
     paymentWarningShown.current = true;
-    toast.error('Less than 3 minutes left to complete payment.');
+    toast.error('Còn dưới 3 phút để hoàn tất thanh toán.');
   }, [paymentCountdown.isExpired, paymentCountdown.isWarning, toast]);
 
   useEffect(() => {
     if (!paymentCountdown.isExpired || paymentExpiredShown.current) return;
     paymentExpiredShown.current = true;
     setProcessing(false);
-    setError('Payment time expired. Please return to ticket selection and start a new order.');
-    toast.error('Payment time expired.');
+    setError('Thời gian thanh toán đã hết. Vui lòng quay lại chọn vé và tạo đơn mới.');
+    toast.error('Đã hết thời gian thanh toán.');
   }, [paymentCountdown.isExpired, toast]);
 
   if (!event || !selection.length) {
     return (
       <section className="checkout-missing page-width state-panel">
-        <span className="state-icon" aria-hidden="true">!</span>
-        <h1>No tickets selected</h1>
-        <p>Choose your ticket zone and quantity before starting checkout.</p>
-        <Link className="button button-primary" to="/">Browse concerts</Link>
+        <span className="state-icon" aria-hidden="true">
+          !
+        </span>
+        <h1>Chưa chọn vé</h1>
+        <p>Chọn khu vé và số lượng trước khi bắt đầu thanh toán.</p>
+        <Link className="button button-primary" to="/">
+          Duyệt concert
+        </Link>
       </section>
     );
   }
@@ -184,12 +209,12 @@ export function CheckoutPage() {
     setError(null);
 
     if (!createdOrder) {
-      setError('Your order is still being prepared. Please wait a moment.');
+      setError('Đơn hàng của bạn vẫn đang được chuẩn bị. Vui lòng đợi một chút.');
       return;
     }
 
     if (paymentCountdown.isExpired) {
-      setError('Payment time expired. Please return to ticket selection and start a new order.');
+      setError('Thời gian thanh toán đã hết. Vui lòng quay lại chọn vé và tạo đơn mới.');
       return;
     }
 
@@ -201,7 +226,7 @@ export function CheckoutPage() {
 
       const payment = await initiatePayment(createdOrder.id, provider);
       if (!payment.paymentUrl) {
-        throw new Error('The payment gateway did not return a payment URL.');
+        throw new Error('Cổng thanh toán không trả về URL thanh toán.');
       }
 
       if (provider === 'VNPAY' || provider === 'MOMO') {
@@ -226,21 +251,26 @@ export function CheckoutPage() {
     } catch (requestError) {
       setError(
         requestError instanceof ApiClientError && requestError.status === 409
-          ? 'Payment time expired or the order is no longer payable. Return to ticket selection and start a new order.'
+          ? 'Thời gian thanh toán đã hết hoặc đơn hàng không còn thanh toán được. Hãy quay lại chọn vé và tạo đơn mới.'
           : requestError instanceof Error
             ? requestError.message
-            : 'Your payment could not be completed.',
+            : 'Không thể hoàn tất thanh toán của bạn.',
       );
       setProcessing(false);
     }
   }
 
-  const paymentDisabled = processing || cancelling || creatingOrder || !createdOrder || paymentCountdown.isExpired;
+  const paymentDisabled =
+    processing || cancelling || creatingOrder || !createdOrder || paymentCountdown.isExpired;
 
   async function leaveCheckout() {
     if (!event) return;
     if (processing || cancelling || creatingOrder) return;
-    if (createdOrder && !window.confirm('Leave checkout? This order will be cancelled and your tickets will be released.')) return;
+    if (
+      createdOrder &&
+      !window.confirm('Rời trang thanh toán? Đơn hàng này sẽ bị hủy và vé của bạn sẽ được trả lại.')
+    )
+      return;
 
     setCancelling(true);
     setError(null);
@@ -254,7 +284,7 @@ export function CheckoutPage() {
       clearStoredQueueAdmission();
       navigate(`/concerts/${event.id}`, { replace: true });
     } catch {
-      setError('Could not leave checkout safely. Please try again.');
+      setError('Không thể rời trang thanh toán an toàn. Vui lòng thử lại.');
       setCancelling(false);
     }
   }
@@ -262,42 +292,86 @@ export function CheckoutPage() {
   return (
     <div className="checkout-page page-width">
       <div className="flow-topbar">
-        <button className="back-link" type="button" disabled={processing || cancelling || creatingOrder} onClick={() => void leaveCheckout()}>{'<'} Event details</button>
-        <div className="flow-steps" aria-label="Booking progress">
-          <span>1 <i>Tickets</i></span><b /><span className="active">2 <i>Checkout</i></span><b /><span>3 <i>Done</i></span>
+        <button
+          className="back-link"
+          type="button"
+          disabled={processing || cancelling || creatingOrder}
+          onClick={() => void leaveCheckout()}
+        >
+          {'<'} Chi tiết sự kiện
+        </button>
+        <div className="flow-steps" aria-label="Tiến trình đặt vé">
+          <span>
+            1 <i>Vé</i>
+          </span>
+          <b />
+          <span className="active">
+            2 <i>Thanh toán</i>
+          </span>
+          <b />
+          <span>
+            3 <i>Hoàn tất</i>
+          </span>
         </div>
-        <div className={`secure-label countdown-timer ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`} role="status">
-          <span>Payment time</span>
+        <div
+          className={`secure-label countdown-timer ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`}
+          role="status"
+        >
+          <span>Thời gian thanh toán</span>
           <strong>{createdOrder ? paymentCountdown.formatted : '--:--'}</strong>
         </div>
       </div>
 
       <div className="checkout-heading">
-        <p className="eyebrow"><span /> Almost yours</p>
-        <h1>Complete your order.</h1>
-        <p>Your order is created first, then the 15-minute payment timer starts from the backend expiry.</p>
+        <p className="eyebrow">
+          <span /> Sắp hoàn tất
+        </p>
+        <h1>Hoàn tất đơn hàng.</h1>
+        <p>
+          Đơn hàng được tạo trước, sau đó bộ đếm thanh toán 15 phút bắt đầu theo thời hạn từ
+          backend.
+        </p>
       </div>
 
-      {error ? <div className="checkout-error" role="alert"><p>{error}</p></div> : null}
+      {error ? (
+        <div className="checkout-error" role="alert">
+          <p>{error}</p>
+        </div>
+      ) : null}
 
       <form className="checkout-layout" onSubmit={submitPayment}>
         <div className="checkout-form">
           <section className="form-section">
-            <div className="form-section-title"><span>01</span><h2>Payment method</h2></div>
-            <div className={`payment-timer-card ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`} role="status">
-              <span>Payment time</span>
-              <strong>{createdOrder ? paymentCountdown.formatted : creatingOrder ? 'Creating order...' : '--:--'}</strong>
+            <div className="form-section-title">
+              <span>01</span>
+              <h2>Phương thức thanh toán</h2>
+            </div>
+            <div
+              className={`payment-timer-card ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`}
+              role="status"
+            >
+              <span>Thời gian thanh toán</span>
+              <strong>
+                {createdOrder
+                  ? paymentCountdown.formatted
+                  : creatingOrder
+                    ? 'Đang tạo đơn...'
+                    : '--:--'}
+              </strong>
               <p>
                 {paymentCountdown.isExpired
-                  ? 'This order can no longer be paid.'
+                  ? 'Đơn hàng này không còn thanh toán được.'
                   : paymentCountdown.isWarning
-                    ? 'Finish payment soon before this order expires.'
-                    : 'You have 15 minutes after the backend creates your order.'}
+                    ? 'Hãy hoàn tất thanh toán sớm trước khi đơn hàng hết hạn.'
+                    : 'Bạn có 15 phút sau khi backend tạo đơn hàng.'}
               </p>
             </div>
             <div className="payment-options">
               {paymentOptions.map((option) => (
-                <label className={`payment-option ${provider === option.value ? 'selected' : ''}`} key={option.value}>
+                <label
+                  className={`payment-option ${provider === option.value ? 'selected' : ''}`}
+                  key={option.value}
+                >
                   <input
                     type="radio"
                     name="payment"
@@ -306,13 +380,19 @@ export function CheckoutPage() {
                     onChange={() => setProvider(option.value)}
                     disabled={paymentDisabled}
                   />
-                  <span className={`payment-logo payment-${option.value.toLowerCase()}`}>{option.badge}</span>
-                  <span><strong>{option.title}</strong><small>{option.copy}</small></span>
+                  <span className={`payment-logo payment-${option.value.toLowerCase()}`}>
+                    {option.badge}
+                  </span>
+                  <span>
+                    <strong>{option.title}</strong>
+                    <small>{option.copy}</small>
+                  </span>
                 </label>
               ))}
             </div>
             <p className="payment-explainer">
-              TicketBox creates an awaiting-payment order first. The backend confirms the final inventory and total before opening the selected payment provider.
+              TicketBox tạo đơn chờ thanh toán trước. Backend xác nhận tồn kho và tổng tiền cuối
+              cùng trước khi mở nhà cung cấp thanh toán đã chọn.
             </p>
           </section>
         </div>
@@ -320,30 +400,49 @@ export function CheckoutPage() {
         <aside className="order-summary">
           <div className="order-event">
             <RemoteImage src={event.image ?? undefined} alt="" width="240" height="180" />
-            <div><span>Your event</span><h2>{event.title}</h2><p>{event.venue}</p></div>
+            <div>
+              <span>Sự kiện của bạn</span>
+              <h2>{event.title}</h2>
+              <p>{event.venue}</p>
+            </div>
           </div>
           <div className="summary-lines">
             {selection.map((item) => (
-              <div key={item.id}><span>{item.quantity} x {item.name}</span><strong>{currency.format(item.price * item.quantity)}</strong></div>
+              <div key={item.id}>
+                <span>
+                  {item.quantity} x {item.name}
+                </span>
+                <strong>{currency.format(item.price * item.quantity)}</strong>
+              </div>
             ))}
           </div>
-          <div className={`hold-timer ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`} role="status">
-            <span>Payment time</span>
+          <div
+            className={`hold-timer ${paymentCountdown.isExpired ? 'expired' : paymentCountdown.isWarning ? 'warning' : ''}`}
+            role="status"
+          >
+            <span>Thời gian thanh toán</span>
             <strong>{createdOrder ? paymentCountdown.formatted : '--:--'}</strong>
           </div>
-          <div className="summary-total"><span>Estimated total</span><strong>{currency.format(displayedTotal)}</strong></div>
-          <button className="button button-primary button-block" type="submit" disabled={paymentDisabled}>
+          <div className="summary-total">
+            <span>Tổng tạm tính</span>
+            <strong>{currency.format(displayedTotal)}</strong>
+          </div>
+          <button
+            className="button button-primary button-block"
+            type="submit"
+            disabled={paymentDisabled}
+          >
             {creatingOrder
-              ? 'Creating order...'
+              ? 'Đang tạo đơn...'
               : processing
                 ? provider === 'MOCK'
-                  ? 'Completing payment...'
-                  : `Opening ${provider}...`
+                  ? 'Đang hoàn tất thanh toán...'
+                  : `Đang mở ${provider}...`
                 : paymentCountdown.isExpired
-                  ? 'Payment time expired'
-                  : `Continue with ${provider === 'MOCK' ? 'demo payment' : provider}`}
+                  ? 'Đã hết thời gian thanh toán'
+                  : `Tiếp tục với ${provider === 'MOCK' ? 'thanh toán demo' : provider}`}
           </button>
-          <p className="secure-note">The backend calculates the authoritative total and payment expiry.</p>
+          <p className="secure-note">Backend tính tổng tiền chính xác và thời hạn thanh toán.</p>
         </aside>
       </form>
     </div>

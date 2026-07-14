@@ -1,64 +1,62 @@
-# TicketBox Payment Specification
+# Đặc tả luồng mua vé, thanh toán và phát hành e-ticket
 
-## 1. Purpose
+## 1. Mục tiêu
 
-This document specifies how TicketBox creates an order, reserves ticket inventory, starts a payment, confirms the payment, and issues e-tickets.
+Tài liệu này mô tả cách TicketBox tạo order, giữ tồn kho vé, khởi tạo thanh toán, xác nhận callback từ cổng thanh toán và phát hành e-ticket. Luồng này là critical path của hệ thống nên phải đảm bảo:
 
-The design must guarantee that:
+- Không oversell dù nhiều người cùng mua loại vé cuối cùng.
+- Một tài khoản không mua vượt `max_per_account` bằng cách gửi nhiều request song song.
+- Request retry không tạo order hoặc giao dịch thanh toán trùng.
+- Callback payment trùng không phát hành ticket hai lần.
+- Cổng thanh toán lỗi không kéo sập các chức năng khác như xem concert, check-in, guest import.
+- Vé bị giữ bởi order chưa thanh toán phải được trả lại khi order hết hạn.
 
-- Ticket inventory is never oversold, including when many users buy concurrently.
-- One account cannot exceed `max_per_account` by sending concurrent requests.
-- Retried requests do not create duplicate orders or duplicate charges.
-- Duplicate payment callbacks do not issue duplicate tickets.
-- A payment-provider failure does not break concert browsing or other unrelated features.
-- Inventory held by an unpaid order is eventually returned.
+## 2. Thành phần tham gia
 
-## 2. Participating Components
-
-| Component | Responsibility |
+| Thành phần | Trách nhiệm |
 |---|---|
-| Audience web application | Sends order and payment requests and redirects the customer to the payment provider. |
-| Order API | Authenticates the customer and accepts order creation requests. |
-| Order service | Validates the purchase, enforces limits, reserves inventory, and creates the order. |
-| Concert module | Supplies concert and ticket-type information and performs atomic inventory updates. |
-| PostgreSQL | Stores orders, order items, ticket inventory, payment logs, and issued tickets. |
-| Redis | Stores idempotency claims, per-user purchase locks, and rate-limit state. |
-| Payment service | Initiates payments and validates payment callbacks. |
-| Payment gateway adapter | Encapsulates provider-specific behavior such as VNPAY signing and verification. |
-| Circuit breaker | Stops repeated calls to an unhealthy external payment provider. |
-| Payment-completed listener | Marks the order as paid and creates tickets after successful payment. |
-| Scheduler | Expires unpaid orders and releases their reserved inventory. |
+| Audience Web | Gửi yêu cầu tạo order, khởi tạo thanh toán và redirect người dùng tới payment gateway. |
+| Order API | Xác thực user, nhận request tạo order và kiểm tra idempotency key. |
+| Order Service | Validate nghiệp vụ, giữ tồn kho, kiểm tra giới hạn vé/tài khoản và tạo order. |
+| Concert/Ticket Type Module | Cung cấp thông tin concert/ticket type và cập nhật tồn kho bằng atomic update. |
+| PostgreSQL | Lưu order, order item, ticket type inventory, payment log và ticket đã phát hành. |
+| Redis | Lưu idempotency claim, per-user purchase lock và rate-limit state. |
+| Payment Service | Khởi tạo payment URL, xác minh callback/IPN và đổi trạng thái order. |
+| Payment Gateway Adapter | Đóng gói logic riêng của VNPAY/MoMo/mock provider như ký request, verify chữ ký, mapping response. |
+| Circuit Breaker | Ngắt nhanh khi payment provider lỗi liên tục. |
+| Ticket Issuing Listener | Phát hành e-ticket/QR khi payment được xác nhận thành công. |
+| Scheduler | Hết hạn order chưa thanh toán và trả lại tồn kho. |
 
-## 3. Core Data and States
+## 3. Dữ liệu và trạng thái chính
 
-### 3.1 Order states
+### 3.1 Trạng thái order
 
-| State | Meaning |
+| Trạng thái | Ý nghĩa |
 |---|---|
-| `AWAITING_PAYMENT` | Inventory is reserved and the customer may pay. |
-| `PAID` | Payment was confirmed and tickets were issued. |
-| `EXPIRED` | The payment window ended and reserved inventory was released. |
-| `CANCELLED` | The order was cancelled. |
-| `PAYMENT_FAILED` | A payment attempt failed. |
-| `REFUNDED` | A completed payment was refunded. |
+| `AWAITING_PAYMENT` | Inventory đã được giữ, user còn thời gian thanh toán. |
+| `PAID` | Payment đã được xác nhận và ticket đã được phát hành. |
+| `EXPIRED` | Hết thời gian thanh toán, inventory được trả lại. |
+| `CANCELLED` | Order bị hủy. |
+| `PAYMENT_FAILED` | Một lần thanh toán thất bại. |
+| `REFUNDED` | Giao dịch đã thanh toán được hoàn tiền. |
 
-The main successful transition is:
+Transition thành công chính:
 
 ```text
 AWAITING_PAYMENT -> PAID
 ```
 
-The main timeout transition is:
+Transition timeout chính:
 
 ```text
 AWAITING_PAYMENT -> EXPIRED
 ```
 
-An order must never move from `EXPIRED`, `CANCELLED`, or `REFUNDED` to `PAID` without an explicit recovery process.
+Order đã ở `EXPIRED`, `CANCELLED` hoặc `REFUNDED` không được tự động chuyển sang `PAID` nếu không có quy trình recovery có kiểm soát.
 
-### 3.2 Payment log events
+### 3.2 Payment logs
 
-Payment activity is recorded using:
+Payment activity được audit bằng các loại event:
 
 - `INITIATED`
 - `WEBHOOK_RECEIVED`
@@ -67,146 +65,109 @@ Payment activity is recorded using:
 - `TIMEOUT`
 - `REFUNDED`
 
-The database has a unique constraint on `(order_id, event_type)`. This is a final protection against recording the same result more than once.
+Database cần có ràng buộc unique phù hợp trên payment log/provider reference để callback trùng không tạo nhiều kết quả thanh toán thành công.
 
-### 3.3 Inventory meaning
+### 3.3 Ý nghĩa tồn kho
 
-`ticket_types.available_qty` represents inventory that is not currently held by an active order.
+`ticket_types.available_qty` đại diện cho số vé chưa bị giữ bởi active order. Inventory được giữ ngay khi tạo order, không chờ tới lúc payment thành công. Cách này tránh việc nhiều khách cùng được chuyển sang cổng thanh toán cho cùng một vé cuối cùng.
 
-Inventory is reserved when the order is created, not when payment succeeds. This prevents several customers from being sent to payment for the same final ticket.
-
-## 4. End-to-End Purchase Flow
+## 4. Luồng mua vé end-to-end
 
 ```mermaid
 sequenceDiagram
-    actor Customer
-    participant API as Order API
+    autonumber
+    actor Audience
+    participant Web as Audience Web
+    participant API as Spring Boot API
     participant Redis
-    participant Order as Order Service
-    participant Concert as Concert Module
     participant DB as PostgreSQL
     participant Payment as Payment Service
-    participant Gateway as Payment Gateway
-    participant Listener as Payment Listener
+    participant Gateway as VNPAY/MoMo/Mock
+    participant Ticket as Ticket Issuing
+    participant MQ as RabbitMQ
 
-    Customer->>API: POST /api/orders + Idempotency-Key
+    Audience->>Web: Chọn concert, ticket type và số lượng
+    Web->>API: POST /api/orders + Idempotency-Key + Queue-Access-Token
     API->>Redis: Claim idempotency key
-    Redis-->>API: Claim accepted
     API->>Redis: Acquire per-user purchase lock
-    API->>Order: Create order
-    Order->>Concert: Validate concert and ticket types
-    Order->>DB: Sum user's active quantity per ticket type
-    Order->>DB: Atomic inventory decrement
-    DB-->>Order: Updated row or sold out
-    Order->>DB: Insert order and order items
-    Order-->>Customer: AWAITING_PAYMENT order
+    API->>DB: Validate concert/ticket type/max_per_account
+    API->>DB: Atomic decrement available_qty
+    API->>DB: Create order + order_items (AWAITING_PAYMENT)
+    API->>Redis: Store idempotency result
+    API-->>Web: orderId, status, expiresAt
 
-    Customer->>Payment: POST /api/payments/{orderId}/initiate
-    Payment->>Gateway: Initiate payment
-    Gateway-->>Payment: Provider reference and payment URL
-    Payment->>DB: Record INITIATED and payment details
-    Payment-->>Customer: Payment URL
+    Web->>API: POST /api/payments/{orderId}/initiate
+    API->>Payment: Initiate payment
+    Payment->>Gateway: Create payment URL / mock transaction
+    Gateway-->>Payment: paymentUrl / providerRef
+    Payment->>DB: Write INITIATED payment log
+    API-->>Web: paymentUrl
 
-    Customer->>Gateway: Complete payment
-    Gateway->>Payment: Signed webhook/IPN
-    Payment->>Payment: Verify signature, order, amount and status
-    Payment->>DB: Insert SUCCESS payment log
-    Payment->>Listener: Publish PaymentCompletedEvent
-    Listener->>DB: Lock order and set PAID
-    Listener->>DB: Create one ticket and QR code per purchased unit
-    Payment-->>Gateway: Callback acknowledged
+    Gateway-->>API: IPN/callback
+    API->>Payment: Verify signature, amount, order state
+    Payment->>DB: Write SUCCESS/FAILED payment log
+    Payment->>Ticket: Publish payment completed event
+    Ticket->>DB: Mark order PAID and issue tickets
+    Ticket->>MQ: Publish notification event
 ```
 
-## 5. Order Creation Under the Hood
+## 5. Tạo order
 
 ### 5.1 Request
 
-```http
-POST /api/orders
-Authorization: Bearer <audience-token>
-Idempotency-Key: <unique-client-generated-value>
-Content-Type: application/json
-```
+`POST /api/orders` yêu cầu:
 
-The authenticated user ID is taken from the security context. A client must not be allowed to choose another user's ID in the request body.
+- JWT role `AUDIENCE`.
+- Header `Idempotency-Key`.
+- Queue/shopping-session token nếu concert đang trong luồng waiting room.
+- `concertId`, `paymentProvider`, danh sách `ticketTypeId` và `quantity`.
 
-### 5.2 Idempotency claim
+User ID phải lấy từ security context, không nhận từ request body.
 
-Before doing purchase work, the order service claims this Redis key:
+### 5.2 Idempotency
 
-```text
-idempotency:order:{userId}:{clientKey}
-```
-
-The claim uses an atomic `SET if absent` operation.
-
-- If the key is new, the request owns the claim and continues.
-- If the key already exists, the request is rejected as a duplicate.
-- After the database transaction commits, the Redis value is changed to `COMPLETED:{orderId}` and retained for the configured idempotency TTL.
-- If the transaction rolls back, the temporary claim is released.
-
-The database also stores the client idempotency key on the order. Redis provides fast coordination, while the database is the durable duplicate check.
-
-The same key must not create a second order even if:
-
-- The customer double-clicks the purchase button.
-- The browser retries after a timeout.
-- Two identical requests arrive simultaneously.
-
-### 5.3 Per-user concurrency lock
-
-TicketBox acquires a Redis lock using:
+Trước khi xử lý order, service claim Redis key:
 
 ```text
-lock:user:{userId}
+idempotency:order:{idempotencyKey}
 ```
 
-This serializes order creation for the same account. It is required because `max_per_account` is calculated from existing active orders and would otherwise be vulnerable to a check-then-insert race.
+Hành vi:
 
-Different users do not share this lock and may purchase concurrently.
+- Nếu key chưa tồn tại, set trạng thái `PROCESSING` với TTL ngắn để claim request.
+- Nếu key đang `PROCESSING`, request trùng nhận conflict/retry-later.
+- Nếu key đã `COMPLETED:{orderId}`, backend trả lại kết quả đã lưu hoặc thông tin order tương ứng.
+- Sau khi transaction tạo order commit, key được đổi sang `COMPLETED` và giữ trong TTL idempotency.
 
-The current implementation uses a five-second lock lease. Processing should finish before that lease expires. A production-hardened implementation should use lease renewal or a database-backed per-user/ticket-type reservation counter so a slow request cannot outlive its lock.
+Database cũng lưu idempotency key trên order để có lớp bảo vệ bền vững nếu Redis mất dữ liệu.
 
-### 5.4 Business validation
+### 5.3 Per-user purchase lock
 
-The order service validates:
-
-1. The concert exists.
-2. The concert status is `ON_SALE`.
-3. Every requested ticket type exists.
-4. Every ticket type belongs to the requested concert.
-5. Every ticket type is active.
-6. The current time is inside its sale period.
-7. The requested quantity is valid.
-8. The account will not exceed `max_per_account`.
-9. Sufficient inventory is available.
-
-The whole order is transactional. If any item fails, the order and all inventory updates made in that transaction must roll back.
-
-### 5.5 Enforcing `max_per_account`
-
-For each requested ticket type, TicketBox calculates:
+Để chặn một user gửi nhiều request song song nhằm vượt `max_per_account`, service dùng Redis lock ngắn:
 
 ```text
-already ordered in AWAITING_PAYMENT or PAID orders
-+ quantity in the new request
-<= ticket_type.max_per_account
+purchase-lock:{userId}:{concertId}
 ```
 
-`AWAITING_PAYMENT` is included because its inventory is already held. Ignoring it would allow one user to open many unpaid orders and reserve more than the configured limit.
+Lock chỉ bao quanh đoạn validate limit và tạo order. Khi request kết thúc, lock được release bằng token/value để tránh xóa nhầm lock của request khác.
 
-Example:
+### 5.4 Validate nghiệp vụ
 
-```text
-Maximum per account: 2
-Existing active quantity: 1
-New requested quantity: 2
-Result: rejected because 1 + 2 > 2
-```
+Order chỉ được tạo khi:
 
-### 5.6 Preventing overselling
+1. Concert tồn tại và đang bán.
+2. Ticket type thuộc concert.
+3. Ticket type active và còn trong sale window.
+4. Quantity hợp lệ.
+5. User chưa vượt `max_per_account` nếu cộng cả vé đã thanh toán và order/hold đang active.
+6. Tồn kho đủ để giữ.
+7. Payment provider được hỗ trợ.
 
-Inventory is reserved with one conditional database statement:
+Giá tiền phải lấy từ ticket type phía server, không tin giá do client gửi lên.
+
+### 5.5 Chống oversell
+
+Tồn kho được cập nhật bằng atomic update:
 
 ```sql
 UPDATE ticket_types
@@ -215,298 +176,130 @@ WHERE id = :ticketTypeId
   AND available_qty >= :quantity;
 ```
 
-The update succeeds only when enough inventory remains at the instant PostgreSQL executes it.
+Nếu số dòng update là 0, nghĩa là không đủ vé. Request phải thất bại và không tạo order item. Đây là lớp bảo vệ quan trọng nhất vì mọi request song song cuối cùng đều phải cạnh tranh trên row trong PostgreSQL.
 
-- One updated row means the reservation succeeded.
-- Zero updated rows means the ticket type is sold out for that quantity.
+### 5.6 Persist order
 
-This is safer than reading `available_qty`, checking it in Java, and updating later. Concurrent transactions compete on the database row, so only requests backed by real remaining inventory can succeed.
+Sau khi giữ tồn kho thành công:
 
-### 5.7 Persisting the order
+- Tạo `orders` với trạng thái `AWAITING_PAYMENT`.
+- Tạo `order_items`, mỗi dòng ứng với một ticket type.
+- Lưu snapshot giá/subtotal tại thời điểm mua.
+- Set `expires_at` để scheduler biết khi nào phải release inventory.
 
-After all checks and reservations succeed, TicketBox stores:
+## 6. Khởi tạo thanh toán
 
-- An order with status `AWAITING_PAYMENT`.
-- The authenticated user and concert IDs.
-- The server-calculated total amount.
-- The idempotency key.
-- An expiration time 15 minutes in the future.
-- One order item per requested ticket type.
-- The unit price and subtotal captured at purchase time.
+`POST /api/payments/{orderId}/initiate` chỉ hợp lệ khi:
 
-Prices must come from the server-side ticket type, never from a value supplied by the customer.
+- User là chủ order.
+- Order đang `AWAITING_PAYMENT`.
+- Order chưa hết hạn.
+- Provider hợp lệ.
 
-## 6. Payment Initiation Under the Hood
+Payment service tạo payment URL hoặc mock result, ghi `payment_logs` loại `INITIATED`, rồi trả payment URL cho frontend. Nếu provider lỗi hoặc circuit breaker đang open, API trả lỗi có kiểm soát, không ảnh hưởng concert browsing/check-in/admin.
 
-The customer starts payment using:
+## 7. Xác nhận thanh toán
 
-```http
-POST /api/payments/{orderId}/initiate
-```
+Callback/IPN từ provider phải được kiểm tra:
 
-The payment service:
+1. Chữ ký hoặc secure hash hợp lệ.
+2. Provider reference khớp giao dịch đã khởi tạo.
+3. Amount khớp tổng tiền order.
+4. Order tồn tại và đang ở trạng thái có thể thanh toán.
+5. Callback trùng không được tạo ticket lần hai.
 
-1. Parses the requested provider; the local default is `MOCK`.
-2. Loads the order.
-3. Requires the order to be `AWAITING_PAYMENT`.
-4. Returns the existing payment URL when the same provider was already initiated.
-5. Resolves the correct provider adapter.
-6. Creates a provider reference and payment URL.
-7. Records an `INITIATED` payment log once.
-8. Stores the provider, reference, and URL on the order.
+Nếu payment thành công, backend ghi payment log, chuyển order sang `PAID` và phát hành ticket trong transaction/idempotent handler. Nếu payment thất bại, order có thể giữ `AWAITING_PAYMENT` cho retry hoặc chuyển `PAYMENT_FAILED` tùy policy.
 
-Returning the existing URL makes repeated initiation calls safe and avoids starting unnecessary payment attempts for the same provider.
+## 8. Phát hành ticket
 
-### 6.1 VNPAY initiation
+Sau khi order `PAID`:
 
-The VNPAY adapter:
+- Tạo đúng số lượng ticket theo `order_items`.
+- Mỗi ticket có QR payload/signature riêng.
+- Ticket gắn với owner, concert, ticket type và order item.
+- Unique constraint bảo vệ không tạo ticket trùng cho cùng order item ngoài số lượng hợp lệ.
+- Notification event được publish bất đồng bộ để gửi email/e-ticket.
 
-- Uses the order ID as `vnp_TxnRef`.
-- Converts the amount to VNPAY's expected unit.
-- Adds creation and 15-minute expiration timestamps.
-- Sorts and URL-encodes the parameters.
-- Signs the payload using HMAC-SHA512.
-- Returns the generated sandbox payment URL.
+Email lỗi không rollback order đã thanh toán; user vẫn xem được ticket trong tài khoản.
 
-The current adapter generates the redirect URL locally. It does not make a remote HTTP call during initiation. Therefore, the circuit breaker protects exceptions thrown by this operation, but it cannot detect a VNPAY network outage until the integration includes an actual outbound provider call or health-dependent operation.
+## 9. Circuit breaker và graceful degradation
 
-## 7. Payment Confirmation Under the Hood
+Payment gateway là dependency ngoài nên cần timeout và circuit breaker:
 
-The browser return URL is only for customer experience. The trusted source for confirming payment is the signed server-to-server webhook/IPN.
+| Trạng thái | Hành vi |
+|---|---|
+| `CLOSED` | Gọi provider bình thường. |
+| `OPEN` | Không gọi provider, trả lỗi nhanh hoặc dùng mock/fallback trong môi trường demo. |
+| `HALF_OPEN` | Cho một số request thử lại để kiểm tra provider đã phục hồi chưa. |
 
-For a VNPAY callback, TicketBox:
+Khi payment provider lỗi:
 
-1. Requires `vnp_SecureHash`.
-2. Removes signature-only fields from the signed data.
-3. Rebuilds the canonical sorted payload.
-4. Verifies the HMAC-SHA512 signature.
-5. Parses `vnp_TxnRef` as the TicketBox order ID.
-6. Converts and validates the paid amount.
-7. Requires the order to exist.
-8. Requires the amount to equal the server-side order total.
-9. Rejects a result for an order that is no longer payable.
-10. Records `SUCCESS` or `FAILED`.
-11. Publishes `PaymentCompletedEvent` only for a valid successful result.
+- Payment initiation trả lỗi rõ ràng, ví dụ `503 Service Unavailable`.
+- Order chờ thanh toán có thể hết hạn và trả lại vé.
+- Concert list/detail, availability, auth, admin, check-in vẫn hoạt động nếu các dependency khác khỏe.
 
-An invalid signature, unknown order, or mismatched amount must never mark an order as paid.
+## 10. Kịch bản lỗi và xử lý
 
-## 8. Ticket Issuing
+| Kịch bản | Cách xử lý |
+|---|---|
+| Hai user cùng mua vé cuối | Chỉ một atomic update thành công; request còn lại nhận sold out/insufficient inventory. |
+| Một user gửi nhiều order song song | Redis per-user lock serialize request; limit tính cả order active nên không vượt `max_per_account`. |
+| Client retry cùng `Idempotency-Key` | Trả lại kết quả cũ hoặc conflict nếu request đầu đang xử lý. |
+| Client dùng nhiều idempotency key khác nhau | Per-user lock và limit trên database vẫn chặn vượt giới hạn. |
+| Redis unavailable | Các chức năng phụ thuộc Redis suy giảm; database unique/atomic update vẫn là lớp bảo vệ cuối cho inventory. |
+| Một ticket type trong order hết vé | Toàn bộ order thất bại, không giữ một phần mập mờ. |
+| Payment callback trùng | Payment log/order state idempotent; không phát hành ticket lần hai. |
+| Callback sai chữ ký | Từ chối callback, không đổi trạng thái order. |
+| Callback amount sai | Ghi nhận lỗi/audit, không chuyển order sang `PAID`. |
+| Callback tới sau khi order expired | Không tự động phát hành ticket; cần quy trình xử lý hoàn tiền/manual reconciliation. |
+| App lỗi sau provider success | Payment log và callback có thể retry; handler idempotent giúp hoàn tất order an toàn. |
+| Notification service lỗi | Order/ticket vẫn thành công; notification retry qua RabbitMQ/consumer. |
+| Rate limit exceeded | Trả `429 Too Many Requests`, không tạo order. |
 
-The payment module does not directly create tickets. It publishes a payment-completed event, and the ticket module handles it.
+## 11. Quy tắc transaction và nhất quán
 
-The listener:
+- Inventory decrement và tạo order phải nằm trong cùng transaction.
+- Không phát hành ticket nếu payment chưa được xác nhận hợp lệ.
+- Payment success handler phải idempotent.
+- Expiration job chỉ release inventory cho order còn `AWAITING_PAYMENT`.
+- Mọi kiểm tra ownership lấy user từ security context.
+- Database constraint là lớp bảo vệ cuối cùng, Redis chỉ tăng tốc và điều phối.
 
-1. Loads the order using a pessimistic database write lock.
-2. Returns without doing anything if the order is already `PAID`.
-3. Requires the previous status to be `AWAITING_PAYMENT`.
-4. Sets the order to `PAID`.
-5. Stores payment provider, provider reference, and payment time.
-6. Creates exactly one ticket for each purchased unit.
-7. Generates a unique QR secret and signed QR payload for every ticket.
+## 12. Quy tắc bảo mật
 
-This module boundary keeps provider-specific payment logic separate from ticket issuance.
+- Order/payment/ticket API yêu cầu role `AUDIENCE`.
+- Client không được truyền userId thay người khác.
+- Payment webhook public nhưng bắt buộc verify chữ ký provider.
+- Không log thông tin nhạy cảm như raw secure hash secret hoặc full card/payment credential.
+- QR payload cần có chữ ký hoặc token không thể đoán.
 
-## 9. Circuit Breaker and Graceful Degradation
+## 13. Tiêu chí nghiệm thu
 
-The VNPAY adapter is configured with a Resilience4j circuit breaker named `vnpay`.
+### Order và inventory
 
-Current thresholds:
+- Tạo order hợp lệ làm giảm `available_qty` đúng số lượng.
+- Nếu không đủ vé, order không được tạo và `available_qty` không âm.
+- Order hết hạn được scheduler chuyển `EXPIRED` và trả lại inventory.
 
-- Sliding window: 5 calls
-- Minimum calls before evaluation: 3
-- Failure-rate threshold: 50%
-- Open-state wait: 30 seconds
-- Half-open trial calls: 2
+### Giới hạn theo tài khoản
 
-### 9.1 Closed
-
-Calls are allowed. Failures are measured in the sliding window.
-
-### 9.2 Open
-
-Calls fail fast with `PAYMENT_GATEWAY_UNAVAILABLE` rather than waiting repeatedly on an unhealthy provider.
-
-### 9.3 Half-Open
-
-After 30 seconds, two trial calls are allowed.
-
-- Successful trials close the circuit.
-- Continued failures open it again.
-
-### 9.4 Degraded behavior
-
-When the payment provider is unavailable:
-
-- Payment initiation returns HTTP `503 Service Unavailable`.
-- The order remains `AWAITING_PAYMENT` until it expires or the user retries.
-- No payment-success event is published.
-- Concert list, concert details, authentication, and other unrelated APIs remain available.
-- The customer should see a retry-later message rather than an ambiguous success.
-
-## 10. Special and Failure Cases
-
-### 10.1 Two users compete for the final ticket
-
-Both requests execute the conditional inventory decrement. PostgreSQL allows only one request to decrement from `1` to `0`. The other request updates zero rows and receives `TICKET_SOLD_OUT`.
-
-### 10.2 One user sends concurrent orders to bypass the limit
-
-The per-user Redis lock serializes the requests. The first committed order becomes visible to the next limit calculation, so the combined active quantity cannot exceed `max_per_account`.
-
-### 10.3 Same idempotency key arrives twice
-
-Only one request can claim the Redis key. The duplicate receives a conflict response and must not reserve inventory or create another order.
-
-### 10.4 Different idempotency keys for the same user
-
-These represent separate purchase attempts. They are still serialized by the per-user lock and remain subject to `max_per_account`.
-
-### 10.5 Redis is unavailable
-
-TicketBox fails closed with `REDIS_UNAVAILABLE` rather than accepting an order without idempotency and per-user concurrency protection. No inventory should be changed.
-
-### 10.6 Order contains several ticket types and one is sold out
-
-The order transaction rolls back. Reservations for earlier items in the same transaction must also roll back, so the customer never receives a partial order accidentally.
-
-### 10.7 Customer retries payment initiation
-
-If the order already has a payment URL for the same provider, TicketBox returns it. It does not create another `INITIATED` log.
-
-### 10.8 Duplicate successful webhook
-
-TicketBox checks the order status and existing `SUCCESS` log. The database unique constraint adds a final race-condition guard. The duplicate callback is acknowledged as already processed and must not create more tickets.
-
-### 10.9 Success and failure callbacks arrive concurrently
-
-Only a valid result for a payable order may drive the success flow. Payment-log uniqueness prevents duplicate event types, while the pessimistic order lock prevents duplicate transition and ticket creation.
-
-The desired final rule is that a confirmed success is terminal and must not later be overwritten by a failure callback.
-
-### 10.10 Callback signature is invalid
-
-The callback is rejected with VNPAY response code `97`. No success log, order transition, or ticket creation occurs.
-
-### 10.11 Callback amount differs from the order
-
-The callback is rejected with response code `04`. This protects against tampered or incorrectly associated payment data.
-
-### 10.12 Callback references an unknown order
-
-TicketBox returns response code `01`. No local state changes.
-
-### 10.13 Payment succeeds after the order expires
-
-The normal success transition is rejected because an `EXPIRED` order is not payable.
-
-This case requires an operational reconciliation policy because the provider may have captured money after TicketBox released inventory. Recommended handling:
-
-- Record the late provider result for audit.
-- Do not issue a ticket automatically.
-- Trigger an automatic refund or manual reconciliation workflow.
-- Notify the customer that payment is being reconciled.
-
-The current code rejects the state transition but does not yet implement automatic refund/reconciliation.
-
-### 10.14 Customer never completes payment
-
-A scheduled job finds expired `AWAITING_PAYMENT` orders in batches. It returns each order item's quantity to inventory and marks the order `EXPIRED`.
-
-The expiration operation should be idempotent: once the order is no longer `AWAITING_PAYMENT`, another scheduler run must not release its inventory again.
-
-### 10.15 Application fails after provider success
-
-If the provider retries its webhook, the handler can resume processing safely. Durable payment logs and idempotent order transition logic prevent duplicate ticket issuance.
-
-For stronger delivery guarantees across a crash between database commit and event handling, the recommended production design is a transactional outbox or durable Spring Modulith event publication.
-
-### 10.16 Notification service is unavailable
-
-Payment and ticket issuance must remain successful. Notification delivery is asynchronous and may retry through RabbitMQ without rolling back the paid order.
-
-### 10.17 Rate limit exceeded
-
-Purchase and payment endpoints return HTTP `429 Too Many Requests`. Read-only concert endpoints remain usable. A rejected request must not reserve inventory or create payment state.
-
-## 11. Transaction and Consistency Rules
-
-- Order creation, order items, and all inventory reservations belong to one transaction.
-- Payment success logging and publication must not occur for an invalid callback.
-- The paid-order transition and ticket creation belong to one transaction.
-- Inventory release and the `EXPIRED` transition belong to one transaction.
-- External provider calls must not hold database locks longer than necessary.
-- Database uniqueness constraints are required as final correctness guards, even when Redis is used for fast coordination.
-
-## 12. Security Rules
-
-- Order creation and payment initiation require an authenticated audience account.
-- A customer may only view and pay their own order.
-- Webhook endpoints are public to the provider but must verify provider signatures.
-- Payment amount, price, user identity, and order status must always be loaded from trusted server-side data.
-- Raw callback payloads may be stored for audit but must not contain secrets or card data.
-- Logs must not expose VNPAY hash secrets, access tokens, or QR secrets.
-
-## 13. Acceptance Criteria
-
-### Order and inventory
-
-- Given inventory `10`, when at least `50` users concurrently request one ticket, exactly `10` units are reserved.
-- `available_qty` never becomes negative.
-- Failed order creation leaves no order, order item, or inventory change.
-- An expired unpaid order returns its full reserved quantity exactly once.
-
-### Per-account limit
-
-- Given `max_per_account = 2`, concurrent requests from one account can create active orders totaling at most two tickets for that ticket type.
-- The limit includes both `AWAITING_PAYMENT` and `PAID` orders.
-- Concurrent requests with different idempotency keys cannot bypass the limit.
+- Với `max_per_account = 2`, user không thể tạo các order active/paid tổng vượt 2 vé cho cùng ticket type.
+- Request song song của cùng user không vượt giới hạn nhờ lock và kiểm tra database.
 
 ### Idempotency
 
-- Two simultaneous requests using the same user and idempotency key create at most one order.
-- Retrying a completed key does not reserve inventory again.
-- A rolled-back request releases its temporary idempotency claim.
+- Gửi lại cùng `Idempotency-Key` không tạo order thứ hai.
+- Request trùng khi request đầu đang xử lý nhận lỗi rõ ràng.
 
 ### Payment
 
-- Repeated initiation for the same provider returns the existing payment information.
-- A valid success callback marks the order `PAID` and creates the exact purchased number of tickets.
-- A duplicate success callback creates no additional tickets.
-- Invalid signatures, unknown orders, incorrect amounts, and non-payable states do not issue tickets.
-- An unavailable provider returns a controlled `503` response without affecting unrelated APIs.
+- Callback hợp lệ chuyển order sang `PAID` và phát hành đúng số ticket.
+- Callback trùng không phát hành ticket trùng.
+- Callback sai chữ ký hoặc sai amount không đổi trạng thái order.
+- Provider lỗi trả lỗi có kiểm soát và không ảnh hưởng API không liên quan.
 
-### Proof of correctness
+### Tính đúng đắn
 
-Concurrency tests must:
-
-- Use a real transactional database rather than mocked inventory repositories.
-- Start worker requests together using a synchronization barrier.
-- Use separate transactions/connections for concurrent workers.
-- Assert both API outcomes and final database state.
-- Run repeatedly to expose intermittent races.
-
-## 14. Current Implementation Notes and Follow-up Hardening
-
-The repository already implements:
-
-- Redis order idempotency claims.
-- A per-user Redis purchase lock.
-- Atomic PostgreSQL inventory decrement.
-- Active-order `max_per_account` calculation.
-- Fifteen-minute unpaid-order expiration and inventory release.
-- Mock and VNPAY gateway adapters.
-- VNPAY HMAC verification and amount validation.
-- Unique payment-log protection.
-- Pessimistic locking during payment completion.
-- Idempotent paid-order handling and ticket generation.
-- Resilience4j circuit-breaker configuration.
-
-Recommended hardening discovered while mapping the implementation:
-
-1. Add integration tests that prove oversell and per-account behavior under concurrent requests.
-2. Replace or renew the fixed five-second user-lock lease.
-3. Verify that payment initiation checks order ownership at the service boundary.
-4. Add a durable late-payment refund/reconciliation process.
-5. Use an outbox or durable event publication for crash-safe payment completion.
-6. Add a real outbound provider operation if circuit-breaker behavior must represent VNPAY network health.
-7. Make scheduler concurrency safe when several application instances expire orders simultaneously.
+- Không có trạng thái order/ticket mập mờ sau lỗi giữa chừng.
+- Payment log đủ để audit một giao dịch.
+- Ticket đã phát hành có thể được tải/xem bởi đúng owner.

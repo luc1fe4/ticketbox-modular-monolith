@@ -32,29 +32,29 @@ type NavigationItem = {
 
 const adminNavigation: NavigationItem[] = [
   { to: '/admin', label: 'Tổng quan', icon: BarChart3, end: true },
-  { to: '/admin/concerts', label: 'Concert', icon: CalendarDays },
+  { to: '/admin/concerts', label: 'Buổi diễn', icon: CalendarDays },
   { to: '/admin/ticket-types', label: 'Hạng vé', icon: Ticket },
-  { to: '/admin/orders', label: 'Đơn hàng & Vé', icon: Receipt },
+  { to: '/admin/orders', label: 'Đơn hàng & vé', icon: Receipt },
   { to: '/admin/guests', label: 'Khách mời', icon: Users },
-  { to: '/admin/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
+  { to: '/admin/artist-bio', label: 'Tiểu sử nghệ sĩ AI', icon: Sparkles },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
   { to: '/admin/users', label: 'Người dùng', icon: UserCog },
 ];
 
 const staffNavigation: NavigationItem[] = [
   { to: '/staff', label: 'Ca làm việc', icon: ClipboardCheck, end: true },
-  { to: '/staff/check-in', label: 'Check-in QR', icon: ScanLine },
+  { to: '/staff/check-in', label: 'Quét QR', icon: ScanLine },
   { to: '/staff/guests', label: 'Tra khách', icon: Users },
   { to: '/staff/history', label: 'Lịch sử vào cổng', icon: FileClock },
 ];
 
 const organizerNavigation: NavigationItem[] = [
   { to: '/organizer', label: 'Tổng quan', icon: BarChart3, end: true },
-  { to: '/organizer/concerts', label: 'Concert', icon: CalendarDays },
+  { to: '/organizer/concerts', label: 'Buổi diễn', icon: CalendarDays },
   { to: '/organizer/ticket-types', label: 'Hạng vé', icon: Ticket },
-  { to: '/organizer/orders', label: 'Đơn hàng & Vé', icon: Receipt },
+  { to: '/organizer/orders', label: 'Đơn hàng & vé', icon: Receipt },
   { to: '/organizer/guests', label: 'Khách mời', icon: Users },
-  { to: '/organizer/artist-bio', label: 'AI Artist Bio', icon: Sparkles },
+  { to: '/organizer/artist-bio', label: 'Tiểu sử nghệ sĩ AI', icon: Sparkles },
   { to: '/organizer/revenue', label: 'Doanh thu', icon: CircleDollarSign },
 ];
 
@@ -69,13 +69,20 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const navigation = mode === 'admin'
-    ? adminNavigation
-    : mode === 'organizer'
-      ? organizerNavigation
-      : staffNavigation;
-  const workspaceHome = mode === 'admin' ? '/admin' : mode === 'organizer' ? '/organizer' : '/staff';
-  const workspaceLabel = mode === 'admin' ? 'Control room' : mode === 'organizer' ? 'Organizer studio' : 'Gate desk';
+  const navigation =
+    mode === 'admin'
+      ? adminNavigation
+      : mode === 'organizer'
+        ? organizerNavigation
+        : staffNavigation;
+  const workspaceHome =
+    mode === 'admin' ? '/admin' : mode === 'organizer' ? '/organizer' : '/staff';
+  const workspaceLabel =
+    mode === 'admin'
+      ? 'Phòng điều hành'
+      : mode === 'organizer'
+        ? 'Không gian nhà tổ chức'
+        : 'Bàn soát vé';
 
   function logOut() {
     logout();
@@ -144,7 +151,13 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="operations-context">
-            <span>{mode === 'admin' ? 'Quản lý vận hành' : mode === 'organizer' ? 'Không gian nhà tổ chức' : 'Vận hành tại cổng'}</span>
+            <span>
+              {mode === 'admin'
+                ? 'Quản lý vận hành'
+                : mode === 'organizer'
+                  ? 'Không gian nhà tổ chức'
+                  : 'Vận hành tại cổng'}
+            </span>
             <strong>TicketBox Vietnam</strong>
           </div>
           <div className="operations-account">
@@ -153,9 +166,7 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
               aria-expanded={accountOpen}
               onClick={() => setAccountOpen((value) => !value)}
             >
-              <span className="operations-avatar">
-                {user?.fullName.slice(0, 2).toUpperCase()}
-              </span>
+              <span className="operations-avatar">{user?.fullName.slice(0, 2).toUpperCase()}</span>
               <span>
                 <strong>{user?.fullName}</strong>
                 <small>{user ? roleLabel(user.role) : ''}</small>
@@ -164,7 +175,11 @@ export function OperationsLayout({ mode }: { mode: 'admin' | 'organizer' | 'staf
             </button>
             {accountOpen ? (
               <div className="operations-account-menu">
-                <Link className="internal-profile-link" to={workspaceHome} onClick={() => setAccountOpen(false)}>
+                <Link
+                  className="internal-profile-link"
+                  to={workspaceHome}
+                  onClick={() => setAccountOpen(false)}
+                >
                   <Settings aria-hidden="true" size={16} />
                   Về tổng quan
                 </Link>

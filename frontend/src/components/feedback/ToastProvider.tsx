@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CheckCircle2, CircleAlert, X } from 'lucide-react';
 import { ToastContext } from './toast-context';
 
@@ -50,13 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastItem({
-  toast,
-  onDismiss,
-}: {
-  toast: Toast;
-  onDismiss: (id: number) => void;
-}) {
+function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
   useEffect(() => {
     const timeout = window.setTimeout(
       () => onDismiss(toast.id),

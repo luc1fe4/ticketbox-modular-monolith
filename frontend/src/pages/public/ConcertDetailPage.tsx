@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { isRequestCanceled } from '../../api/client';
-import { getConcert, getConcerts, getConcertTicketTypes, type ConcertDetail, type ConcertSummary, type TicketType } from '../../api/concerts';
+import {
+  getConcert,
+  getConcerts,
+  getConcertTicketTypes,
+  type ConcertDetail,
+  type ConcertSummary,
+  type TicketType,
+} from '../../api/concerts';
 import { EventCard } from '../../components/EventCard';
 import { RemoteImage } from '../../components/RemoteImage';
 import { currency, eventDate } from '../../data/mockData';
@@ -35,7 +42,7 @@ export function ConcertDetailPage() {
         setError(null);
       })
       .catch((requestError: unknown) => {
-        if (active && !isRequestCanceled(requestError)) setError('This concert could not be loaded.');
+        if (active && !isRequestCanceled(requestError)) setError('Không thể tải concert này.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -56,22 +63,62 @@ export function ConcertDetailPage() {
     return prices.length ? Math.min(...prices) : null;
   }, [ticketTypes]);
 
-  if (loading) return <div className="detail-skeleton" aria-live="polite"><div className="detail-skeleton-hero" /><div className="page-width detail-skeleton-copy"><span /><span /><span /></div></div>;
+  if (loading)
+    return (
+      <div className="detail-skeleton" aria-live="polite">
+        <div className="detail-skeleton-hero" />
+        <div className="page-width detail-skeleton-copy">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
   if (error || !concert) {
-    return <div className="page-width detail-error state-panel"><span className="state-icon">!</span><h1>Concert unavailable</h1><p>{error ?? 'The requested concert was not found.'}</p><button className="button button-primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Try again</button><Link className="text-link" to="/">Return to all concerts</Link></div>;
+    return (
+      <div className="page-width detail-error state-panel">
+        <span className="state-icon">!</span>
+        <h1>Concert không khả dụng</h1>
+        <p>{error ?? 'Không tìm thấy concert được yêu cầu.'}</p>
+        <button
+          className="button button-primary"
+          type="button"
+          onClick={() => setReloadKey((value) => value + 1)}
+        >
+          Thử lại
+        </button>
+        <Link className="text-link" to="/">
+          Quay lại danh sách concert
+        </Link>
+      </div>
+    );
   }
 
   const concertDate = new Date(concert.eventDate);
-  const doorsOpen = concert.doorsOpenAt ? new Intl.DateTimeFormat('en-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(concert.doorsOpenAt)) : 'To be announced';
+  const doorsOpen = concert.doorsOpenAt
+    ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(
+        new Date(concert.doorsOpenAt),
+      )
+    : 'Sẽ thông báo';
   const saleStartAt = new Date(concert.saleStartAt).getTime();
   const waitingRoomOpensAt = saleStartAt - 60 * 60 * 1_000;
   const saleNotStarted = saleStartAt > now;
   const waitingRoomNotOpen = waitingRoomOpensAt > now;
   const waitingRoomOpen = saleNotStarted && !waitingRoomNotOpen;
   const saleEnded = concert.saleEndAt ? new Date(concert.saleEndAt).getTime() < now : false;
-  const saleStart = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(concert.saleStartAt));
-  const waitingRoomOpenTime = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(waitingRoomOpensAt));
-  const saleEnd = concert.saleEndAt ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(concert.saleEndAt)) : null;
+  const saleStart = new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(concert.saleStartAt));
+  const waitingRoomOpenTime = new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(waitingRoomOpensAt));
+  const saleEnd = concert.saleEndAt
+    ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(
+        new Date(concert.saleEndAt),
+      )
+    : null;
   const canEnterWaitingRoom = concert.status === 'ON_SALE' && !saleEnded && !waitingRoomNotOpen;
 
   return (
@@ -80,62 +127,217 @@ export function ConcertDetailPage() {
         <RemoteImage src={concert.posterUrl ?? undefined} alt="" width="1800" height="1000" />
         <div className="detail-overlay" />
         <div className="detail-hero-content page-width">
-          <Link className="back-link" to="/">← All concerts</Link>
-          <div className="detail-title"><p className="eyebrow"><span /> Live in Vietnam · {concert.status.replace('_', ' ')}</p><h1>{concert.title}</h1><p className="artist-line">{concert.artistBio ? 'Featuring the artists behind the night' : 'An official TicketBox experience'}</p></div>
-          <div className="detail-facts"><Fact label="Date" value={eventDate.format(concertDate)} /><Fact label="Doors open" value={doorsOpen} /><Fact label="Venue" value={concert.venueName} /></div>
+          <Link className="back-link" to="/">
+            ← Tất cả concert
+          </Link>
+          <div className="detail-title">
+            <p className="eyebrow">
+              <span /> Live tại Việt Nam · {concert.status.replace('_', ' ')}
+            </p>
+            <h1>{concert.title}</h1>
+            <p className="artist-line">
+              {concert.artistBio
+                ? 'Gặp gỡ nghệ sĩ của đêm diễn'
+                : 'Trải nghiệm chính thức từ TicketBox'}
+            </p>
+          </div>
+          <div className="detail-facts">
+            <Fact label="Ngày diễn" value={eventDate.format(concertDate)} />
+            <Fact label="Mở cửa" value={doorsOpen} />
+            <Fact label="Địa điểm" value={concert.venueName} />
+          </div>
         </div>
       </section>
       <section className="detail-body page-width">
         <article className="detail-story">
-          {concert.artistBio ? <section className="artist-section artist-section-featured"><p className="eyebrow"><span /> Nghệ sĩ biểu diễn</p><h2>Gặp gỡ những người đứng sau <em>sân khấu.</em></h2><p className="artist-biography">{concert.artistBio}</p></section> : null}
-          <p className="eyebrow"><span /> About the night</p>
-          <h2>A live experience shaped around <em>sound, light, and connection.</em></h2>
-          <p>{concert.description || 'A one-night live experience created for music lovers.'}</p>
-          <div className="feature-row"><Feature number="01" title="Immersive production" copy="A cinematic stage and spatial sound." /><Feature number="02" title="Official inventory" copy={`${ticketTypes.length} verified ticket zones.`} /><Feature number="03" title="Easy entry" copy="Mobile tickets and dedicated support." /></div>
+          {concert.artistBio ? (
+            <section className="artist-section artist-section-featured">
+              <p className="eyebrow">
+                <span /> Nghệ sĩ biểu diễn
+              </p>
+              <h2>
+                Gặp gỡ những người đứng sau <em>sân khấu.</em>
+              </h2>
+              <p className="artist-biography">{concert.artistBio}</p>
+            </section>
+          ) : null}
+          <p className="eyebrow">
+            <span /> Về đêm diễn
+          </p>
+          <h2>
+            Trải nghiệm live được tạo nên từ <em>âm thanh, ánh sáng và kết nối.</em>
+          </h2>
+          <p>{concert.description || 'Một đêm nhạc live dành cho những người yêu âm nhạc.'}</p>
+          <div className="feature-row">
+            <Feature
+              number="01"
+              title="Sản xuất giàu trải nghiệm"
+              copy="Sân khấu điện ảnh cùng âm thanh không gian."
+            />
+            <Feature
+              number="02"
+              title="Vé chính thức"
+              copy={`${ticketTypes.length} khu vé đã xác thực.`}
+            />
+            <Feature
+              number="03"
+              title="Vào cổng dễ dàng"
+              copy="Vé mobile và đội ngũ hỗ trợ riêng."
+            />
+          </div>
           <section className="ticket-types-section" aria-labelledby="ticket-types-title">
-            <p className="eyebrow"><span /> Ticket options</p>
-            <h2 id="ticket-types-title">Choose your <em>experience.</em></h2>
+            <p className="eyebrow">
+              <span /> Lựa chọn vé
+            </p>
+            <h2 id="ticket-types-title">
+              Chọn <em>trải nghiệm</em> của bạn.
+            </h2>
             <div className="ticket-types-list">
-              {ticketTypes.length ? ticketTypes.map((ticketType) => (
-                <div className={`ticket-type-summary ${ticketType.availableQty === 0 ? 'is-sold-out' : ''}`} key={ticketType.id}>
-                  <div><strong>{ticketType.name}</strong><span>{ticketType.availableQty > 0 ? `${ticketType.availableQty} tickets available` : 'Sold out'}</span></div>
-                  <strong>{currency.format(ticketType.price)}</strong>
+              {ticketTypes.length ? (
+                ticketTypes.map((ticketType) => (
+                  <div
+                    className={`ticket-type-summary ${ticketType.availableQty === 0 ? 'is-sold-out' : ''}`}
+                    key={ticketType.id}
+                  >
+                    <div>
+                      <strong>{ticketType.name}</strong>
+                      <span>
+                        {ticketType.availableQty > 0
+                          ? `Còn ${ticketType.availableQty} vé`
+                          : 'Hết vé'}
+                      </span>
+                    </div>
+                    <strong>{currency.format(ticketType.price)}</strong>
+                  </div>
+                ))
+              ) : (
+                <div className="ticket-type-empty">
+                  Các khu vé đang được chuẩn bị cho concert này.
                 </div>
-              )) : <div className="ticket-type-empty">Ticket zones are being prepared for this concert.</div>}
+              )}
             </div>
           </section>
         </article>
         <aside className="booking-card">
-          <p className="booking-label">{lowestPrice === null ? 'Ticket information' : 'Tickets from'}</p>
-          <p className="booking-price">{lowestPrice === null ? 'Coming soon' : currency.format(lowestPrice)}</p>
+          <p className="booking-label">{lowestPrice === null ? 'Thông tin vé' : 'Giá vé từ'}</p>
+          <p className="booking-price">
+            {lowestPrice === null ? 'Sắp có' : currency.format(lowestPrice)}
+          </p>
           <div className="booking-divider" />
-          <div className="booking-detail"><span>Date</span><strong>{eventDate.format(concertDate)}</strong></div>
-          <div className="booking-detail"><span>Ticket sale starts</span><strong>{saleStart}</strong></div>
-          {saleEnd ? <div className="booking-detail"><span>Ticket sale ends</span><strong>{saleEnd}</strong></div> : null}
-          <div className="booking-detail"><span>Location</span><strong>{concert.venueAddress}</strong></div>
-          <div className="booking-detail"><span>Admission</span><strong>Mobile ticket</strong></div>
+          <div className="booking-detail">
+            <span>Ngày diễn</span>
+            <strong>{eventDate.format(concertDate)}</strong>
+          </div>
+          <div className="booking-detail">
+            <span>Mở bán</span>
+            <strong>{saleStart}</strong>
+          </div>
+          {saleEnd ? (
+            <div className="booking-detail">
+              <span>Kết thúc bán</span>
+              <strong>{saleEnd}</strong>
+            </div>
+          ) : null}
+          <div className="booking-detail">
+            <span>Địa điểm</span>
+            <strong>{concert.venueAddress}</strong>
+          </div>
+          <div className="booking-detail">
+            <span>Vào cổng</span>
+            <strong>Vé mobile</strong>
+          </div>
           {canEnterWaitingRoom ? (
-            <Link className="button button-primary button-block" to={`/concerts/${concert.id}/waiting-room`}>
-              {waitingRoomOpen ? 'Enter waiting room' : 'Buy now'} <span aria-hidden="true">→</span>
+            <Link
+              className="button button-primary button-block"
+              to={`/concerts/${concert.id}/waiting-room`}
+            >
+              {waitingRoomOpen ? 'Vào phòng chờ' : 'Mua ngay'} <span aria-hidden="true">→</span>
             </Link>
           ) : (
             <button className="button button-disabled" type="button" disabled>
-              {concert.status === 'SOLD_OUT' ? 'Sold out' : waitingRoomNotOpen ? `Waiting room opens ${waitingRoomOpenTime}` : saleEnded ? 'Ticket sale ended' : 'Not on sale'}
+              {concert.status === 'SOLD_OUT'
+                ? 'Hết vé'
+                : waitingRoomNotOpen
+                  ? `Phòng chờ mở lúc ${waitingRoomOpenTime}`
+                  : saleEnded
+                    ? 'Đã kết thúc bán vé'
+                    : 'Chưa mở bán'}
             </button>
           )}
-          <p className="secure-note">Secure checkout · Official ticket partner</p>
+          <p className="secure-note">Thanh toán bảo mật · Đối tác vé chính thức</p>
         </aside>
       </section>
-      <section className="venue-section"><div className="page-width venue-grid"><div><p className="eyebrow"><span /> The venue</p><h2>{concert.venueName}</h2><p>{concert.venueAddress}</p><a className="text-link" href="#map">View venue map ↓</a></div><div className="map-art" id="map" aria-label={`Stylized map of ${concert.venueName}`}><span className="map-pin">T</span><i className="road road-one" /><i className="road road-two" /><i className="road road-three" /></div></div></section>
-      {relatedConcerts.length ? <section className="more-events page-width"><div className="section-heading"><div><p className="eyebrow"><span /> Keep exploring</p><h2>You may also <em>love.</em></h2></div><Link className="text-link" to="/">See all concerts →</Link></div><div className="event-grid event-grid-three">{relatedConcerts.map((item) => <EventCard key={item.id} event={{ id: item.id, title: item.title, venue: item.venueName, eventDate: item.eventDate, status: item.status, image: item.posterUrl }} />)}</div></section> : null}
+      <section className="venue-section">
+        <div className="page-width venue-grid">
+          <div>
+            <p className="eyebrow">
+              <span /> Địa điểm
+            </p>
+            <h2>{concert.venueName}</h2>
+            <p>{concert.venueAddress}</p>
+            <a className="text-link" href="#map">
+              Xem bản đồ địa điểm ↓
+            </a>
+          </div>
+          <div className="map-art" id="map" aria-label={`Bản đồ minh họa ${concert.venueName}`}>
+            <span className="map-pin">T</span>
+            <i className="road road-one" />
+            <i className="road road-two" />
+            <i className="road road-three" />
+          </div>
+        </div>
+      </section>
+      {relatedConcerts.length ? (
+        <section className="more-events page-width">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">
+                <span /> Khám phá thêm
+              </p>
+              <h2>
+                Có thể bạn cũng <em>thích.</em>
+              </h2>
+            </div>
+            <Link className="text-link" to="/">
+              Xem tất cả concert →
+            </Link>
+          </div>
+          <div className="event-grid event-grid-three">
+            {relatedConcerts.map((item) => (
+              <EventCard
+                key={item.id}
+                event={{
+                  id: item.id,
+                  title: item.title,
+                  venue: item.venueName,
+                  eventDate: item.eventDate,
+                  status: item.status,
+                  image: item.posterUrl,
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
 
 function Fact({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><strong>{value}</strong></div>;
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
 }
 
 function Feature({ number, title, copy }: { number: string; title: string; copy: string }) {
-  return <div className="detail-feature"><span>{number}</span><h3>{title}</h3><p>{copy}</p></div>;
+  return (
+    <div className="detail-feature">
+      <span>{number}</span>
+      <h3>{title}</h3>
+      <p>{copy}</p>
+    </div>
+  );
 }

@@ -9,7 +9,13 @@ type ActionMenuProps<T extends string> = {
   onSelect: (value: T) => void;
 };
 
-export function ActionMenu<T extends string>({ label, ariaLabel, options, disabled, onSelect }: ActionMenuProps<T>) {
+export function ActionMenu<T extends string>({
+  label,
+  ariaLabel,
+  options,
+  disabled,
+  onSelect,
+}: ActionMenuProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -24,8 +30,16 @@ export function ActionMenu<T extends string>({ label, ariaLabel, options, disabl
 
   return (
     <div className={`action-menu ${open ? 'is-open' : ''}`} ref={rootRef}>
-      <button type="button" aria-label={ariaLabel} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen((current) => !current)}>
-        {label}<ChevronDown aria-hidden="true" size={16} />
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {label}
+        <ChevronDown aria-hidden="true" size={16} />
       </button>
       {open ? (
         <div className="action-menu-popover" role="menu">
@@ -41,7 +55,8 @@ export function ActionMenu<T extends string>({ label, ariaLabel, options, disabl
                 onSelect(option.value);
               }}
             >
-              <Check aria-hidden="true" size={15} />{option.label}
+              <Check aria-hidden="true" size={15} />
+              {option.label}
             </button>
           ))}
         </div>

@@ -1,4 +1,11 @@
-import { ArrowUpRight, CalendarDays, CircleDollarSign, Sparkles, Ticket, Users } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CalendarDays,
+  CircleDollarSign,
+  Sparkles,
+  Ticket,
+  Users,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -25,7 +32,7 @@ const workspaces = [
   {
     to: '/organizer/artist-bio',
     title: 'AI Artist Bio',
-    copy: 'Tải press-kit PDF, review nội dung AI và áp dụng vào concert.',
+    copy: 'Tải hồ sơ báo chí PDF, rà soát nội dung AI và áp dụng vào concert.',
     icon: Sparkles,
   },
   {
@@ -42,7 +49,7 @@ export function OrganizerOverviewPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Organizer studio"
+        eyebrow="Không gian nhà tổ chức"
         title={`Chào ${user?.fullName ?? 'bạn'}`}
         description="Quản lý concert, hạng vé và nội dung nghệ sĩ trong phạm vi chương trình do bạn sở hữu."
         actions={

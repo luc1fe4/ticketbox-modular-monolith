@@ -63,9 +63,11 @@ export function OrganizerRevenuePage() {
       .then((page) => setConcerts(page.content))
       .catch((requestError: unknown) => {
         if (!isRequestCanceled(requestError)) {
-          setConcertsError(requestError instanceof Error
-            ? requestError.message
-            : 'Không thể tải danh sách concert đã hoàn thành.');
+          setConcertsError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Không thể tải danh sách concert đã hoàn thành.',
+          );
         }
       })
       .finally(() => {
@@ -112,9 +114,11 @@ export function OrganizerRevenuePage() {
           setSummary(null);
           setZones([]);
           setTrend([]);
-          setReportError(requestError instanceof Error
-            ? requestError.message
-            : 'Không thể tải báo cáo doanh thu.');
+          setReportError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Không thể tải báo cáo doanh thu.',
+          );
         }
       })
       .finally(() => {
@@ -172,7 +176,13 @@ export function OrganizerRevenuePage() {
         <TrendingUp aria-hidden="true" size={30} />
         <h3>Chưa thể mở báo cáo</h3>
         <p>{concertsError}</p>
-        <button className="button button-secondary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Thử lại</button>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={() => setReloadKey((value) => value + 1)}
+        >
+          Thử lại
+        </button>
       </div>
     );
   }
@@ -183,7 +193,9 @@ export function OrganizerRevenuePage() {
         <TrendingUp aria-hidden="true" size={30} />
         <h3>Chưa có concert hoàn thành</h3>
         <p>Báo cáo doanh thu chỉ khả dụng sau khi concert chuyển sang trạng thái hoàn thành.</p>
-        <Link className="button button-secondary" to="/organizer/concerts">Quản lý concert</Link>
+        <Link className="button button-secondary" to="/organizer/concerts">
+          Quản lý concert
+        </Link>
       </div>
     );
   }
@@ -191,16 +203,26 @@ export function OrganizerRevenuePage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Revenue intelligence"
+        eyebrow="Phân tích doanh thu"
         title="Báo cáo doanh thu"
         description="Theo dõi kết quả bán vé, hiệu suất từng hạng vé và nhịp doanh thu trước đêm diễn."
         actions={
           <div className="revenue-export-actions">
-            <button className="admin-secondary-action" type="button" disabled={!summary || exporting !== null} onClick={() => void download('csv')}>
+            <button
+              className="admin-secondary-action"
+              type="button"
+              disabled={!summary || exporting !== null}
+              onClick={() => void download('csv')}
+            >
               <FileSpreadsheet aria-hidden="true" size={16} />
               {exporting === 'csv' ? 'Đang xuất...' : 'Xuất CSV'}
             </button>
-            <button className="admin-primary-action" type="button" disabled={!summary || exporting !== null} onClick={() => void download('pdf')}>
+            <button
+              className="admin-primary-action"
+              type="button"
+              disabled={!summary || exporting !== null}
+              onClick={() => void download('pdf')}
+            >
               <Download aria-hidden="true" size={16} />
               {exporting === 'pdf' ? 'Đang xuất...' : 'Xuất PDF'}
             </button>
@@ -217,12 +239,40 @@ export function OrganizerRevenuePage() {
           placeholder="Chọn concert để xem báo cáo"
         />
         <form className="revenue-date-form" onSubmit={applyDateRange}>
-          <label className="admin-field"><span>Từ ngày</span><input type="date" value={draftFrom} onChange={(event) => setDraftFrom(event.target.value)} /></label>
-          <label className="admin-field"><span>Đến ngày</span><input type="date" value={draftTo} onChange={(event) => setDraftTo(event.target.value)} /></label>
-          <button className="admin-secondary-action" type="submit" disabled={!draftFrom || !draftTo || loadingReport}>Áp dụng</button>
+          <label className="admin-field">
+            <span>Từ ngày</span>
+            <input
+              type="date"
+              value={draftFrom}
+              onChange={(event) => setDraftFrom(event.target.value)}
+            />
+          </label>
+          <label className="admin-field">
+            <span>Đến ngày</span>
+            <input
+              type="date"
+              value={draftTo}
+              onChange={(event) => setDraftTo(event.target.value)}
+            />
+          </label>
+          <button
+            className="admin-secondary-action"
+            type="submit"
+            disabled={!draftFrom || !draftTo || loadingReport}
+          >
+            Áp dụng
+          </button>
         </form>
-        {dateError ? <p className="revenue-date-error" role="alert">{dateError}</p> : null}
-        {selectedConcert ? <p className="revenue-concert-date">Đêm diễn <strong>{displayDate.format(new Date(selectedConcert.eventDate))}</strong></p> : null}
+        {dateError ? (
+          <p className="revenue-date-error" role="alert">
+            {dateError}
+          </p>
+        ) : null}
+        {selectedConcert ? (
+          <p className="revenue-concert-date">
+            Đêm diễn <strong>{displayDate.format(new Date(selectedConcert.eventDate))}</strong>
+          </p>
+        ) : null}
       </section>
 
       {reportError ? (
@@ -230,7 +280,13 @@ export function OrganizerRevenuePage() {
           <TrendingUp aria-hidden="true" size={30} />
           <h3>Không thể tải dữ liệu doanh thu</h3>
           <p>{reportError}</p>
-          <button className="button button-secondary" type="button" onClick={() => setReloadKey((value) => value + 1)}><RefreshCw size={16} /> Thử lại</button>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
+            <RefreshCw size={16} /> Thử lại
+          </button>
         </div>
       ) : loadingReport || !summary ? (
         <ReportSkeleton />
@@ -241,51 +297,124 @@ export function OrganizerRevenuePage() {
   );
 }
 
-function RevenueReport({ summary, zones, trend }: { summary: RevenueSummary; zones: ZoneRevenue[]; trend: SalesTrend[] }) {
+function RevenueReport({
+  summary,
+  zones,
+  trend,
+}: {
+  summary: RevenueSummary;
+  zones: ZoneRevenue[];
+  trend: SalesTrend[];
+}) {
   const remaining = Math.max(0, summary.totalTicketsAvailable - summary.totalTicketsSold);
   return (
     <>
       <section className="revenue-summary-grid" aria-label="Tổng quan doanh thu">
-        <RevenueMetric label="Tổng doanh thu" value={currency.format(summary.totalRevenue)} emphasis />
-        <RevenueMetric label="Vé đã bán" value={integer.format(summary.totalTicketsSold)} note={`${formatPercent(summary.soldRate)} sức chứa`} />
-        <RevenueMetric label="Tổng sức chứa" value={integer.format(summary.totalTicketsAvailable)} />
+        <RevenueMetric
+          label="Tổng doanh thu"
+          value={currency.format(summary.totalRevenue)}
+          emphasis
+        />
+        <RevenueMetric
+          label="Vé đã bán"
+          value={integer.format(summary.totalTicketsSold)}
+          note={`${formatPercent(summary.soldRate)} sức chứa`}
+        />
+        <RevenueMetric
+          label="Tổng sức chứa"
+          value={integer.format(summary.totalTicketsAvailable)}
+        />
         <RevenueMetric label="Vé còn lại" value={integer.format(remaining)} />
       </section>
 
       <section className="revenue-section">
-        <div className="revenue-section-heading"><div><span>Sales timeline</span><h2>Doanh thu theo ngày</h2></div><p>{trend.length} ngày trong khoảng đã chọn</p></div>
+        <div className="revenue-section-heading">
+          <div>
+            <span>Sales timeline</span>
+            <h2>Doanh thu theo ngày</h2>
+          </div>
+          <p>{trend.length} ngày trong khoảng đã chọn</p>
+        </div>
         <RevenueTrendChart data={trend} />
       </section>
 
       <section className="revenue-section">
-        <div className="revenue-section-heading"><div><span>Ticket zones</span><h2>Hiệu suất theo hạng vé</h2></div><p>{zones.length} hạng vé</p></div>
+        <div className="revenue-section-heading">
+          <div>
+            <span>Ticket zones</span>
+            <h2>Hiệu suất theo hạng vé</h2>
+          </div>
+          <p>{zones.length} hạng vé</p>
+        </div>
         <div className="admin-data-panel">
           {zones.length ? (
             <div className="admin-table-wrap">
               <table className="admin-table revenue-zone-table">
-                <thead><tr><th>Hạng vé</th><th>Giá</th><th>Đã bán</th><th>Còn lại</th><th>Tổng</th><th>Tỷ lệ</th><th>Doanh thu</th></tr></thead>
-                <tbody>{zones.map((zone) => (
-                  <tr key={zone.zoneName}>
-                    <td><strong className="admin-table-primary">{zone.zoneName}</strong></td>
-                    <td>{currency.format(zone.price)}</td>
-                    <td>{integer.format(zone.soldQuantity)}</td>
-                    <td>{integer.format(zone.availableQuantity)}</td>
-                    <td>{integer.format(zone.totalQuantity)}</td>
-                    <td><strong className="revenue-rate">{formatPercent(zone.soldRate)}</strong></td>
-                    <td><strong className="admin-table-primary">{currency.format(zone.revenue)}</strong></td>
+                <thead>
+                  <tr>
+                    <th>Hạng vé</th>
+                    <th>Giá</th>
+                    <th>Đã bán</th>
+                    <th>Còn lại</th>
+                    <th>Tổng</th>
+                    <th>Tỷ lệ</th>
+                    <th>Doanh thu</th>
                   </tr>
-                ))}</tbody>
+                </thead>
+                <tbody>
+                  {zones.map((zone) => (
+                    <tr key={zone.zoneName}>
+                      <td>
+                        <strong className="admin-table-primary">{zone.zoneName}</strong>
+                      </td>
+                      <td>{currency.format(zone.price)}</td>
+                      <td>{integer.format(zone.soldQuantity)}</td>
+                      <td>{integer.format(zone.availableQuantity)}</td>
+                      <td>{integer.format(zone.totalQuantity)}</td>
+                      <td>
+                        <strong className="revenue-rate">{formatPercent(zone.soldRate)}</strong>
+                      </td>
+                      <td>
+                        <strong className="admin-table-primary">
+                          {currency.format(zone.revenue)}
+                        </strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
-          ) : <div className="admin-empty-state"><TrendingUp aria-hidden="true" size={28} /><h2>Chưa có hạng vé</h2><p>Concert này chưa có dữ liệu hạng vé để tổng hợp.</p></div>}
+          ) : (
+            <div className="admin-empty-state">
+              <TrendingUp aria-hidden="true" size={28} />
+              <h2>Chưa có hạng vé</h2>
+              <p>Concert này chưa có dữ liệu hạng vé để tổng hợp.</p>
+            </div>
+          )}
         </div>
       </section>
     </>
   );
 }
 
-function RevenueMetric({ label, value, note, emphasis = false }: { label: string; value: string; note?: string; emphasis?: boolean }) {
-  return <div className={emphasis ? 'is-emphasis' : ''}><span>{label}</span><strong>{value}</strong>{note ? <small>{note}</small> : null}</div>;
+function RevenueMetric({
+  label,
+  value,
+  note,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className={emphasis ? 'is-emphasis' : ''}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {note ? <small>{note}</small> : null}
+    </div>
+  );
 }
 
 function RevenueTrendChart({ data }: { data: SalesTrend[] }) {
@@ -299,13 +428,22 @@ function RevenueTrendChart({ data }: { data: SalesTrend[] }) {
   const maxRevenue = Math.max(1, ...data.map((item) => item.revenue));
   const points = data.map((item, index) => ({
     ...item,
-    x: padding.left + (data.length === 1 ? chartWidth / 2 : index * chartWidth / (data.length - 1)),
+    x:
+      padding.left +
+      (data.length === 1 ? chartWidth / 2 : (index * chartWidth) / (data.length - 1)),
     y: padding.top + chartHeight - (item.revenue / maxRevenue) * chartHeight,
   }));
-  const path = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ');
+  const path = points
+    .map((point, index) => `${index ? 'L' : 'M'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ');
   const active = points[Math.min(activeIndex, Math.max(0, points.length - 1))];
 
-  if (!data.length) return <div className="revenue-chart-empty"><p>Không có dữ liệu trong khoảng ngày đã chọn.</p></div>;
+  if (!data.length)
+    return (
+      <div className="revenue-chart-empty">
+        <p>Không có dữ liệu trong khoảng ngày đã chọn.</p>
+      </div>
+    );
 
   return (
     <div className="revenue-chart-panel">
@@ -315,12 +453,37 @@ function RevenueTrendChart({ data }: { data: SalesTrend[] }) {
         <small>{active ? `${integer.format(active.ticketsSold)} vé đã bán` : ''}</small>
       </div>
       <div className="revenue-chart-scroll">
-        <svg className="revenue-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="revenue-chart-title revenue-chart-description">
+        <svg
+          className="revenue-chart"
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-labelledby="revenue-chart-title revenue-chart-description"
+        >
           <title id="revenue-chart-title">Biểu đồ doanh thu theo ngày</title>
-          <desc id="revenue-chart-description">Doanh thu và số vé đã bán cho từng ngày trong khoảng báo cáo.</desc>
+          <desc id="revenue-chart-description">
+            Doanh thu và số vé đã bán cho từng ngày trong khoảng báo cáo.
+          </desc>
           {[0, 0.5, 1].map((ratio) => {
             const y = padding.top + chartHeight - ratio * chartHeight;
-            return <g key={ratio}><line x1={padding.left} x2={width - padding.right} y1={y} y2={y} className="revenue-grid-line" /><text x={padding.left - 12} y={y + 4} textAnchor="end" className="revenue-axis-label">{compactCurrency(maxRevenue * ratio)}</text></g>;
+            return (
+              <g key={ratio}>
+                <line
+                  x1={padding.left}
+                  x2={width - padding.right}
+                  y1={y}
+                  y2={y}
+                  className="revenue-grid-line"
+                />
+                <text
+                  x={padding.left - 12}
+                  y={y + 4}
+                  textAnchor="end"
+                  className="revenue-axis-label"
+                >
+                  {compactCurrency(maxRevenue * ratio)}
+                </text>
+              </g>
+            );
           })}
           {path ? <path d={path} className="revenue-line" /> : null}
           {points.map((point, index) => (
@@ -337,9 +500,19 @@ function RevenueTrendChart({ data }: { data: SalesTrend[] }) {
               onFocus={() => setActiveIndex(index)}
             />
           ))}
-          {[0, Math.floor((points.length - 1) / 2), points.length - 1].filter((value, index, values) => values.indexOf(value) === index).map((index) => (
-            <text key={points[index].date} x={points[index].x} y={height - 13} textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'} className="revenue-axis-label">{shortDate(points[index].date)}</text>
-          ))}
+          {[0, Math.floor((points.length - 1) / 2), points.length - 1]
+            .filter((value, index, values) => values.indexOf(value) === index)
+            .map((index) => (
+              <text
+                key={points[index].date}
+                x={points[index].x}
+                y={height - 13}
+                textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}
+                className="revenue-axis-label"
+              >
+                {shortDate(points[index].date)}
+              </text>
+            ))}
         </svg>
       </div>
     </div>
@@ -347,11 +520,31 @@ function RevenueTrendChart({ data }: { data: SalesTrend[] }) {
 }
 
 function RevenuePageSkeleton() {
-  return <div className="revenue-page-skeleton" aria-label="Đang tải báo cáo" aria-live="polite"><span /><span /><span /></div>;
+  return (
+    <div className="revenue-page-skeleton" aria-label="Đang tải báo cáo" aria-live="polite">
+      <span />
+      <span />
+      <span />
+    </div>
+  );
 }
 
 function ReportSkeleton() {
-  return <div className="revenue-report-skeleton" aria-label="Đang tải dữ liệu doanh thu" aria-live="polite"><div>{[1, 2, 3, 4].map((item) => <span key={item} />)}</div><span /><span /></div>;
+  return (
+    <div
+      className="revenue-report-skeleton"
+      aria-label="Đang tải dữ liệu doanh thu"
+      aria-live="polite"
+    >
+      <div>
+        {[1, 2, 3, 4].map((item) => (
+          <span key={item} />
+        ))}
+      </div>
+      <span />
+      <span />
+    </div>
+  );
 }
 
 function defaultRange(eventDate: string) {
@@ -368,7 +561,8 @@ function dateInReportingZone(value: string) {
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(new Date(value));
-  const part = (type: 'year' | 'month' | 'day') => parts.find((item) => item.type === type)?.value ?? '';
+  const part = (type: 'year' | 'month' | 'day') =>
+    parts.find((item) => item.type === type)?.value ?? '';
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
@@ -383,17 +577,32 @@ function formatPercent(value: number) {
 }
 
 function formatDateOnly(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${value}T00:00:00Z`),
+  );
 }
 
 function shortDate(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function compactCurrency(value: number) {
-  return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    value,
+  );
 }
 
 function fileSlug(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'concert';
+  return (
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'concert'
+  );
 }

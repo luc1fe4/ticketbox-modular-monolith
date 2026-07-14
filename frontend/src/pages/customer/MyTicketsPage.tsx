@@ -64,7 +64,7 @@ export function MyTicketsPage() {
         }));
         setTickets(enrichedTickets);
         setSelectedTicket((current) =>
-          current ? enrichedTickets.find((ticket) => ticket.id === current.id) ?? null : null,
+          current ? (enrichedTickets.find((ticket) => ticket.id === current.id) ?? null) : null,
         );
         if (!openConcertId && enrichedTickets[0]) {
           setOpenConcertId(enrichedTickets[0].concertId);
@@ -86,7 +86,7 @@ export function MyTicketsPage() {
   }, [reloadKey]);
 
   const filteredTickets = useMemo(
-    () => activeTab === 'all' ? tickets : tickets.filter((ticket) => ticket.status === activeTab),
+    () => (activeTab === 'all' ? tickets : tickets.filter((ticket) => ticket.status === activeTab)),
     [activeTab, tickets],
   );
 
@@ -96,9 +96,22 @@ export function MyTicketsPage() {
   if (loading) {
     return (
       <div className="tickets-page page-width">
-        <div className="tickets-heading"><div><p className="eyebrow"><span /> Your live archive</p><h1>My Tickets</h1></div></div>
-        <div className="ticket-list" aria-label="Loading tickets" aria-live="polite">
-          {[1, 2].map((item) => <div className="event-skeleton" key={item}><div /><span /><span /></div>)}
+        <div className="tickets-heading">
+          <div>
+            <p className="eyebrow">
+              <span /> Your live archive
+            </p>
+            <h1>My Tickets</h1>
+          </div>
+        </div>
+        <div className="ticket-list" aria-label="Đang tải vé" aria-live="polite">
+          {[1, 2].map((item) => (
+            <div className="event-skeleton" key={item}>
+              <div />
+              <span />
+              <span />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -107,7 +120,18 @@ export function MyTicketsPage() {
   if (error) {
     return (
       <div className="tickets-page page-width">
-        <div className="state-panel"><span className="state-icon">!</span><h3>Tickets unavailable</h3><p>{error}</p><button className="button button-primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Thử lại</button></div>
+        <div className="state-panel">
+          <span className="state-icon">!</span>
+          <h3>Tickets unavailable</h3>
+          <p>{error}</p>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
+            Thử lại
+          </button>
+        </div>
       </div>
     );
   }
@@ -116,22 +140,41 @@ export function MyTicketsPage() {
     <div className="tickets-page page-width">
       <div className="tickets-heading">
         <div>
-          <p className="eyebrow"><span /> Your live archive</p>
+          <p className="eyebrow">
+            <span /> Your live archive
+          </p>
           <h1>My Tickets</h1>
-          <p>{tickets.length ? `${tickets.length} vé trong ${groupTickets(tickets).length} concert. ${totalValid} vé còn hiệu lực.` : 'Tất cả e-ticket của bạn sẽ được gom theo concert.'}</p>
+          <p>
+            {tickets.length
+              ? `${tickets.length} vé trong ${groupTickets(tickets).length} concert. ${totalValid} vé còn hiệu lực.`
+              : 'Tất cả e-ticket của bạn sẽ được gom theo concert.'}
+          </p>
         </div>
         <div className="tickets-heading-actions">
-          <button className="button button-secondary" type="button" onClick={() => setReloadKey((value) => value + 1)}>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
             <RefreshCw size={16} />
             Làm mới
           </button>
-          <Link className="button button-secondary" to="/">Tìm concert khác ↗</Link>
+          <Link className="button button-secondary" to="/">
+            Tìm concert khác ↗
+          </Link>
         </div>
       </div>
 
-      <div className="ticket-tabs" role="tablist" aria-label="Ticket status">
+      <div className="ticket-tabs" role="tablist" aria-label="Trạng thái vé">
         {tabs.map((tab) => (
-          <button key={tab.value} type="button" role="tab" aria-selected={activeTab === tab.value} className={activeTab === tab.value ? 'active' : ''} onClick={() => setActiveTab(tab.value)}>
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.value}
+            className={activeTab === tab.value ? 'active' : ''}
+            onClick={() => setActiveTab(tab.value)}
+          >
             {tab.label}
           </button>
         ))}
@@ -144,16 +187,29 @@ export function MyTicketsPage() {
               key={group.concertId}
               group={group}
               open={openConcertId === group.concertId}
-              onToggle={() => setOpenConcertId((current) => current === group.concertId ? null : group.concertId)}
+              onToggle={() =>
+                setOpenConcertId((current) =>
+                  current === group.concertId ? null : group.concertId,
+                )
+              }
               onOpenTicket={setSelectedTicket}
             />
           ))}
         </div>
       ) : (
-        <div className="state-panel"><span className="state-icon">◇</span><h3>Chưa có vé phù hợp</h3><p>Đổi bộ lọc hoặc khám phá concert mới để bắt đầu.</p><Link className="button button-primary" to="/">Browse events</Link></div>
+        <div className="state-panel">
+          <span className="state-icon">◇</span>
+          <h3>Chưa có vé phù hợp</h3>
+          <p>Đổi bộ lọc hoặc khám phá concert mới để bắt đầu.</p>
+          <Link className="button button-primary" to="/">
+            Browse events
+          </Link>
+        </div>
       )}
 
-      {selectedTicket ? <TicketDetail ticket={selectedTicket} onClose={() => setSelectedTicket(null)} /> : null}
+      {selectedTicket ? (
+        <TicketDetail ticket={selectedTicket} onClose={() => setSelectedTicket(null)} />
+      ) : null}
     </div>
   );
 }
@@ -171,21 +227,46 @@ function ConcertTicketCard({
 }) {
   const valid = group.tickets.filter((ticket) => ticket.status === 'VALID').length;
   const used = group.tickets.filter((ticket) => ticket.status === 'USED').length;
-  const eventTime = group.concert ? eventDate.format(new Date(group.concert.eventDate)) : 'Đang cập nhật';
+  const eventTime = group.concert
+    ? eventDate.format(new Date(group.concert.eventDate))
+    : 'Đang cập nhật';
 
   return (
     <article className={`ticket-concert-card ${open ? 'is-open' : ''}`}>
-      <button className="ticket-concert-summary" type="button" onClick={onToggle} aria-expanded={open}>
-        <RemoteImage src={group.concert?.posterUrl ?? undefined} alt="" width="420" height="300" loading="lazy" />
+      <button
+        className="ticket-concert-summary"
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <RemoteImage
+          src={group.concert?.posterUrl ?? undefined}
+          alt=""
+          width="420"
+          height="300"
+          loading="lazy"
+        />
         <div className="ticket-concert-copy">
           <span className="ticket-concert-kicker">{group.tickets.length} vé</span>
           <h2>{group.concertTitle}</h2>
-          <p><CalendarDays size={15} /> {eventTime}</p>
-          {group.concert ? <p><MapPin size={15} /> {group.concert.venueName}</p> : null}
+          <p>
+            <CalendarDays size={15} /> {eventTime}
+          </p>
+          {group.concert ? (
+            <p>
+              <MapPin size={15} /> {group.concert.venueName}
+            </p>
+          ) : null}
         </div>
         <div className="ticket-concert-stats">
-          <div><span>Hợp lệ</span><strong>{valid}</strong></div>
-          <div><span>Đã dùng</span><strong>{used}</strong></div>
+          <div>
+            <span>Hợp lệ</span>
+            <strong>{valid}</strong>
+          </div>
+          <div>
+            <span>Đã dùng</span>
+            <strong>{used}</strong>
+          </div>
         </div>
         <ChevronDown className="ticket-concert-chevron" size={20} aria-hidden="true" />
       </button>
@@ -208,7 +289,10 @@ function TicketRow({ ticket, onOpen }: { ticket: TicketWithConcert; onOpen: () =
       <span className={`ticket-status status-${statusClass}`}>{statusLabel(ticket.status)}</span>
       <div>
         <strong>{ticket.ticketTypeName}</strong>
-        <small>Mã vé {ticket.id.slice(0, 8).toUpperCase()} · Phát hành {issuedDate.format(new Date(ticket.issuedAt))}</small>
+        <small>
+          Mã vé {ticket.id.slice(0, 8).toUpperCase()} · Phát hành{' '}
+          {issuedDate.format(new Date(ticket.issuedAt))}
+        </small>
       </div>
       {ticket.status === 'VALID' ? (
         <QRCodeSVG
@@ -228,20 +312,60 @@ function TicketRow({ ticket, onOpen }: { ticket: TicketWithConcert; onOpen: () =
 
 function TicketDetail({ ticket, onClose }: { ticket: TicketWithConcert; onClose: () => void }) {
   return (
-    <div className="ticket-detail-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section className="ticket-detail-panel" role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title">
-        <button className="ticket-detail-close" type="button" onClick={onClose} aria-label="Close ticket details">×</button>
-        <p className="eyebrow"><span /> E-ticket details</p>
+    <div
+      className="ticket-detail-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="ticket-detail-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-detail-title"
+      >
+        <button
+          className="ticket-detail-close"
+          type="button"
+          onClick={onClose}
+          aria-label="Đóng chi tiết vé"
+        >
+          ×
+        </button>
+        <p className="eyebrow">
+          <span /> E-ticket details
+        </p>
         <h2 id="ticket-detail-title">{ticket.concertTitle}</h2>
         <dl className="ticket-detail-facts">
-          <div><dt>Ticket ID</dt><dd>{ticket.id}</dd></div>
-          <div><dt>Zone</dt><dd>{ticket.ticketTypeName}</dd></div>
-          <div><dt>Status</dt><dd>{statusLabel(ticket.status)}</dd></div>
-          {ticket.concert ? <div><dt>Event date</dt><dd>{eventDate.format(new Date(ticket.concert.eventDate))}</dd></div> : null}
-          {ticket.concert ? <div><dt>Venue</dt><dd>{ticket.concert.venueName}</dd></div> : null}
-          <div><dt>Issued</dt><dd>{issuedDate.format(new Date(ticket.issuedAt))}</dd></div>
+          <div>
+            <dt>Ticket ID</dt>
+            <dd>{ticket.id}</dd>
+          </div>
+          <div>
+            <dt>Zone</dt>
+            <dd>{ticket.ticketTypeName}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{statusLabel(ticket.status)}</dd>
+          </div>
+          {ticket.concert ? (
+            <div>
+              <dt>Event date</dt>
+              <dd>{eventDate.format(new Date(ticket.concert.eventDate))}</dd>
+            </div>
+          ) : null}
+          {ticket.concert ? (
+            <div>
+              <dt>Venue</dt>
+              <dd>{ticket.concert.venueName}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Issued</dt>
+            <dd>{issuedDate.format(new Date(ticket.issuedAt))}</dd>
+          </div>
         </dl>
         {ticket.status === 'VALID' ? (
           <div className="ticket-qr-payload">
@@ -256,7 +380,9 @@ function TicketDetail({ ticket, onClose }: { ticket: TicketWithConcert; onClose:
             <div>
               <span>Ticket QR code</span>
               <strong>Xuất trình tại cổng</strong>
-              <p>Giữ QR riêng tư. Nếu chia sẻ ảnh chụp màn hình, người khác có thể dùng vé trước bạn.</p>
+              <p>
+                Giữ QR riêng tư. Nếu chia sẻ ảnh chụp màn hình, người khác có thể dùng vé trước bạn.
+              </p>
             </div>
           </div>
         ) : null}

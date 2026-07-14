@@ -32,10 +32,7 @@ export function ConcertSeatMap({
     const zones = containerRef.current?.querySelectorAll<SVGElement>('[data-ticket-type-id]');
     zones?.forEach((zone) => {
       const isDisabled = disabledTicketTypeIds.has(zone.dataset.ticketTypeId ?? '');
-      zone.classList.toggle(
-        'is-selected',
-        zone.dataset.ticketTypeId === selectedTicketTypeId,
-      );
+      zone.classList.toggle('is-selected', zone.dataset.ticketTypeId === selectedTicketTypeId);
       zone.classList.toggle('is-disabled', isDisabled);
       zone.setAttribute('aria-disabled', String(isDisabled));
       zone.setAttribute('tabindex', isDisabled ? '-1' : '0');
@@ -46,8 +43,8 @@ export function ConcertSeatMap({
     return (
       <div className="seat-map-fallback">
         <span aria-hidden="true">◇</span>
-        <h3>Seat map unavailable</h3>
-        <p>You can still select a ticket zone from the list.</p>
+        <h3>Sơ đồ chỗ không khả dụng</h3>
+        <p>Bạn vẫn có thể chọn khu vé từ danh sách.</p>
       </div>
     );
   }

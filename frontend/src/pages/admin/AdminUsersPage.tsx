@@ -33,7 +33,11 @@ export function AdminUsersPage() {
       setUsers(page.content);
     } catch (requestError) {
       if (!isRequestCanceled(requestError)) {
-        setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách người dùng.');
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Không thể tải danh sách người dùng.',
+        );
       }
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -56,7 +60,9 @@ export function AdminUsersPage() {
       setUsers((current) => current.map((item) => (item.id === user.id ? result.data : item)));
       setNotice(`Đã cập nhật vai trò cho ${user.fullName}.`);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể cập nhật vai trò.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể cập nhật vai trò.',
+      );
     } finally {
       setSavingId(null);
     }
@@ -70,9 +76,13 @@ export function AdminUsersPage() {
     try {
       const result = await updateAdminUserStatus(user.id, !isUserActive(user));
       setUsers((current) => current.map((item) => (item.id === user.id ? result.data : item)));
-      setNotice(`${result.data.fullName} hiện ${isUserActive(result.data) ? 'đang hoạt động' : 'đã bị khóa'}.`);
+      setNotice(
+        `${result.data.fullName} hiện ${isUserActive(result.data) ? 'đang hoạt động' : 'đã bị khóa'}.`,
+      );
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể cập nhật trạng thái.');
+      setError(
+        requestError instanceof Error ? requestError.message : 'Không thể cập nhật trạng thái.',
+      );
     } finally {
       setSavingId(null);
     }
@@ -81,19 +91,32 @@ export function AdminUsersPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Admin only"
+        eyebrow="Chỉ dành cho admin"
         title="Quản lý người dùng"
         description="Theo dõi tài khoản hệ thống, đổi vai trò và khóa/mở tài khoản demo khi cần kiểm thử RBAC."
         actions={
-          <button className="admin-secondary-action" type="button" onClick={() => void load()} disabled={loading}>
+          <button
+            className="admin-secondary-action"
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+          >
             <RefreshCw aria-hidden="true" size={16} className={loading ? 'spin' : ''} />
             Làm mới
           </button>
         }
       />
 
-      {notice ? <div className="admin-notice success" role="status">{notice}</div> : null}
-      {error ? <div className="admin-notice error" role="alert">{error}</div> : null}
+      {notice ? (
+        <div className="admin-notice success" role="status">
+          {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="admin-notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <div className="admin-toolbar">
         <div>
@@ -105,7 +128,9 @@ export function AdminUsersPage() {
       <section className="admin-data-panel">
         {loading ? (
           <div className="admin-row-skeleton" aria-label="Đang tải người dùng" aria-live="polite">
-            {[1, 2, 3].map((item) => <span key={item} />)}
+            {[1, 2, 3].map((item) => (
+              <span key={item} />
+            ))}
           </div>
         ) : users.length ? (
           <div className="admin-table-wrap">
@@ -115,7 +140,9 @@ export function AdminUsersPage() {
                   <th>Người dùng</th>
                   <th>Vai trò</th>
                   <th>Trạng thái</th>
-                  <th><span className="sr-only">Thao tác</span></th>
+                  <th>
+                    <span className="sr-only">Thao tác</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -127,27 +154,50 @@ export function AdminUsersPage() {
                       <td>
                         <strong className="admin-table-primary">{user.fullName}</strong>
                         <span className="admin-table-secondary">{user.email}</span>
-                        <span className="admin-table-secondary">{user.phone ?? user.id.slice(0, 8)}</span>
+                        <span className="admin-table-secondary">
+                          {user.phone ?? user.id.slice(0, 8)}
+                        </span>
                       </td>
                       <td>
-                        <label className="sr-only" htmlFor={`role-${user.id}`}>Vai trò</label>
+                        <label className="sr-only" htmlFor={`role-${user.id}`}>
+                          Vai trò
+                        </label>
                         <select
                           id={`role-${user.id}`}
                           value={user.role}
                           disabled={savingId !== null}
-                          onChange={(event) => void changeRole(user, event.target.value as UserRole)}
+                          onChange={(event) =>
+                            void changeRole(user, event.target.value as UserRole)
+                          }
                         >
-                          {roles.map((role) => <option key={role} value={role}>{role}</option>)}
+                          {roles.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td>
-                        <span className={`status-badge ${active ? 'badge-success' : 'badge-muted'}`}>
+                        <span
+                          className={`status-badge ${active ? 'badge-success' : 'badge-muted'}`}
+                        >
                           {active ? 'ACTIVE' : 'LOCKED'}
                         </span>
                       </td>
                       <td>
-                        <button className="admin-secondary-action" type="button" disabled={savingId !== null} onClick={() => void toggleStatus(user)}>
-                          {saving ? <RefreshCw aria-hidden="true" size={15} className="spin" /> : active ? <UserCog aria-hidden="true" size={15} /> : <ShieldCheck aria-hidden="true" size={15} />}
+                        <button
+                          className="admin-secondary-action"
+                          type="button"
+                          disabled={savingId !== null}
+                          onClick={() => void toggleStatus(user)}
+                        >
+                          {saving ? (
+                            <RefreshCw aria-hidden="true" size={15} className="spin" />
+                          ) : active ? (
+                            <UserCog aria-hidden="true" size={15} />
+                          ) : (
+                            <ShieldCheck aria-hidden="true" size={15} />
+                          )}
                           {active ? 'Khóa' : 'Mở khóa'}
                         </button>
                       </td>

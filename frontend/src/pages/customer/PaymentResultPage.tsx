@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getOrder, type Order } from '../../api/orders';
 import { isRequestCanceled } from '../../api/client';
-import {
-  PENDING_PAYMENT_STORAGE_KEY,
-  type CheckoutState,
-} from './CheckoutPage';
+import { PENDING_PAYMENT_STORAGE_KEY, type CheckoutState } from './CheckoutPage';
 
 type PendingPayment = CheckoutState & { orderId: string };
 
 function readPendingPayment(): PendingPayment | null {
   try {
     const value = sessionStorage.getItem(PENDING_PAYMENT_STORAGE_KEY);
-    return value ? JSON.parse(value) as PendingPayment : null;
+    return value ? (JSON.parse(value) as PendingPayment) : null;
   } catch {
     return null;
   }
@@ -21,10 +18,12 @@ function readPendingPayment(): PendingPayment | null {
 export function PaymentResultPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [message, setMessage] = useState('Confirming your payment with TicketBox…');
+  const [message, setMessage] = useState('Đang xác nhận thanh toán của bạn với TicketBox...');
   const [pendingPayment] = useState(readPendingPayment);
-  const orderId = searchParams.get('orderId') ?? searchParams.get('vnp_TxnRef') ?? pendingPayment?.orderId;
-  const isVnpayFailure = searchParams.has('vnp_ResponseCode') && searchParams.get('vnp_ResponseCode') !== '00';
+  const orderId =
+    searchParams.get('orderId') ?? searchParams.get('vnp_TxnRef') ?? pendingPayment?.orderId;
+  const isVnpayFailure =
+    searchParams.has('vnp_ResponseCode') && searchParams.get('vnp_ResponseCode') !== '00';
   const isMomoFailure = searchParams.has('resultCode') && searchParams.get('resultCode') !== '0';
   const providerReportedFailure = isVnpayFailure || isMomoFailure;
 
@@ -56,16 +55,18 @@ export function PaymentResultPage() {
             finish(order, true);
             return;
           }
-          setMessage('Payment received. Waiting for the order confirmation…');
+          setMessage('Đã nhận thanh toán. Đang chờ xác nhận đơn hàng...');
           await new Promise((resolve) => window.setTimeout(resolve, 2_000));
         } catch (requestError) {
           if (active && !isRequestCanceled(requestError)) {
-            setMessage('We could not confirm the payment yet. You can safely check your orders again.');
+            setMessage(
+              'Chúng tôi chưa xác nhận được thanh toán. Bạn có thể kiểm tra lại đơn hàng một cách an toàn.',
+            );
           }
           return;
         }
       }
-      if (active) setMessage('Confirmation is taking longer than expected. Check your orders in a moment.');
+      if (active) setMessage('Xác nhận đang lâu hơn dự kiến. Hãy kiểm tra đơn hàng sau ít phút.');
     }
 
     function finish(order: Order, failed: boolean) {
@@ -87,10 +88,14 @@ export function PaymentResultPage() {
     return (
       <section className="confirmation-page page-width">
         <div className="confirmation-mark failed">!</div>
-        <p className="eyebrow"><span /> Payment result unavailable</p>
-        <h1>We could not match this payment to an order.</h1>
-        <p>Open your order history to check the latest payment status.</p>
-        <Link className="button button-primary" to="/profile">View orders</Link>
+        <p className="eyebrow">
+          <span /> Không có kết quả thanh toán
+        </p>
+        <h1>Không thể khớp thanh toán này với đơn hàng.</h1>
+        <p>Mở lịch sử đơn hàng để kiểm tra trạng thái thanh toán mới nhất.</p>
+        <Link className="button button-primary" to="/profile">
+          Xem đơn hàng
+        </Link>
       </section>
     );
   }
@@ -98,10 +103,14 @@ export function PaymentResultPage() {
   return (
     <section className="confirmation-page page-width" aria-live="polite">
       <div className="payment-result-spinner" aria-hidden="true" />
-      <p className="eyebrow"><span /> Payment processing</p>
-      <h1>Hold tight—we’re confirming your order.</h1>
+      <p className="eyebrow">
+        <span /> Đang xử lý thanh toán
+      </p>
+      <h1>Vui lòng chờ, chúng tôi đang xác nhận đơn hàng của bạn.</h1>
       <p>{message}</p>
-      <Link className="text-link" to="/profile">View order history</Link>
+      <Link className="text-link" to="/profile">
+        Xem lịch sử đơn hàng
+      </Link>
     </section>
   );
 }

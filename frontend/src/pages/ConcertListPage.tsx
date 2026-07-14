@@ -2,12 +2,12 @@ export function ConcertListPage() {
   return (
     <article className="page">
       <header className="page-header">
-        <p className="page-kicker">Concerts</p>
-        <h1 className="page-title">Concert list placeholder</h1>
+        <p className="page-kicker">Concert</p>
+        <h1 className="page-title">Khung danh sách concert</h1>
       </header>
       <ul className="placeholder-list">
-        <li>Catalog, venue, and schedule views will live in this feature area.</li>
-        <li>No business API integration is implemented in this setup stage.</li>
+        <li>Danh mục, địa điểm và lịch diễn sẽ nằm trong khu vực tính năng này.</li>
+        <li>Giai đoạn thiết lập này chưa tích hợp API nghiệp vụ.</li>
       </ul>
     </article>
   );
