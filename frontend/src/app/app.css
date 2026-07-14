@@ -46,7 +46,16 @@ select { color-scheme: dark; }
 .desktop-nav a { position: relative; padding: 26px 0; transition: color .2s ease; }
 .desktop-nav a:hover, .desktop-nav a.active { color: var(--cream); }
 .desktop-nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--coral); }
-.notification-link-label { display: inline-flex; align-items: center; gap: 7px; }
+
+.notification-link-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .notification-badge { min-width: 18px; height: 18px; display: inline-grid; place-items: center; padding: 0 5px; border-radius: 999px; background: var(--coral); color: var(--ink); font: 900 10px/1 "Manrope", sans-serif; }
 .header-actions { display: flex; align-items: center; gap: 14px; }
 .header-search { width: 230px; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.035); color: var(--muted); }
@@ -1495,13 +1504,12 @@ h1 em, h2 em { color: inherit; font-family: inherit; font-style: normal; font-we
 .profile-panel .panel-heading {
   margin-bottom: 4px;
 }
-
 .profile-panel .field input:disabled {
-  color: #807d86;
+  color: #667085;
   cursor: not-allowed;
-  background: #151519;
+  background: #f2f4f7;
+  border-color: #e4e7ec;
 }
-
 .profile-actions {
   display: flex;
   justify-content: flex-end;
@@ -3160,4 +3168,30 @@ body,
   .discover-groups {
     gap: 38px;
   }
+}
+
+/* Light theme overrides for skeleton loaders to prevent jarring black boxes */
+.event-skeleton div {
+  background: linear-gradient(100deg, #eaecf0 20%, #f2f4f7 40%, #eaecf0 60%) !important;
+  background-size: 200% 100% !important;
+}
+.event-skeleton span {
+  background: #eaecf0 !important;
+}
+.detail-skeleton-hero {
+  background: linear-gradient(100deg, #eaecf0 20%, #f2f4f7 40%, #eaecf0 60%) !important;
+  background-size: 200% 100% !important;
+}
+.detail-skeleton-copy span {
+  background: #eaecf0 !important;
+}
+.admin-row-skeleton span {
+  background: linear-gradient(100deg, #f2f4f7 20%, #f9fafb 40%, #f2f4f7 60%) !important;
+  background-size: 200% 100% !important;
+}
+.revenue-page-skeleton > span,
+.revenue-report-skeleton > span,
+.revenue-report-skeleton > div > span {
+  background: linear-gradient(100deg, #f2f4f7 20%, #f9fafb 40%, #f2f4f7 60%) !important;
+  background-size: 200% 100% !important;
 }
