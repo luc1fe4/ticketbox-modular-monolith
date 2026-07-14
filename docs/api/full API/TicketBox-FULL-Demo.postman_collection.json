@@ -1,0 +1,2764 @@
+{
+  "info": {
+    "_postman_id": "a3c8041d-94b0-4f25-84e7-0f23d656d001",
+    "name": "TicketBox FULL Demo API",
+    "description": "Full importable collection for TicketBox backend demo. Run folders in order after docker compose is up. Includes seeded IDs, auth tokens, order/payment, notifications, MailHog, RabbitMQ management, staff check-in, admin, and organizer revenue flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var now = Date.now();",
+          "var day = 24 * 60 * 60 * 1000;",
+          "function iso(offsetDays, offsetHours) { return new Date(now + offsetDays * day + (offsetHours || 0) * 60 * 60 * 1000).toISOString(); }",
+          "pm.collectionVariables.set('futureEventDate', iso(120, 0));",
+          "pm.collectionVariables.set('futureDoorsOpenAt', iso(120, -2));",
+          "pm.collectionVariables.set('saleStartAt', iso(-1, 0));",
+          "pm.collectionVariables.set('saleEndAt', iso(119, 0));",
+          "pm.collectionVariables.set('syncCheckedAt', new Date(now - 5 * 60 * 1000).toISOString());",
+          "var today = new Date(now);",
+          "var yyyy = today.getFullYear();",
+          "var mm = String(today.getMonth() + 1).padStart(2, '0');",
+          "var dd = String(today.getDate()).padStart(2, '0');",
+          "pm.collectionVariables.set('salesFromDate', yyyy + '-' + mm + '-' + dd);",
+          "pm.collectionVariables.set('salesToDate', yyyy + '-' + mm + '-' + dd);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "mailhogUrl",
+      "value": "http://localhost:8025",
+      "type": "string"
+    },
+    {
+      "key": "rabbitmqUrl",
+      "value": "http://localhost:15672",
+      "type": "string"
+    },
+    {
+      "key": "rabbitmqUsername",
+      "value": "ticketbox",
+      "type": "string"
+    },
+    {
+      "key": "rabbitmqPassword",
+      "value": "ticketbox",
+      "type": "string"
+    },
+    {
+      "key": "demoPassword",
+      "value": "password123",
+      "type": "string"
+    },
+    {
+      "key": "audienceEmail",
+      "value": "audience@ticketbox.vn",
+      "type": "string"
+    },
+    {
+      "key": "staffEmail",
+      "value": "staff@ticketbox.vn",
+      "type": "string"
+    },
+    {
+      "key": "organizerEmail",
+      "value": "organizer@ticketbox.vn",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@ticketbox.vn",
+      "type": "string"
+    },
+    {
+      "key": "audienceToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "registeredAudienceToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newAudienceEmail",
+      "value": "postman-audience@ticketbox.local",
+      "type": "string"
+    },
+    {
+      "key": "seedConcertId",
+      "value": "10000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "seedSvipTicketTypeId",
+      "value": "20000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "seedVipTicketTypeId",
+      "value": "20000000-0000-0000-0000-000000000002",
+      "type": "string"
+    },
+    {
+      "key": "seedCat1TicketTypeId",
+      "value": "20000000-0000-0000-0000-000000000003",
+      "type": "string"
+    },
+    {
+      "key": "seedGaTicketTypeId",
+      "value": "20000000-0000-0000-0000-000000000004",
+      "type": "string"
+    },
+    {
+      "key": "staffZoneTicketTypeId",
+      "value": "10000000-0000-0000-0000-000000000101",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": "postman-device-001",
+      "type": "string"
+    },
+    {
+      "key": "gate",
+      "value": "A",
+      "type": "string"
+    },
+    {
+      "key": "staffValidAQr",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2YWxpZF9hIiwiY29uY2VydElkIjoiMTAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwidGlja2V0VHlwZUlkIjoiMTAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMTAxIiwidXNlcklkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAzIiwiaWF0IjoxNzgxNTcxNjAwfQ.BjTRZkYS27gi2NNlFvWQ-Xt79zzQ26UD9lK8HHovX04",
+      "type": "string"
+    },
+    {
+      "key": "staffValidBQr",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2YWxpZF9iIiwiY29uY2VydElkIjoiMTAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwidGlja2V0VHlwZUlkIjoiMTAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMTAxIiwidXNlcklkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAzIiwiaWF0IjoxNzgxNTcxNjAwfQ.GjBPlXL4IaqrOzpUQwBRCPEbjZo8vs-rNiIrwZW65x0",
+      "type": "string"
+    },
+    {
+      "key": "staffUsedCQr",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VkX2MiLCJjb25jZXJ0SWQiOiIxMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0aWNrZXRUeXBlSWQiOiIxMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAxMDEiLCJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDMiLCJpYXQiOjE3ODE1NzE2MDB9.hxGMypc7QQGozLU1CLBp2oFk9tm9mmcMLQffouVessM",
+      "type": "string"
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "failedOrderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketQrCode",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdConcertId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deletableConcertId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdTicketTypeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revenueConcertId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revenueTicketTypeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revenueOrderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "futureEventDate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "futureDoorsOpenAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "saleStartAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "saleEndAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "syncCheckedAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "salesFromDate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "salesToDate",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Health, Login, Profile",
+      "item": [
+        {
+          "name": "Health - API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health - Actuator",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Audience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{audienceEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.accessToken) { pm.collectionVariables.set('audienceToken', json.data.accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.accessToken) { pm.collectionVariables.set('staffToken', json.data.accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Organizer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{organizerEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.accessToken) { pm.collectionVariables.set('organizerToken', json.data.accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.accessToken) { pm.collectionVariables.set('adminToken', json.data.accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Register New Audience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{newAudienceEmail}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"fullName\": \"Postman Audience\",\n  \"phone\": \"0999999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('newAudienceEmail', 'postman+' + pm.variables.replaceIn('{{$timestamp}}') + '@ticketbox.local');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created or already exists is acceptable for repeated demo', function () { pm.expect(pm.response.code).to.be.oneOf([201, 409]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('registeredAudienceId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Newly Registered Audience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{newAudienceEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.accessToken) { pm.collectionVariables.set('registeredAudienceToken', json.data.accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Me Audience",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Profile - Get Audience Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/me/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Profile - Patch Audience Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users/me/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Audience Updated By Postman\",\n  \"phone\": \"0123456789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Public Concert APIs",
+      "item": [
+        {
+          "name": "Concert - List Public Concerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/concerts?page=0&size=10"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concert - Get Seed Concert Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/concerts/{{seedConcertId}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concert - Get Seed Seat Map",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/concerts/{{seedConcertId}}/seat-map"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concert - Get Seed Ticket Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/concerts/{{seedConcertId}}/ticket-types"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Admin and Organizer Concert Management",
+      "item": [
+        {
+          "name": "Admin Concert - List All",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts?page=0&size=10",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Concert - List By Status ON_SALE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts?status=ON_SALE&page=0&size=10",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Create Draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Created Concert\",\n  \"description\": \"Created by TicketBox FULL Demo API collection.\",\n  \"venueName\": \"Postman Demo Arena\",\n  \"venueAddress\": \"1 Demo Street, Ho Chi Minh City\",\n  \"eventDate\": \"{{futureEventDate}}\",\n  \"doorsOpenAt\": \"{{futureDoorsOpenAt}}\",\n  \"seatMapSvg\": \"<svg viewBox=\\\"0 0 100 100\\\"><rect x=\\\"10\\\" y=\\\"10\\\" width=\\\"80\\\" height=\\\"80\\\" fill=\\\"#2563eb\\\"/></svg>\",\n  \"posterUrl\": \"https://example.com/posters/postman-created-concert.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created concert', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('createdConcertId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Get Created For Edit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts/{{createdConcertId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Update Created",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{createdConcertId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Created Concert Updated\",\n  \"description\": \"Updated by TicketBox FULL Demo API collection.\",\n  \"venueName\": \"Postman Demo Arena Updated\",\n  \"venueAddress\": \"2 Demo Street, Ho Chi Minh City\",\n  \"eventDate\": \"{{futureEventDate}}\",\n  \"doorsOpenAt\": \"{{futureDoorsOpenAt}}\",\n  \"seatMapSvg\": \"<svg viewBox=\\\"0 0 100 100\\\"><circle cx=\\\"50\\\" cy=\\\"50\\\" r=\\\"35\\\" fill=\\\"#16a34a\\\"/></svg>\",\n  \"posterUrl\": \"https://example.com/posters/postman-created-concert-updated.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Change Status To ON_SALE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{createdConcertId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ON_SALE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Create Draft For Delete Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Draft To Delete\",\n  \"description\": \"Temporary draft to exercise DELETE /api/admin/concerts/{id}.\",\n  \"venueName\": \"Temporary Venue\",\n  \"venueAddress\": \"Temporary Address\",\n  \"eventDate\": \"{{futureEventDate}}\",\n  \"doorsOpenAt\": \"{{futureDoorsOpenAt}}\",\n  \"seatMapSvg\": null,\n  \"posterUrl\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created deletable concert', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('deletableConcertId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Concert - Delete Draft",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts/{{deletableConcertId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Admin Ticket Type Management",
+      "item": [
+        {
+          "name": "Admin Ticket Types - List Seed Concert",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts/{{seedConcertId}}/ticket-types",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Types - List Created Concert",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/concerts/{{createdConcertId}}/ticket-types",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Type - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{createdConcertId}}/ticket-types",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"POSTMAN_ZONE\",\n  \"price\": 1200000,\n  \"totalQuantity\": 50,\n  \"maxPerAccount\": 4,\n  \"saleStartAt\": \"{{saleStartAt}}\",\n  \"saleEndAt\": \"{{saleEndAt}}\",\n  \"zoneColor\": \"#E11D48\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created ticket type', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('createdTicketTypeId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Type - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/ticket-types/{{createdTicketTypeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"POSTMAN_ZONE_UPDATED\",\n  \"price\": 1300000,\n  \"totalQuantity\": 60,\n  \"maxPerAccount\": 4,\n  \"saleStartAt\": \"{{saleStartAt}}\",\n  \"saleEndAt\": \"{{saleEndAt}}\",\n  \"zoneColor\": \"#2563EB\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Type - Disable",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/ticket-types/{{createdTicketTypeId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Type - Enable",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/ticket-types/{{createdTicketTypeId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer Ticket Type - Delete Unsold",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/ticket-types/{{createdTicketTypeId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Audience Order Payment Notification E2E",
+      "item": [
+        {
+          "name": "Order - Create Seed Concert Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concertId\": \"{{seedConcertId}}\",\n  \"items\": [\n    {\n      \"ticketTypeId\": \"{{seedSvipTicketTypeId}}\",\n      \"quantity\": 1\n    },\n    {\n      \"ticketTypeId\": \"{{seedVipTicketTypeId}}\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKey', 'postman-order-' + pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('orderId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Order - Get Created Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/{{orderId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment - Initiate MOCK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/payments/{{orderId}}/initiate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"MOCK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment initiated', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.paymentUrl) { pm.collectionVariables.set('paymentUrl', json.data.paymentUrl); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment - Mock Success",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/mock-payments/{{orderId}}/success",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Utility - Wait For Payment Async Listeners",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var until = Date.now() + 2000;",
+                  "while (Date.now() < until) {}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Async wait health check', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Blocks for about 2 seconds before calling health. This gives Modulith/RabbitMQ listeners time to issue tickets, create notifications, and send email."
+          },
+          "response": []
+        },
+        {
+          "name": "Order - Get Paid Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/{{orderId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order is readable', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "pm.test('Order status is PAID', function () { if (json.data && json.data.status) pm.expect(json.data.status).to.eql('PAID'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Order - List My Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/my",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ticket - List My Tickets And Save First",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tickets",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tickets response', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (Array.isArray(json.data) && json.data.length > 0) { pm.collectionVariables.set('ticketId', json.data[0].id); pm.collectionVariables.set('ticketQrCode', json.data[0].qrCode); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ticket - List My Tickets Alias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tickets/my",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ticket - Get Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ticket - Get QR Payload",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}/qr",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification - List And Save First",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications?page=0&size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notifications response', function () { pm.response.to.have.status(200); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "var content = json.data && json.data.content ? json.data.content : [];",
+                  "if (content.length > 0) { pm.collectionVariables.set('notificationId', content[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification - Mark Saved As Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "MailHog - List Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{mailhogUrl}}/api/v2/messages"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RabbitMQ - Email Queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rabbitmqUrl}}/api/queues/%2F/notification.email",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{rabbitmqUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{rabbitmqPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200,404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RabbitMQ - Email DLQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rabbitmqUrl}}/api/queues/%2F/notification.email.dlq",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{rabbitmqUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{rabbitmqPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200,404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment - VNPAY Webhook Invalid Sample",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/payments/webhooks/vnpay?vnp_TxnRef={{orderId}}&vnp_Amount=100000&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_SecureHash=invalid-demo-signature"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Mock Payment Failure Flow",
+      "item": [
+        {
+          "name": "Order - Create Order For Mock Fail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concertId\": \"{{seedConcertId}}\",\n  \"items\": [\n    {\n      \"ticketTypeId\": \"{{seedCat1TicketTypeId}}\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKey', 'postman-fail-order-' + pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created failed-flow order', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('failedOrderId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment - Mock Fail",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/mock-payments/{{failedOrderId}}/fail",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Order - Get Failed-Flow Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/{{failedOrderId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Staff Check-in and Guest List",
+      "item": [
+        {
+          "name": "Staff - Get Check-in Dataset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/staff/concerts/{{seedConcertId}}/checkin-dataset",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Guest List Lookup Not Found Sample",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/staff/guestlist?concert_id={{seedConcertId}}&phone=0123456789",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Online Scan VALID_B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/staff/checkins/scan",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCode\": \"{{staffValidBQr}}\",\n  \"concertId\": \"{{seedConcertId}}\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"gate\": \"{{gate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "First run should return SUCCESS. Re-running the same seeded QR should return FAILED because the ticket becomes USED."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Online Scan USED_C Expected Failed Business Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/staff/checkins/scan",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCode\": \"{{staffUsedCQr}}\",\n  \"concertId\": \"{{seedConcertId}}\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"gate\": \"{{gate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Sync Offline VALID_A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/staff/checkins/sync",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concertId\": \"{{seedConcertId}}\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"logs\": [\n    {\n      \"qrCode\": \"{{staffValidAQr}}\",\n      \"checkedAt\": \"{{syncCheckedAt}}\",\n      \"gate\": \"{{gate}}\",\n      \"notes\": \"Postman offline sync demo\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "First run should accept VALID_A. Re-running should skip it because the ticket was already used."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Get Check-in History As Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/staff/concerts/{{seedConcertId}}/checkins?page=0&size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Get Check-in History As Organizer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/staff/concerts/{{seedConcertId}}/checkins?page=0&size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff - Get Check-in History As Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/staff/concerts/{{seedConcertId}}/checkins?page=0&size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Organizer Revenue Full Demo",
+      "item": [
+        {
+          "name": "Revenue Setup - Create Concert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Revenue Concert\",\n  \"description\": \"Dedicated revenue demo concert.\",\n  \"venueName\": \"Revenue Demo Hall\",\n  \"venueAddress\": \"3 Demo Street, Ho Chi Minh City\",\n  \"eventDate\": \"{{futureEventDate}}\",\n  \"doorsOpenAt\": \"{{futureDoorsOpenAt}}\",\n  \"seatMapSvg\": \"<svg viewBox=\\\"0 0 100 100\\\"><rect x=\\\"5\\\" y=\\\"5\\\" width=\\\"90\\\" height=\\\"90\\\" fill=\\\"#0891b2\\\"/></svg>\",\n  \"posterUrl\": \"https://example.com/posters/revenue-demo.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created revenue concert', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('revenueConcertId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue Setup - Create Ticket Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{revenueConcertId}}/ticket-types",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"REVENUE_ZONE\",\n  \"price\": 500000,\n  \"totalQuantity\": 20,\n  \"maxPerAccount\": 4,\n  \"saleStartAt\": \"{{saleStartAt}}\",\n  \"saleEndAt\": \"{{saleEndAt}}\",\n  \"zoneColor\": \"#0891B2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created revenue ticket type', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('revenueTicketTypeId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue Setup - Put Concert ON_SALE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{revenueConcertId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ON_SALE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue Setup - Audience Buy Revenue Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concertId\": \"{{revenueConcertId}}\",\n  \"items\": [\n    {\n      \"ticketTypeId\": \"{{revenueTicketTypeId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idempotencyKey', 'postman-revenue-order-' + pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created revenue order', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = {}; try { json = pm.response.json(); } catch (e) {}",
+                  "if (json.data && json.data.id) { pm.collectionVariables.set('revenueOrderId', json.data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue Setup - Mock Payment Success",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/mock-payments/{{revenueOrderId}}/success",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{audienceToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Utility - Wait For Revenue Payment Async Listeners",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var until = Date.now() + 2000;",
+                  "while (Date.now() < until) {}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Async wait health check', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Blocks for about 2 seconds before calling health. This gives Modulith/RabbitMQ listeners time to issue tickets, create notifications, and send email."
+          },
+          "response": []
+        },
+        {
+          "name": "Revenue Setup - Complete Concert",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/concerts/{{revenueConcertId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - List Completed Concerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts?page=0&size=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts/{{revenueConcertId}}/revenue-summary",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - Zone Revenue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts/{{revenueConcertId}}/zone-revenue",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - Sales Trend By Day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts/{{revenueConcertId}}/sales-trend?from={{salesFromDate}}&to={{salesToDate}}&groupBy=day",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts/{{revenueConcertId}}/revenue-report/export?format=csv",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revenue - Export PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/organizer/concerts/{{revenueConcertId}}/revenue-report/export?format=pdf",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected status', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

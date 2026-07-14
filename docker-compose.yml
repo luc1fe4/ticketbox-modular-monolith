@@ -2,12 +2,13 @@ services:
   postgres:
     image: postgres:16
     container_name: ticketbox-postgres
+    
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -57,7 +58,40 @@ services:
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      JWT_SECRET_PLACEHOLDER: ${JWT_SECRET_PLACEHOLDER}
+      JWT_SECRET: ${JWT_SECRET}
+      PAYMENT_MOCK_BASE_URL: ${PAYMENT_MOCK_BASE_URL}
+      VNPAY_PAY_URL: ${VNPAY_PAY_URL}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL}
+      VNPAY_IPN_URL: ${VNPAY_IPN_URL}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      MOMO_RETURN_URL: ${MOMO_RETURN_URL:-http://localhost:5173/payment/result}
+      MOMO_IPN_URL: ${MOMO_IPN_URL:-}
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      GUEST_LIST_ROOT_DIR: /data/guest-list
+      GUEST_LIST_IMPORT_CRON: ${GUEST_LIST_IMPORT_CRON:-0 0 3 * * *}
+      GUEST_LIST_STABLE_AGE: ${GUEST_LIST_STABLE_AGE:-30s}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      ARTIST_BIO_AI_PROVIDER: ${ARTIST_BIO_AI_PROVIDER:-auto}
+      ARTIST_BIO_AI_BASE_URL: ${ARTIST_BIO_AI_BASE_URL:-https://api.openai.com/v1}
+      ARTIST_BIO_AI_API_KEY: ${ARTIST_BIO_AI_API_KEY:-}
+      ARTIST_BIO_AI_MODEL: ${ARTIST_BIO_AI_MODEL:-gpt-4o-mini}
+      ARTIST_BIO_AI_TIMEOUT: ${ARTIST_BIO_AI_TIMEOUT:-30s}
+      ARTIST_BIO_MAX_INPUT_CHARACTERS: ${ARTIST_BIO_MAX_INPUT_CHARACTERS:-30000}
+      ARTIST_BIO_MAX_FILE_SIZE: ${ARTIST_BIO_MAX_FILE_SIZE:-10MB}
+      ARTIST_BIO_MAX_PAGES: ${ARTIST_BIO_MAX_PAGES:-50}
+      ARTIST_BIO_STORAGE_ROOT: /data/artist-bio
+      TICKETBOX_QUEUE_ADMISSION_CAPACITY: ${TICKETBOX_QUEUE_ADMISSION_CAPACITY:-1}
+      TICKETBOX_QUEUE_SHOPPING_SESSION_TTL: ${TICKETBOX_QUEUE_SHOPPING_SESSION_TTL:-PT10M}
+    volumes:
+      - guest_list_data:/data/guest-list
+      - artist_bio_data:/data/artist-bio
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,6 +99,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     ports:
       - "8080:8080"
 
@@ -79,5 +115,14 @@ services:
     ports:
       - "5173:5173"
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ticketbox-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:
+  guest_list_data:
+  artist_bio_data:
