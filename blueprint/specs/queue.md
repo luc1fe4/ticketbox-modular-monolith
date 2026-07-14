@@ -97,6 +97,26 @@ flowchart TD
     Reject --> ErrorPage([Lỗi: RATE_LIMIT_EXCEEDED])
 ```
 
+#### Nguyên lý hoạt động chi tiết của thuật toán Token Bucket
+Thuật toán **Token Bucket (Thùng chứa token)** hoạt động dựa trên mô hình một chiếc xô chứa các quyền thực thi (gọi là token/đồng xu). Cơ chế hoạt động bao gồm các khái niệm cốt lõi sau:
+
+1. **Token (Đồng xu):** Mỗi token đại diện cho 1 quyền được đi qua bộ lọc để xử lý nghiệp vụ (như tạo order, gọi thanh toán). Mỗi request thành công sẽ tiêu thụ đúng **1 token**.
+2. **Bucket (Chiếc xô):** Mỗi khóa định danh (`User ID` hoặc `IP`) sở hữu một chiếc xô riêng biệt lưu trữ trên Redis. Xô có giới hạn sức chứa tối đa là **Capacity** (ví dụ: xô mua vé chứa tối đa 5 token).
+3. **Smooth Refill (Nạp mịn theo thời gian):** Thay vì nạp lại toàn bộ token cố định sau một khoảng thời gian (dễ gây nghẽn cục bộ ở đầu chu kỳ mới), hệ thống tính toán lượng token nạp thêm một cách liên tục dựa trên khoảng thời gian trôi qua giữa hai request liên tiếp ($\Delta t$):
+   $$\Delta t = t_{now} - t_{last\_refill}$$
+   $$\text{Lượng token nạp thêm} = \Delta t \times \frac{\text{Refill Tokens}}{\text{Refill Period}}$$
+   $$\text{Số token hiện tại} = \min\left(\text{Capacity}, \text{Số token cũ} + \text{Lượng token nạp thêm}\right)$$
+4. **Xử lý yêu cầu (Consume):**
+   * **Nếu Số token hiện tại $\ge 1$:** Yêu cầu được chấp nhận, số token giảm đi 1, lưu lại thời điểm giao dịch (`last_refill_ms`) và cho phép request đi tiếp.
+   * **Nếu Số token hiện tại $< 1$:** Yêu cầu bị chặn ngay lập tức và ném lỗi `HTTP 429`.
+
+#### Tính nguyên tử (Atomic) bằng Redis Lua Script
+Khi hàng nghìn request gửi lên đồng thời trong cùng một mili-giây, nếu sử dụng code Java thông thường để đọc số token từ Redis, tính toán rồi ghi ngược lại, sẽ rất dễ xảy ra lỗi **Race Condition** (hai luồng cùng đọc được xô còn 1 xu và cùng cho phép đi qua, dẫn đến việc tiêu thụ quá số lượng cho phép).
+
+Để giải quyết triệt để vấn đề này, toàn bộ logic tính toán nạp/trừ token được viết bằng **Lua Script** và đẩy xuống thực thi trực tiếp trên RAM của Redis.
+* Redis đảm bảo thực thi Lua Script dưới dạng **đơn luồng (single-threaded)** và **nguyên tử (atomic)**.
+* Không một lệnh nào khác của client khác có thể xen vào giữa quá trình tính toán và cập nhật xô xu của cùng một user. Điều này đảm bảo tính chính xác tuyệt đối ngay cả dưới tải cực kỳ lớn.
+
 ---
 
 ## 3. Kịch bản lỗi
