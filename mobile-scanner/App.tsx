@@ -172,6 +172,11 @@ export default function App() {
       loadConcertData();
     }
   }, [screen, selectedConcert?.id, isOnline]);
+  useEffect(() => {
+    if (screen === 'overview' && selectedConcert) {
+      refreshSelectedConcert();
+    }
+  }, [screen, selectedConcert?.id]);
 
   async function handleLogin() {
     if (!email.trim() || !password) {
