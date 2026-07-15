@@ -53,10 +53,10 @@ Vòng đời trạng thái của khóa này bao gồm:
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Client (React Web)
+    participant Client as Client (React Web)
     participant Server as Spring Boot API
-    database Redis as Cache Store
-    database DB as PostgreSQL DB
+    participant Redis as Cache Store
+    participant DB as PostgreSQL DB
 
     Client->>Server: POST /api/orders [Header: Idempotency-Key]
     Server->>Redis: SETNX idempotency:order:{userId}:{key} [PROCESSING, TTL 2m]
@@ -94,9 +94,9 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Gateway as Payment Gateway (MoMo/VNPAY)
+    participant Gateway as Payment Gateway (MoMo/VNPAY)
     participant Server as Backend API
-    database DB as PostgreSQL (Payment Logs / Orders)
+    participant DB as PostgreSQL (Payment Logs / Orders)
     participant Ticket as Ticket Module
 
     Gateway->>Server: Gọi Webhook / IPN API (Kèm chữ ký bảo mật & OrderId)

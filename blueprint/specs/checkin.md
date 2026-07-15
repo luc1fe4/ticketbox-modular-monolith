@@ -14,9 +14,10 @@ Trong các sự kiện thực tế, kết nối internet tại cổng sân vận
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Staff as Nhân viên soát vé (Mobile App)
+    participant Visitor as Khán giả (Vé QR)
+    participant Staff as Nhân viên soát vé (Mobile App)
     participant Server as Backend API (Spring Boot)
-    database DB as Server DB (PostgreSQL)
+    participant DB as Server DB (PostgreSQL)
 
     Note over Staff, Server: 1. Chuẩn bị dữ liệu (Online Mode)
     Staff->>Server: GET /api/staff/concerts/{id}/checkin-dataset
@@ -26,7 +27,6 @@ sequenceDiagram
     Staff->>Staff: Lưu dataset vào SQLite cục bộ trên điện thoại
 
     Note over Staff, Server: 2. Quá trình soát vé (Offline Mode - Mất mạng)
-    actor Visitor as Khán giả (Vé QR)
     Visitor->>Staff: Trình mã QR e-ticket
     Staff->>Staff: Quét mã QR bằng camera
     Staff->>Staff: Đối chiếu SQLite cục bộ:
