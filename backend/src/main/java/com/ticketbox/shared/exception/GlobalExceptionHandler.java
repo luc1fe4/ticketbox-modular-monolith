@@ -1,6 +1,6 @@
 package com.ticketbox.shared.exception;
 
-import com.ticketbox.shared.response.ErrorResponse;
+import com.ticketbox.shared.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,75 +21,75 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
         ErrorCode errorCode = ex.getErrorCode();
-        ErrorResponse errorResponse = ErrorResponse.of(errorCode.getHttpStatus().value(), ex.getMessage());
-        return ResponseEntity.status(errorCode.getHttpStatus()).body(errorResponse);
+        ApiResponse<Void> response = ApiResponse.error(errorCode.getHttpStatus().value(), ex.getMessage());
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> details = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
-                        fe -> Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value"),
+                        fe -> Optional.ofNullable(fe.getDefaultMessage()).orElse("Giá trị không hợp lệ"),
                         (existing, replacement) -> existing
                 ));
 
-        ErrorResponse errorResponse = ErrorResponse.of(
+        ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.VALIDATION_FAILED.getHttpStatus().value(),
                 ErrorCode.VALIDATION_FAILED.getMessage(),
                 details
         );
 
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         Map<String, String> details = ex.getConstraintViolations().stream()
                 .collect(Collectors.toMap(
                         violation -> violation.getPropertyPath().toString(),
                         violation -> violation.getMessage(),
                         (existing, replacement) -> existing
                 ));
-        ErrorResponse errorResponse = ErrorResponse.of(
+        ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.VALIDATION_FAILED.getHttpStatus().value(),
                 ErrorCode.VALIDATION_FAILED.getMessage(),
                 details
         );
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException ex) {
         log.warn("Malformed JSON request", ex);
-        ErrorResponse errorResponse = ErrorResponse.of(
+        ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.INVALID_REQUEST.getHttpStatus().value(),
-                "Malformed JSON request"
+                "Dữ liệu JSON không hợp lệ"
         );
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
-        ErrorResponse errorResponse = ErrorResponse.of(
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException ex) {
+        ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus().value(),
-                "The requested resource was not found"
+                "Không tìm thấy tài nguyên được yêu cầu"
         );
-        return ResponseEntity.status(ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus()).body(errorResponse);
+        return ResponseEntity.status(ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleUnhandledException(Exception ex) {
+    public ResponseEntity<ApiResponse<Void>> handleUnhandledException(Exception ex) {
         log.error("Unhandled exception occurred", ex);
 
-        ErrorResponse errorResponse = ErrorResponse.of(
+        ApiResponse<Void> response = ApiResponse.error(
                 ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus().value(),
                 ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
         );
-        return ResponseEntity.internalServerError().body(errorResponse);
+        return ResponseEntity.internalServerError().body(response);
     }
 }

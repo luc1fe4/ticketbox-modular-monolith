@@ -1,28 +1,48 @@
 package com.ticketbox.module.admin.domain;
 
+import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "batch_logs")
-public class BatchLog {
+@Getter
+@NoArgsConstructor
+public class BatchLog extends BaseEntity {
 
     public enum Status {
-        RUNNING, SUCCESS, PARTIAL, FAILED
+        PENDING, RUNNING, SUCCESS, PARTIAL, FAILED, SKIPPED
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    public enum Source {
+        UPLOAD, SCHEDULED
+    }
 
     @Column(name = "job_name", nullable = false, length = 100)
     private String jobName;
 
     @Column(name = "file_name", length = 255)
     private String fileName;
+
+    @Column(name = "concert_id")
+    private UUID concertId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private Source source;
+
+    @Column(name = "checksum", length = 64)
+    private String checksum;
+
+    @Column(name = "file_path", length = 1000)
+    private String filePath;
+
+    @Column(name = "error_report_path", length = 1000)
+    private String errorReportPath;
 
     @Column(name = "started_at", nullable = false)
     private OffsetDateTime startedAt;
@@ -46,33 +66,59 @@ public class BatchLog {
     @Column(name = "error_detail", columnDefinition = "TEXT")
     private String errorDetail;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public void setJobName(String jobName) {
+        this.jobName = jobName;
+    }
 
-    public String getJobName() { return jobName; }
-    public void setJobName(String jobName) { this.jobName = jobName; }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setConcertId(UUID concertId) {
+        this.concertId = concertId;
+    }
 
-    public OffsetDateTime getStartedAt() { return startedAt; }
-    public void setStartedAt(OffsetDateTime startedAt) { this.startedAt = startedAt; }
+    public void setSource(Source source) {
+        this.source = source;
+    }
 
-    public OffsetDateTime getCompletedAt() { return completedAt; }
-    public void setCompletedAt(OffsetDateTime completedAt) { this.completedAt = completedAt; }
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
 
-    public int getTotalRows() { return totalRows; }
-    public void setTotalRows(int totalRows) { this.totalRows = totalRows; }
+    public void setErrorReportPath(String errorReportPath) {
+        this.errorReportPath = errorReportPath;
+    }
 
-    public int getSuccessRows() { return successRows; }
-    public void setSuccessRows(int successRows) { this.successRows = successRows; }
+    public void setStartedAt(OffsetDateTime startedAt) {
+        this.startedAt = startedAt;
+    }
 
-    public int getErrorRows() { return errorRows; }
-    public void setErrorRows(int errorRows) { this.errorRows = errorRows; }
+    public void setCompletedAt(OffsetDateTime completedAt) {
+        this.completedAt = completedAt;
+    }
 
-    public String getErrorDetail() { return errorDetail; }
-    public void setErrorDetail(String errorDetail) { this.errorDetail = errorDetail; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public void setTotalRows(int totalRows) {
+        this.totalRows = totalRows;
+    }
+
+    public void setSuccessRows(int successRows) {
+        this.successRows = successRows;
+    }
+
+    public void setErrorRows(int errorRows) {
+        this.errorRows = errorRows;
+    }
+
+    public void setErrorDetail(String errorDetail) {
+        this.errorDetail = errorDetail;
+    }
 }

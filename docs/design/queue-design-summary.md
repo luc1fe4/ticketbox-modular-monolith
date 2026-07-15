@@ -87,6 +87,14 @@ Những người mới:
 
 Không random lại.
 
+### Quy ước đang áp dụng trong TicketBox
+
+- Waiting Room mở từ `sale_start_at - 1 giờ`. Trước thời điểm này, người dùng không thể join.
+- Trong Waiting Room chưa có `position`: tất cả người tham gia trước giờ bán là ngang nhau.
+- Đúng `sale_start_at`, backend chụp danh sách hiện có một lần, xáo ngẫu nhiên và ghi thứ tự vào Redis. Người vào sau chỉ được nối cuối hàng; snapshot không chạy lại.
+- Trang Waiting Room giữ kết nối STOMP over SockJS. Backend đẩy trạng thái riêng theo user/concert mỗi giây, vì vậy countdown, kết quả random và quyền vào chọn vé không cần polling hay reload trang.
+- Nếu kết nối Waiting Room bị đóng khi người dùng còn ở `WAITING_ROOM` hoặc `WAITING`, backend coi như rời hàng và giải phóng trạng thái. Khi đã `ADMITTED`, đóng kết nối không hủy shopping session 10 phút.
+
 ---
 
 ## 4. Queue

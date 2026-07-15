@@ -1,18 +1,18 @@
 package com.ticketbox.module.notification.domain;
 
+import com.ticketbox.shared.entity.BaseEntity;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Entity mapping the `notifications` table.
- * Tracks outbound notification deliveries across different channels (email, SMS, etc.).
- */
 @Entity
 @Table(name = "notifications")
-public class Notification {
+@Getter
+@NoArgsConstructor
+public class Notification extends BaseEntity {
 
     public enum Channel {
         EMAIL, ZALO, SMS, APP
@@ -21,11 +21,6 @@ public class Notification {
     public enum Status {
         PENDING, SENT, FAILED, SKIPPED
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "user_id")
     private UUID userId;
@@ -56,39 +51,113 @@ public class Notification {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "read_at")
+    private OffsetDateTime readAt;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    @Column(name = "reference_id")
+    private UUID referenceId;
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setMessageId(UUID messageId) {
+        this.messageId = messageId;
+    }
 
-    public Channel getChannel() { return channel; }
-    public void setChannel(Channel channel) { this.channel = channel; }
+    @Column(name = "message_id")
+    private UUID messageId;
 
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
+    public static Notification createAppNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body,
+            OffsetDateTime sentAt
+    ) {
+        Notification notification = new Notification();
+        notification.messageId = messageId;
+        notification.userId = userId;
+        notification.channel = Channel.APP;
+        notification.eventType = eventType;
+        notification.subject = subject;
+        notification.body = body;
+        notification.status = Status.SENT;
+        notification.sentAt = sentAt;
+        return notification;
+    }
 
-    public String getSubject() { return subject; }
-    public void setSubject(String subject) { this.subject = subject; }
+    public static Notification createEmailNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body
+    ) {
+        Notification notification = new Notification();
+        notification.messageId = messageId;
+        notification.userId = userId;
+        notification.channel = Channel.EMAIL;
+        notification.eventType = eventType;
+        notification.subject = subject;
+        notification.body = body;
+        notification.status = Status.PENDING;
+        return notification;
+    }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public static Notification createEmailNotification(
+            UUID messageId,
+            UUID userId,
+            String eventType,
+            String subject,
+            String body,
+            UUID referenceId
+    ) {
+        Notification notification = createEmailNotification(messageId, userId, eventType, subject, body);
+        notification.referenceId = referenceId;
+        return notification;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void markAsRead(OffsetDateTime readAt) {
+        if (this.readAt == null) {
+            this.readAt = readAt;
+        }
+    }
 
-    public OffsetDateTime getSentAt() { return sentAt; }
-    public void setSentAt(OffsetDateTime sentAt) { this.sentAt = sentAt; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public int getAttempts() { return attempts; }
-    public void setAttempts(int attempts) { this.attempts = attempts; }
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
 
-    public String getLastError() { return lastError; }
-    public void setLastError(String lastError) { this.lastError = lastError; }
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
 
-    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public void setSentAt(OffsetDateTime sentAt) {
+        this.sentAt = sentAt;
+    }
+
+    public void setAttempts(int attempts) {
+        this.attempts = attempts;
+    }
+
+    public void setLastError(String lastError) {
+        this.lastError = lastError;
+    }
+
+    public void setReadAt(OffsetDateTime readAt) {
+        this.readAt = readAt;
+    }
 }

@@ -1,0 +1,161 @@
+# ============================================================
+# TicketBox API Test Requests
+# Use the "REST Client" extension in VS Code to run these.
+# ============================================================
+
+@baseUrl = http://localhost:8080
+@concertId = 10000000-0000-0000-0000-000000000001
+@ticketTypeId = 20000000-0000-0000-0000-000000000001
+@svipTicketTypeId = 20000000-0000-0000-0000-000000000001
+@vipTicketTypeId = 20000000-0000-0000-0000-000000000002
+@audienceToken = paste-login-token-here
+@orderId = paste-created-order-id-here
+
+# ============================================================
+# CONCERT ENDPOINTS (Public & Admin)
+# ============================================================
+
+### 1. Public: List Concerts (Default page=0, size=10)
+GET {{baseUrl}}/api/concerts
+Accept: application/json
+
+### 2. Public: Get Concert Detail (Anh Trai Say Hi)
+GET {{baseUrl}}/api/concerts/{{concertId}}
+Accept: application/json
+
+### 3. Admin: Create Concert (DRAFT by default)
+POST {{baseUrl}}/api/admin/concerts
+Content-Type: application/json
+
+{
+  "title": "Rap Viet Season 4 Live Concert",
+  "description": "The ultimate live show of Rap Viet Season 4 stars",
+  "venueName": "SECC Hall B",
+  "venueAddress": "799 Nguyen Van Linh, District 7, HCMC",
+  "eventDate": "2026-10-10T20:00:00+07:00",
+  "doorsOpenAt": "2026-10-10T18:00:00+07:00",
+  "createdBy": "00000000-0000-0000-0000-000000000001"
+}
+
+
+# ============================================================
+# TICKET TYPE ENDPOINTS (Public & Admin)
+# ============================================================
+
+### 4. Admin: Get Ticket Types for Concert
+GET {{baseUrl}}/api/admin/concerts/{{concertId}}/ticket-types
+Accept: application/json
+
+### 5. Admin: Create Ticket Type (SVIP)
+POST {{baseUrl}}/api/admin/concerts/{{concertId}}/ticket-types
+Content-Type: application/json
+
+{
+  "name": "SVIP",
+  "price": 3500000,
+  "totalQuantity": 200,
+  "maxPerAccount": 2,
+  "saleStartAt": "2026-07-01T12:00:00+07:00",
+  "saleEndAt": "2026-08-01T16:59:59+07:00",
+  "zoneColor": "#E11D48"
+}
+
+### 6. Admin: Update Ticket Type
+PUT {{baseUrl}}/api/admin/ticket-types/{{ticketTypeId}}
+Content-Type: application/json
+
+{
+  "name": "SVIP (Updated)",
+  "price": 3800000,
+  "totalQuantity": 250,
+  "maxPerAccount": 2,
+  "saleStartAt": "2026-07-01T12:00:00+07:00",
+  "saleEndAt": "2026-08-01T16:59:59+07:00",
+  "zoneColor": "#E11D48"
+}
+
+### 7. Admin: Toggle Active Status (Pause Sales)
+PATCH {{baseUrl}}/api/admin/ticket-types/{{ticketTypeId}}/status
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### 8. Admin: Delete Ticket Type
+DELETE {{baseUrl}}/api/admin/ticket-types/{{ticketTypeId}}
+
+### 9. Public: Get Concert Ticket Types (Active only, split from seat map)
+GET {{baseUrl}}/api/concerts/{{concertId}}/ticket-types
+Accept: application/json
+
+### 10. Public: Get Ticket Availability
+GET {{baseUrl}}/api/concerts/{{concertId}}/availability
+Accept: application/json
+
+
+# ============================================================
+# ORDER + MOCK PAYMENT FLOW (Seeded Data)
+# Demo password for seeded users: password123
+# Seeded audience: audience@ticketbox.com
+# ============================================================
+
+### 11. Login as Seeded Audience
+# Copy data.accessToken into @audienceToken above.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "audience@ticketbox.com",
+  "password": "password123"
+}
+
+### 12. Create Order From Seeded Concert
+# Copy data.id into @orderId above.
+POST {{baseUrl}}/api/orders
+Authorization: Bearer {{audienceToken}}
+Idempotency-Key: rest-client-order-001
+Content-Type: application/json
+
+{
+  "concertId": "{{concertId}}",
+  "items": [
+    {
+      "ticketTypeId": "{{svipTicketTypeId}}",
+      "quantity": 1
+    },
+    {
+      "ticketTypeId": "{{vipTicketTypeId}}",
+      "quantity": 2
+    }
+  ]
+}
+
+### 13. Get Order Before Payment
+GET {{baseUrl}}/api/orders/{{orderId}}
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 14. Initiate VNPAY Payment
+POST {{baseUrl}}/api/payments/{{orderId}}/initiate
+Authorization: Bearer {{audienceToken}}
+Content-Type: application/json
+
+{
+  "provider": "VNPAY"
+}
+
+### 15. Complete Mock Payment Fallback
+POST {{baseUrl}}/api/mock-payments/{{orderId}}/success
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 16. Get Order After Payment
+GET {{baseUrl}}/api/orders/{{orderId}}
+Authorization: Bearer {{audienceToken}}
+Accept: application/json
+
+### 17. List Issued Tickets
+GET {{baseUrl}}/api/tickets
+Authorization: Bearer {{audienceToken}}
+Accept: application/json

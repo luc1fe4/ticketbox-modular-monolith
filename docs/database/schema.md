@@ -34,6 +34,8 @@ sqlCREATE TABLE concerts (
     venue_address   TEXT NOT NULL,
     event_date      TIMESTAMPTZ NOT NULL,
     doors_open_at   TIMESTAMPTZ,
+    sale_start_at   TIMESTAMPTZ NOT NULL,
+    sale_end_at     TIMESTAMPTZ,
     status          VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
                     -- DRAFT | ON_SALE | SOLD_OUT | CANCELLED | COMPLETED
     seat_map_svg    TEXT,           -- SVG content của sơ đồ chỗ ngồi
@@ -58,8 +60,6 @@ sqlCREATE TABLE ticket_types (
     total_quantity  INTEGER NOT NULL CHECK (total_quantity > 0),
     available_qty   INTEGER NOT NULL CHECK (available_qty >= 0),
     max_per_account INTEGER NOT NULL DEFAULT 4,
-    sale_start_at   TIMESTAMPTZ NOT NULL,
-    sale_end_at     TIMESTAMPTZ,
     zone_color      VARCHAR(7),     -- hex color cho SVG map, VD: #FF5733
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

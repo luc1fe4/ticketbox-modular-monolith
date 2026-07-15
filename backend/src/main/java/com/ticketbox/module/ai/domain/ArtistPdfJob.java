@@ -1,27 +1,26 @@
 package com.ticketbox.module.ai.domain;
 
-import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
+import com.ticketbox.shared.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Entity mapping the `artist_pdf_jobs` table.
- * Tracks async AI jobs that parse an artist's PDF bio and extract structured text.
- */
 @Entity
 @Table(name = "artist_pdf_jobs")
-public class ArtistPdfJob {
+@Getter
+@NoArgsConstructor
+public class ArtistPdfJob extends BaseEntity {
 
     public enum Status {
         PENDING, PROCESSING, DONE, FAILED
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "concert_id", nullable = false)
     private UUID concertId;
@@ -29,9 +28,27 @@ public class ArtistPdfJob {
     @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
 
+    @Column(name = "original_file_name", nullable = false, length = 255)
+    private String originalFileName;
+
+    @Column(name = "requested_by", nullable = false)
+    private UUID requestedBy;
+
+    @Column(name = "file_checksum", nullable = false, length = 64)
+    private String fileChecksum;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private Status status = Status.PENDING;
+
+    @Column(name = "provider", length = 50)
+    private String provider;
+
+    @Column(name = "model", length = 100)
+    private String model;
+
+    @Column(name = "extracted_char_count")
+    private Integer extractedCharCount;
 
     @Column(name = "result_bio", columnDefinition = "TEXT")
     private String resultBio;
@@ -45,33 +62,81 @@ public class ArtistPdfJob {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "applied_at")
+    private OffsetDateTime appliedAt;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    @Column(name = "applied_by")
+    private UUID appliedBy;
 
-    public UUID getConcertId() { return concertId; }
-    public void setConcertId(UUID concertId) { this.concertId = concertId; }
+    public ArtistPdfJob(
+            UUID concertId,
+            String fileUrl,
+            String originalFileName,
+            UUID requestedBy,
+            String fileChecksum) {
+        this.concertId = concertId;
+        this.fileUrl = fileUrl;
+        this.originalFileName = originalFileName;
+        this.requestedBy = requestedBy;
+        this.fileChecksum = fileChecksum;
+        this.status = Status.PENDING;
+    }
 
-    public String getFileUrl() { return fileUrl; }
-    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public void startProcessing() {
+        if (status != Status.PENDING) {
+            throw new IllegalStateException("Only pending artist bio jobs can start processing");
+        }
+        status = Status.PROCESSING;
+        startedAt = OffsetDateTime.now();
+        completedAt = null;
+        errorMessage = null;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void complete(
+            String resultBio,
+            String provider,
+            String model,
+            int extractedCharCount) {
+        if (status != Status.PROCESSING) {
+            throw new IllegalStateException("Only processing artist bio jobs can complete");
+        }
+        this.resultBio = resultBio;
+        this.provider = provider;
+        this.model = model;
+        this.extractedCharCount = extractedCharCount;
+        this.status = Status.DONE;
+        this.completedAt = OffsetDateTime.now();
+        this.errorMessage = null;
+    }
 
-    public String getResultBio() { return resultBio; }
-    public void setResultBio(String resultBio) { this.resultBio = resultBio; }
+    public void fail(String errorMessage) {
+        if (status != Status.PENDING && status != Status.PROCESSING) {
+            throw new IllegalStateException("Only pending or processing artist bio jobs can fail");
+        }
+        this.status = Status.FAILED;
+        this.completedAt = OffsetDateTime.now();
+        this.errorMessage = errorMessage;
+    }
 
-    public OffsetDateTime getStartedAt() { return startedAt; }
-    public void setStartedAt(OffsetDateTime startedAt) { this.startedAt = startedAt; }
+    public void resetForRetry() {
+        if (status != Status.FAILED) {
+            throw new IllegalStateException("Only failed artist bio jobs can be retried");
+        }
+        this.status = Status.PENDING;
+        this.startedAt = null;
+        this.completedAt = null;
+        this.provider = null;
+        this.model = null;
+        this.extractedCharCount = null;
+        this.resultBio = null;
+        this.errorMessage = null;
+    }
 
-    public OffsetDateTime getCompletedAt() { return completedAt; }
-    public void setCompletedAt(OffsetDateTime completedAt) { this.completedAt = completedAt; }
-
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void markApplied(UUID userId) {
+        if (status != Status.DONE) {
+            throw new IllegalStateException("Only completed artist bio jobs can be applied");
+        }
+        this.appliedAt = OffsetDateTime.now();
+        this.appliedBy = userId;
+    }
 }

@@ -1,0 +1,261 @@
+--- src/main/java/com/ticketbox/module/concert/web/AdminConcertController.java
++++ src/main/java/com/ticketbox/module/concert/web/AdminConcertController.java
+@@ -52,32 +52,39 @@
+     @GetMapping("/{id}")
+     public ResponseEntity<ApiResponse<ConcertDetailResponse>> getConcertForEdit(
+-            @PathVariable UUID id
++            @PathVariable UUID id,
++            Authentication authentication
+     ) {
+-        ConcertDetailResponse detail = concertService.getConcertDetail(id);
++        ConcertDetailResponse detail = concertService.getConcertForEdit(id, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(detail));
+     }
+ 
+     @PutMapping("/{id}")
+     public ResponseEntity<ApiResponse<ConcertDetailResponse>> updateConcert(
+             @PathVariable UUID id,
+-            @Valid @RequestBody UpdateConcertRequest request
++            @Valid @RequestBody UpdateConcertRequest request,
++            Authentication authentication
+     ) {
+-        ConcertDetailResponse updated = concertService.updateConcert(id, request);
++        ConcertDetailResponse updated = concertService.updateConcert(id, request, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(updated));
+     }
+ 
+     @PatchMapping("/{id}/status")
+     public ResponseEntity<ApiResponse<ConcertDetailResponse>> changeStatus(
+             @PathVariable UUID id,
+-            @Valid @RequestBody UpdateStatusRequest request
++            @Valid @RequestBody UpdateStatusRequest request,
++            Authentication authentication
+     ) {
+-        ConcertDetailResponse updated = concertService.changeStatus(id, request.status());
++        ConcertDetailResponse updated = concertService.changeStatus(id, request.status(), getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(updated));
+     }
+ 
+     @DeleteMapping("/{id}")
+     public ResponseEntity<ApiResponse<Void>> deleteConcert(
+-            @PathVariable UUID id
++            @PathVariable UUID id,
++            Authentication authentication
+     ) {
+-        concertService.deleteConcert(id);
++        concertService.deleteConcert(id, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(null));
+     }
++
++    private UUID getUserId(Authentication authentication) {
++        return UUID.fromString(authentication.getName());
++    }
++
++    private boolean isAdmin(Authentication authentication) {
++        return authentication.getAuthorities().stream()
++                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
++    }
+ }
+--- src/main/java/com/ticketbox/module/concert/application/ConcertService.java
++++ src/main/java/com/ticketbox/module/concert/application/ConcertService.java
+@@ -106,6 +106,14 @@
+         return result;
+     }
+ 
++    public ConcertDetailResponse getConcertForEdit(UUID concertId, UUID requesterId, boolean isAdmin) {
++        Concert concert = concertRepository.findById(concertId)
++                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Concert not found with id: " + concertId));
++        verifyOwnership(concert, requesterId, isAdmin);
++        return concertMapper.toDetailResponse(concert);
++    }
++
+     public ConcertSeatMapResponse getConcertSeatMap(UUID concertId) {
+@@ -150,9 +158,11 @@
+ 
+     @Transactional
+-    public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request) {
++    public ConcertDetailResponse updateConcert(UUID id, UpdateConcertRequest request, UUID requesterId, boolean isAdmin) {
+         Concert concert = concertRepository.findById(id)
+                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                         "Concert not found with id: " + id));
+ 
++        verifyOwnership(concert, requesterId, isAdmin);
++
+         if (concert.getStatus() == Concert.Status.COMPLETED || concert.getStatus() == Concert.Status.CANCELLED) {
+             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+@@ -169,9 +179,11 @@
+ 
+     @Transactional
+-    public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus) {
++    public ConcertDetailResponse changeStatus(UUID id, Concert.Status newStatus, UUID requesterId, boolean isAdmin) {
+         Concert concert = concertRepository.findById(id)
+                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                         "Concert not found with id: " + id));
+ 
++        verifyOwnership(concert, requesterId, isAdmin);
++
+         validateStatusTransition(concert.getStatus(), newStatus);
+ 
+@@ -182,9 +194,11 @@
+ 
+     @Transactional
+-    public void deleteConcert(UUID id) {
++    public void deleteConcert(UUID id, UUID requesterId, boolean isAdmin) {
+         Concert concert = concertRepository.findById(id)
+                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                         "Concert not found with id: " + id));
+ 
++        verifyOwnership(concert, requesterId, isAdmin);
++
+         if (concert.getStatus() != Concert.Status.DRAFT) {
+             throw new AppException(ErrorCode.CONCERT_NOT_DELETABLE,
+@@ -216,3 +230,9 @@
+         }
+     }
++
++    private void verifyOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
++        if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
++            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify this concert");
++        }
++    }
+ }
+--- src/main/java/com/ticketbox/module/concert/web/AdminTicketTypeController.java
++++ src/main/java/com/ticketbox/module/concert/web/AdminTicketTypeController.java
+@@ -12,6 +12,7 @@
+ import org.springframework.http.ResponseEntity;
++import org.springframework.security.core.Authentication;
+ import org.springframework.web.bind.annotation.*;
+ 
+@@ -26,9 +27,10 @@
+     @GetMapping("/concerts/{concertId}/ticket-types")
+     public ResponseEntity<ApiResponse<List<TicketTypeResponse>>> listTicketTypesForAdmin(
+-            @PathVariable UUID concertId
++            @PathVariable UUID concertId,
++            Authentication authentication
+     ) {
+-        List<TicketTypeResponse> list = ticketTypeService.getTicketTypes(concertId);
++        List<TicketTypeResponse> list = ticketTypeService.getTicketTypesForAdmin(concertId, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(list));
+     }
+ 
+     @PostMapping("/concerts/{concertId}/ticket-types")
+     public ResponseEntity<ApiResponse<TicketTypeResponse>> createTicketType(
+             @PathVariable UUID concertId,
+-            @Valid @RequestBody CreateTicketTypeRequest request
++            @Valid @RequestBody CreateTicketTypeRequest request,
++            Authentication authentication
+     ) {
+-        TicketTypeResponse created = ticketTypeService.createTicketType(concertId, request);
++        TicketTypeResponse created = ticketTypeService.createTicketType(concertId, request, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
+     }
+ 
+     @PutMapping("/ticket-types/{id}")
+     public ResponseEntity<ApiResponse<TicketTypeResponse>> updateTicketType(
+             @PathVariable UUID id,
+-            @Valid @RequestBody UpdateTicketTypeRequest request
++            @Valid @RequestBody UpdateTicketTypeRequest request,
++            Authentication authentication
+     ) {
+-        TicketTypeResponse updated = ticketTypeService.updateTicketType(id, request);
++        TicketTypeResponse updated = ticketTypeService.updateTicketType(id, request, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(updated));
+     }
+ 
+     @PatchMapping("/ticket-types/{id}/status")
+     public ResponseEntity<ApiResponse<TicketTypeResponse>> changeStatus(
+             @PathVariable UUID id,
+-            @Valid @RequestBody UpdateTicketTypeStatusRequest request
++            @Valid @RequestBody UpdateTicketTypeStatusRequest request,
++            Authentication authentication
+     ) {
+-        TicketTypeResponse updated = ticketTypeService.changeStatus(id, request.isActive());
++        TicketTypeResponse updated = ticketTypeService.changeStatus(id, request.isActive(), getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(updated));
+     }
+ 
+     @DeleteMapping("/ticket-types/{id}")
+     public ResponseEntity<ApiResponse<Void>> deleteTicketType(
+-            @PathVariable UUID id
++            @PathVariable UUID id,
++            Authentication authentication
+     ) {
+-        ticketTypeService.deleteTicketType(id);
++        ticketTypeService.deleteTicketType(id, getUserId(authentication), isAdmin(authentication));
+         return ResponseEntity.ok(ApiResponse.success(null));
+     }
++
++    private UUID getUserId(Authentication authentication) {
++        return UUID.fromString(authentication.getName());
++    }
++
++    private boolean isAdmin(Authentication authentication) {
++        return authentication.getAuthorities().stream()
++                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
++    }
+ }
+--- src/main/java/com/ticketbox/module/concert/application/TicketTypeService.java
++++ src/main/java/com/ticketbox/module/concert/application/TicketTypeService.java
+@@ -43,4 +43,10 @@
+ 
++    public List<TicketTypeResponse> getTicketTypesForAdmin(UUID concertId, UUID requesterId, boolean isAdmin) {
++        Concert concert = getConcertOrThrow(concertId);
++        verifyConcertOwnership(concert, requesterId, isAdmin);
++        return getTicketTypes(concertId);
++    }
++
+     public List<TicketTypeResponse> getActiveTicketTypes(UUID concertId) {
+         verifyConcertExists(concertId);
+@@ -82,9 +88,10 @@
+ 
+     @Transactional
+-    public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request) {
++    public TicketTypeResponse createTicketType(UUID concertId, CreateTicketTypeRequest request, UUID requesterId, boolean isAdmin) {
+         Concert concert = getConcertOrThrow(concertId);
++        verifyConcertOwnership(concert, requesterId, isAdmin);
+         validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
+ 
+@@ -96,9 +103,10 @@
+ 
+     @Transactional
+-    public TicketTypeResponse updateTicketType(UUID id, UpdateTicketTypeRequest request) {
++    public TicketTypeResponse updateTicketType(UUID id, UpdateTicketTypeRequest request, UUID requesterId, boolean isAdmin) {
+         TicketType ticketType = getTicketTypeOrThrow(id);
+         Concert concert = getConcertOrThrow(ticketType.getConcertId());
++        verifyConcertOwnership(concert, requesterId, isAdmin);
+         
+         validateDates(request.saleStartAt(), request.saleEndAt(), concert.getEventDate());
+ 
+@@ -115,8 +123,10 @@
+ 
+     @Transactional
+-    public TicketTypeResponse changeStatus(UUID id, boolean isActive) {
++    public TicketTypeResponse changeStatus(UUID id, boolean isActive, UUID requesterId, boolean isAdmin) {
+         TicketType ticketType = getTicketTypeOrThrow(id);
++        Concert concert = getConcertOrThrow(ticketType.getConcertId());
++        verifyConcertOwnership(concert, requesterId, isAdmin);
+         ticketType.setActive(isActive);
+         TicketType saved = ticketTypeRepository.save(ticketType);
+         return ticketTypeMapper.toResponse(saved);
+     }
+@@ -123,8 +133,10 @@
+ 
+     @Transactional
+-    public void deleteTicketType(UUID id) {
++    public void deleteTicketType(UUID id, UUID requesterId, boolean isAdmin) {
+         TicketType ticketType = getTicketTypeOrThrow(id);
++        Concert concert = getConcertOrThrow(ticketType.getConcertId());
++        verifyConcertOwnership(concert, requesterId, isAdmin);
+         
+         if (ticketType.getAvailableQty() < ticketType.getTotalQuantity()) {
+             throw new AppException(ErrorCode.INVALID_REQUEST, "Cannot delete ticket type that has active sales");
+@@ -162,3 +174,9 @@
+         }
+     }
++
++    private void verifyConcertOwnership(Concert concert, UUID requesterId, boolean isAdmin) {
++        if (!isAdmin && !concert.getCreatedBy().equals(requesterId)) {
++            throw new AppException(ErrorCode.UNAUTHORIZED, "You do not have permission to modify ticket types for this concert");
++        }
++    }
+ }

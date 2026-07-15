@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/ticketbox
     username: ticketbox
-    password: replace-with-local-postgres-password
+    password: ticketbox
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -27,8 +27,9 @@ spring:
     host: localhost
     port: 5672
     username: ticketbox
-    password: replace-with-local-rabbitmq-password
+    password: ticketbox
 
 ticketbox:
   security:
-    jwt-secret-placeholder: replace-with-local-development-only-secret
+    jwt:
+      secret: ${JWT_SECRET}

@@ -11,7 +11,7 @@ $requiredKeys = @(
     "RABBITMQ_PORT",
     "RABBITMQ_USERNAME",
     "RABBITMQ_PASSWORD",
-    "JWT_SECRET_PLACEHOLDER",
+    "JWT_SECRET",
     "VITE_API_BASE_URL"
 )
 
@@ -24,13 +24,14 @@ $envContent = Get-Content -LiteralPath ".env"
 $missingKeys = @()
 
 foreach ($key in $requiredKeys) {
-    if (-not ($envContent -match "^$key=")) {
+    $line = $envContent | Where-Object { $_ -match "^$key=" } | Select-Object -First 1
+    if (-not $line -or [string]::IsNullOrWhiteSpace(($line -split "=", 2)[1])) {
         $missingKeys += $key
     }
 }
 
 if ($missingKeys.Count -gt 0) {
-    Write-Error "Missing required keys: $($missingKeys -join ', ')"
+    Write-Error "Missing required keys or values: $($missingKeys -join ', ')"
     exit 1
 }
 
