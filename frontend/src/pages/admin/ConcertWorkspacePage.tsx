@@ -18,6 +18,7 @@ import {
   deleteArtistBioJob,
   getAdminOrders,
   getArtistBioJobs,
+  getBatchLog,
   getConcertGuestList,
   getManagedCheckinSummary,
   getManagedConcert,
@@ -27,6 +28,7 @@ import {
   updateConcert,
   uploadConcertPoster,
   type ArtistBioJob,
+  type BatchLog,
   type CheckinSummary,
   type ConcertMutation,
   type GuestListEntry,
@@ -55,6 +57,10 @@ const tabs: Array<{ id: WorkspaceTab; label: string; icon: typeof CalendarDays }
   { id: 'operations', label: 'Đơn hàng & check-in', icon: ClipboardCheck },
   { id: 'artist', label: 'Nghệ sĩ & AI', icon: Sparkles },
 ];
+
+function isActiveGuestImport(status: BatchLog['status']) {
+  return status === 'PENDING' || status === 'RUNNING';
+}
 
 function toLocalInput(value: string | null) {
   if (!value) return '';
@@ -126,6 +132,7 @@ export function ConcertWorkspacePage({ apiScope = 'admin' }: { apiScope?: Manage
   const [guestImportFile, setGuestImportFile] = useState<File | null>(null);
   const [guestImportScheduled, setGuestImportScheduled] = useState(false);
   const [guestImporting, setGuestImporting] = useState(false);
+  const [activeGuestImportId, setActiveGuestImportId] = useState('');
 
   useEffect(() => {
     const nextTab = parseWorkspaceTab(searchParams.get('tab'));
@@ -184,6 +191,54 @@ export function ConcertWorkspacePage({ apiScope = 'admin' }: { apiScope?: Manage
     void load(controller.signal);
     return () => controller.abort();
   }, [load]);
+
+  const refreshGuests = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!id) return;
+      const refreshed = await getConcertGuestList(id, 0, 100, signal, apiScope);
+      setGuests(refreshed.content);
+      setGuestTotal(refreshed.totalElements);
+    },
+    [apiScope, id],
+  );
+
+  useEffect(() => {
+    if (!activeGuestImportId) return;
+    const controller = new AbortController();
+    let timer: number | undefined;
+
+    const pollImport = async () => {
+      try {
+        const batch = await getBatchLog(activeGuestImportId, controller.signal, apiScope);
+        if (isActiveGuestImport(batch.status)) {
+          timer = window.setTimeout(() => void pollImport(), 1500);
+          return;
+        }
+        if (batch.status === 'SUCCESS' || batch.status === 'PARTIAL') {
+          await refreshGuests(controller.signal);
+          if (!controller.signal.aborted) {
+            toast.success('Danh sĂ¡ch khĂ¡ch má»i Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t.');
+          }
+        }
+        if (!controller.signal.aborted) setActiveGuestImportId('');
+      } catch (requestError) {
+        if (!isRequestCanceled(requestError) && !controller.signal.aborted) {
+          toast.error(
+            requestError instanceof Error
+              ? requestError.message
+              : 'KhĂ´ng thá»ƒ cáº­p nháº­t tráº¡ng thĂ¡i import khĂ¡ch má»i.',
+          );
+          setActiveGuestImportId('');
+        }
+      }
+    };
+
+    void pollImport();
+    return () => {
+      controller.abort();
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [activeGuestImportId, apiScope, refreshGuests, toast]);
 
   const ticketStats = useMemo(
     () =>
@@ -364,9 +419,11 @@ export function ConcertWorkspacePage({ apiScope = 'admin' }: { apiScope?: Manage
         ),
       );
       setGuestImportFile(null);
-      const refreshed = await getConcertGuestList(id, 0, 100, undefined, apiScope);
-      setGuests(refreshed.content);
-      setGuestTotal(refreshed.totalElements);
+      if (guestImportScheduled) {
+        await refreshGuests();
+      } else {
+        setActiveGuestImportId(result.data.batchLogId);
+      }
     } catch (requestError) {
       toast.error(
         requestError instanceof Error

@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,15 +34,37 @@ public class OrderAdapter implements OrderPort {
     @Override
     public Optional<OrderView> findOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
-                .map(o -> new OrderView(
-                        o.getId(),
-                        o.getUserId(),
-                        o.getTotalAmount(),
-                        o.getStatus().name(),
-                        o.getPaymentProvider() == null ? null : o.getPaymentProvider().name(),
-                        o.getPaymentRef(),
-                        o.getPaymentUrl()
-                ));
+                .map(this::toOrderView);
+    }
+
+    @Override
+    @Transactional(noRollbackFor = AppException.class)
+    public OrderView getPayableOrderForUser(UUID orderId, UUID userId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        if (!order.getUserId().equals(userId)) {
+            // Do not disclose whether another customer's order exists.
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng");
+        }
+
+        if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Đơn hàng không ở trạng thái có thể thanh toán");
+        }
+
+        if (!order.getExpiresAt().isAfter(OffsetDateTime.now())) {
+            List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+            for (OrderItem item : items) {
+                concertOrderPort.releaseInventory(item.getTicketTypeId(), item.getQuantity());
+            }
+            order.setStatus(Order.Status.EXPIRED);
+            orderRepository.save(order);
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "Thời hạn thanh toán đơn hàng đã hết");
+        }
+
+        return toOrderView(order);
     }
 
     @Override
@@ -94,5 +118,17 @@ public class OrderAdapter implements OrderPort {
         order.setPaymentRef(providerRef);
         order.setPaymentUrl(paymentUrl);
         orderRepository.save(order);
+    }
+
+    private OrderView toOrderView(Order order) {
+        return new OrderView(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalAmount(),
+                order.getStatus().name(),
+                order.getPaymentProvider() == null ? null : order.getPaymentProvider().name(),
+                order.getPaymentRef(),
+                order.getPaymentUrl()
+        );
     }
 }

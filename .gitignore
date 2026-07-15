@@ -49,3 +49,7 @@ yarn-error.log*
 
 # Data
 data/
+
+# Load test data
+scripts/*.json
+scripts/*.csv

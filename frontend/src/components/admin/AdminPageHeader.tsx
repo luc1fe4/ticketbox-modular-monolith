@@ -13,7 +13,7 @@ export function AdminPageHeader({
 }) {
   return (
     <header className="admin-page-header">
-      <div>
+      <div className="admin-page-header-copy">
         <p>{eyebrow}</p>
         <h1>{title}</h1>
         <span>{description}</span>

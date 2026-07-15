@@ -467,8 +467,12 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancelOrder(UUID orderId, UUID userId) {
-        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+        Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND, "Không tìm thấy đơn hàng");
+        }
 
         if (order.getStatus() != Order.Status.AWAITING_PAYMENT) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION,

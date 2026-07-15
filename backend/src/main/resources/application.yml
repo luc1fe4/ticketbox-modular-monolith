@@ -36,11 +36,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+
 
 resilience4j:
   circuitbreaker:
@@ -129,3 +136,5 @@ ticketbox:
     api-secret: ${CLOUDINARY_API_SECRET:}
     folder: ${CLOUDINARY_POSTER_FOLDER:ticketbox/concert-posters}
     max-file-size: ${CLOUDINARY_MAX_FILE_SIZE:5MB}
+
+
