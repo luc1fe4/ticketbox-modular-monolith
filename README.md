@@ -1,279 +1,302 @@
 # TicketBox
 
-TicketBox is a modular-monolith ticketing platform for concert discovery, ticket purchase, payment, e-ticket QR display, staff check-in, notifications, guest-list import, and AI-assisted artist biography generation.
+TicketBox là một nền tảng bán vé sự kiện âm nhạc được thiết kế theo kiến trúc **Modular Monolith**. Hệ thống hỗ trợ các tính năng khám phá concert, đặt giữ chỗ, thanh toán trực tuyến, hiển thị vé điện tử dưới dạng mã QR, soát vé cho nhân viên, thông báo tự động (App/Email), nhập danh sách khách mời bằng tệp tin và tự động tạo tiểu sử nghệ sĩ bằng trí tuệ nhân tạo (AI).
 
-The project is prepared for a local end-to-end demo with Docker Compose: Spring Boot backend, React frontend, PostgreSQL, Redis, RabbitMQ, and MailHog.
-
-## Tech Stack
-
-- Backend: Java 21, Spring Boot 3, Spring Security JWT, Spring Data JPA, Flyway, Spring Batch, Spring AMQP, Spring Data Redis, Resilience4j
-- Frontend: React, TypeScript, Vite, Tailwind CSS, Axios
-- Mobile scanner: Expo React Native, TypeScript, SQLite-based offline scanner flow
-- Infrastructure: PostgreSQL 16, Redis 7, RabbitMQ 3 Management, MailHog, Docker Compose
-
-## Prerequisites
-
-- Docker Desktop
-- Git
-- Java 21, only for running backend outside Docker
-- Node.js LTS, only for running frontend outside Docker
-
-## Quick Start With Docker
-
-1. Copy the environment template.
-
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-2. Start the full stack.
-
-```bash
-docker compose up --build
-```
-
-3. Open the demo services.
-
-| Service | URL |
-| --- | --- |
-| Frontend web | http://localhost:5173 |
-| Backend health | http://localhost:8080/api/health |
-| RabbitMQ Management | http://localhost:15672 |
-| MailHog inbox | http://localhost:8025 |
-| PostgreSQL host port | localhost:5433 |
-| Redis host port | localhost:6379 |
-
-RabbitMQ uses the credentials from `.env`: `ticketbox` / `ticketbox` by default.
-
-## Environment Variables
-
-The default `.env.example` is suitable for local demo. Important values:
-
-| Variable | Purpose | Local default |
-| --- | --- | --- |
-| `SPRING_DATASOURCE_URL` | Backend PostgreSQL connection inside Docker | `jdbc:postgresql://postgres:5432/ticketbox` |
-| `JWT_SECRET` | HMAC secret for JWT signing | Development-only sample secret |
-| `VITE_API_BASE_URL` | Frontend API base URL | `http://localhost:8080` |
-| `REDIS_HOST`, `REDIS_PORT` | Redis connection | `redis`, `6379` |
-| `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | RabbitMQ connection | `rabbitmq`, `ticketbox`, `ticketbox` |
-| `MAIL_HOST`, `MAIL_PORT` | SMTP target used by backend | Defaults to `mailhog`, `1025` in Docker Compose |
-| `PAYMENT_MOCK_BASE_URL` | Local mock payment base URL | `http://localhost:8080` |
-| `VNPAY_PAY_URL` | VNPAY sandbox payment URL | Sandbox URL in `.env.example` |
-| `VNPAY_RETURN_URL` | Browser return URL after VNPAY | `http://localhost:5173/payment/result` |
-| `VNPAY_IPN_URL` | Public backend webhook URL for VNPAY IPN | Replace with an ngrok/cloudflared URL for real sandbox callback |
-| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPAY sandbox merchant credentials | Replace with real sandbox credentials |
-| `MOMO_RETURN_URL` | Browser return URL after MoMo | `http://localhost:5173/payment/result` |
-| `MOMO_IPN_URL` | Public backend webhook URL for MoMo IPN | Replace with an ngrok URL for real sandbox callback |
-| `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY` | MoMo sandbox merchant credentials | Replace with real sandbox credentials |
-| `GUEST_LIST_IMPORT_CRON` | Scheduled guest-list import interval | Every 5 minutes |
-| `ARTIST_BIO_AI_PROVIDER`, `ARTIST_BIO_AI_API_KEY` | AI artist bio provider config | `auto`, empty key uses local mock fallback |
-
-Do not commit real `.env` files, real secrets, API keys, payment credentials, or tunnel URLs.
-
-## Demo Accounts
-
-The database seed data automatically creates these primary credentials for demo and testing purposes:
-
-| Role | Email | Password | Main Use Cases & Permissions |
-| --- | --- | --- | --- |
-| **Audience** | `audience@ticketbox.com` | `password123` | Browse concerts, reserve tickets, complete purchases, view orders/e-tickets |
-| **Organizer**| `organizer@ticketbox.com`| `password123` | Open admin dashboard, view logs, import guest lists, review revenue reports |
-| **Admin**    | `admin@ticketbox.com`    | `password123` | Full access to operations dashboard, user role management, status updates, check-ins |
-| **Staff**    | `staff@ticketbox.com`    | `password123` | Check-in attendees, search guests, use mobile ticket scanner flows |
-
-Additionally, the database seed includes these alternative test accounts (`.vn` domain) with password `password123` for testing and RBAC validation:
-
-| Role | Email | Password | Main Use Cases & Permissions |
-| --- | --- | --- | --- |
-| **Audience** | `audience@ticketbox.vn` | `password123` | Alternative audience account for testing and RBAC validation |
-| **Organizer**| `organizer@ticketbox.vn`| `password123` | Alternative organizer account for testing and RBAC validation |
-| **Admin**    | `admin@ticketbox.vn`    | `password123` | Alternative admin account for testing and RBAC validation |
-| **Staff**    | `staff@ticketbox.vn`    | `password123` | Alternative staff account for testing and RBAC validation |
+Dự án đã được cấu hình sẵn để chạy demo từ đầu đến cuối (end-to-end) bằng Docker Compose, bao gồm: Spring Boot backend, React frontend, PostgreSQL, Redis, RabbitMQ và MailHog.
 
 ---
 
-## Role-Based Access Control (RBAC) Matrix
+## Công nghệ sử dụng (Tech Stack)
 
-### 1. Route & Component Matrices
+* **Backend:** Java 21, Spring Boot 3, Spring Security JWT, Spring Data JPA, Flyway, Spring Batch, Spring AMQP (RabbitMQ), Spring Data Redis, Resilience4j (Circuit Breaker)
+* **Frontend:** React, TypeScript, Vite, Tailwind CSS, Axios
+* **Mobile Scanner (Soát vé):** Expo React Native, TypeScript, SQLite (luồng quét vé ngoại tuyến offline)
+* **Hạ tầng hỗ trợ:** PostgreSQL 16, Redis 7, RabbitMQ 3 (Management), MailHog (SMTP Server ảo), Docker Compose
 
-#### Frontend Web Route Matrix
-| Path / Page | Public | Audience | Staff | Organizer | Admin | Action on Unauthorized |
+---
+
+## Yêu cầu hệ thống (Prerequisites)
+
+* **Docker Desktop** (khuyên dùng để chạy nhanh toàn bộ hệ thống)
+* **Git**
+* **Java 21** (chỉ cần thiết nếu bạn muốn chạy backend trực tiếp ngoài Docker)
+* **Node.js LTS** (chỉ cần thiết nếu bạn muốn chạy frontend trực tiếp ngoài Docker)
+
+---
+
+## Khởi chạy nhanh với Docker
+
+1. **Sao chép tệp cấu hình môi trường:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Trên Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. **Khởi chạy toàn bộ hệ thống:**
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. **Truy cập các dịch vụ demo:**
+
+   | Dịch vụ | URL / Thông tin kết nối |
+   | --- | --- |
+   | **Frontend Web** | http://localhost:5173 |
+   | **Backend Health** | http://localhost:8080/api/health |
+   | **RabbitMQ Management** | http://localhost:15672 (tài khoản: `ticketbox` / mật khẩu: `ticketbox`) |
+   | **MailHog (Hòm thư ảo)** | http://localhost:8025 |
+   | **PostgreSQL Database** | host: `localhost`, port: `5433`, DB: `ticketbox`, user: `ticketbox`, password: `ticketbox` |
+   | **Redis Database** | host: `localhost`, port: `6379` |
+
+---
+
+## Biến môi trường (Environment Variables)
+
+Các giá trị mặc định trong `.env.example` đã được tối ưu hóa cho môi trường phát triển local. Dưới đây là các biến môi trường quan trọng:
+
+| Biến số | Ý nghĩa | Giá trị local mặc định |
+| --- | --- | --- |
+| `SPRING_DATASOURCE_URL` | Chuỗi kết nối tới PostgreSQL bên trong mạng Docker | `jdbc:postgresql://postgres:5432/ticketbox` |
+| `JWT_SECRET` | Mã bí mật dùng để ký và xác thực JWT | Mã mẫu dùng cho dev |
+| `VITE_API_BASE_URL` | URL API Backend phục vụ Frontend | `http://localhost:8080` |
+| `REDIS_HOST`, `REDIS_PORT` | Kết nối Redis | `redis`, `6379` |
+| `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | Kết nối RabbitMQ | `rabbitmq`, `ticketbox`, `ticketbox` |
+| `MAIL_HOST`, `MAIL_PORT` | Cổng SMTP để gửi mail | `mailhog`, `1025` (trong Docker Compose) |
+| `PAYMENT_MOCK_BASE_URL` | URL phục vụ cổng thanh toán ảo | `http://localhost:8080` |
+| `VNPAY_PAY_URL` | URL trang thanh toán thử nghiệm VNPAY Sandbox | URL Sandbox mặc định |
+| `VNPAY_RETURN_URL` | Trang Frontend điều hướng về sau khi thanh toán VNPAY | `http://localhost:5173/payment/result` |
+| `VNPAY_IPN_URL` | Địa chỉ Webhook (IPN) công khai để VNPAY gọi về cập nhật đơn | Thay bằng link public từ ngrok để test cổng thanh toán thật |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Mã kết nối Sandbox VNPAY của merchant | Thay bằng thông tin tài khoản thử nghiệm của bạn |
+| `MOMO_RETURN_URL` | Trang Frontend điều hướng về sau khi thanh toán MoMo | `http://localhost:5173/payment/result` |
+| `MOMO_IPN_URL` | Địa chỉ Webhook (IPN) công khai để MoMo gọi về cập nhật đơn | Thay bằng link public từ ngrok để test cổng thanh toán thật |
+| `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY` | Thông tin kết nối Sandbox MoMo của merchant | Thay bằng thông tin tài khoản thử nghiệm của bạn |
+| `GUEST_LIST_IMPORT_CRON` | Chu kỳ tự động quét tệp Excel khách mời | `0 0 3 * * *` (mỗi ngày lúc 3h sáng) |
+| `ARTIST_BIO_AI_PROVIDER`, `ARTIST_BIO_AI_API_KEY` | Nhà cung cấp AI và khóa API để tạo tiểu sử nghệ sĩ | `auto` (nếu để trống khóa API sẽ tự động dùng mock data) |
+
+> [!CAUTION]
+> Tuyệt đối không commit các file chứa cấu hình bảo mật thực tế, thông tin tài khoản thanh toán thật hoặc đường dẫn ngrok tạm thời lên Git.
+
+---
+
+## Tài khoản Demo kiểm thử
+
+Cơ sở dữ liệu mẫu (Database Seed) đã tự động khởi tạo sẵn các tài khoản sau để phục vụ chạy thử nghiệm:
+
+| Vai trò (Role) | Email | Mật khẩu | Quyền hạn chính |
+| --- | --- | --- | --- |
+| **Audience** (Khán giả) | `audience@ticketbox.com` | `password123` | Khám phá concert, giữ chỗ, thanh toán vé, xem danh sách vé đã mua |
+| **Organizer** (Ban tổ chức) | `organizer@ticketbox.com`| `password123` | Vào trang quản lý của ban tổ chức, xem báo cáo doanh thu, import danh sách khách mời |
+| **Admin** (Quản trị viên) | `admin@ticketbox.com` | `password123` | Toàn quyền kiểm soát hệ thống, quản lý tài khoản người dùng, đổi vai trò, xem lịch sử quét vé |
+| **Staff** (Nhân viên soát vé) | `staff@ticketbox.com` | `password123` | Soát vé tại cổng sự kiện, tìm kiếm thông tin khách hàng, sử dụng app quét QR soát vé |
+
+Ngoài ra, hệ thống cũng tạo sẵn các tài khoản tương tự với đuôi tên miền `.vn` (mật khẩu `password123`) để kiểm tra tính năng phân quyền: `audience@ticketbox.vn`, `organizer@ticketbox.vn`, `admin@ticketbox.vn`, `staff@ticketbox.vn`.
+
+---
+
+## Ma trận Phân quyền (RBAC Matrix)
+
+### 1. Phân quyền trên giao diện Web (Frontend)
+
+| Đường dẫn / Trang | Public | Audience | Staff | Organizer | Admin | Hành động khi chưa phân quyền |
 | --- | :---: | :---: | :---: | :---: | :---: | --- |
-| `/` (Homepage) | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
-| `/login`, `/register` | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
-| `/concerts/:id` | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed (Public) |
-| `/profile` | ❌ | ✅ | ✅ | ✅ | ✅ | Redirect to `/login` |
-| `/tickets`, `/orders` | ❌ | ✅ | ❌ | ❌ | ❌ | Redirect to `/` |
-| `/admin` (Dashboard) | ❌ | ❌ | ❌ | ❌ | ✅ | Redirect to role home |
-| `/organizer` (Organizer Studio) | ❌ | ❌ | ❌ | ✅ | ❌ | Redirect to role home |
-| `/admin/users` (User Management) | ❌ | ❌ | ❌ | ❌ | ✅ | Redirect to `/` |
-| `/staff/check-in` (Gate Check-in) | ❌ | ❌ | ✅ | ❌ | ❌ | Redirect to role home |
+| `/` (Trang chủ) | ✅ | ✅ | ✅ | ✅ | ✅ | Cho phép truy cập công khai |
+| `/login`, `/register` | ✅ | ✅ | ✅ | ✅ | ✅ | Cho phép truy cập công khai |
+| `/concerts/:id` | ✅ | ✅ | ✅ | ✅ | ✅ | Cho phép truy cập công khai |
+| `/profile` | ❌ | ✅ | ✅ | ✅ | ✅ | Chuyển hướng về `/login` |
+| `/tickets`, `/orders` | ❌ | ✅ | ❌ | ❌ | ❌ | Chuyển hướng về trang chủ `/` |
+| `/admin` (Trang Admin) | ❌ | ❌ | ❌ | ❌ | ✅ | Chuyển hướng về trang chủ của vai trò |
+| `/organizer` (Trang BTC) | ❌ | ❌ | ❌ | ✅ | ❌ | Chuyển hướng về trang chủ của vai trò |
+| `/admin/users` (Quản lý User) | ❌ | ❌ | ❌ | ❌ | ✅ | Chuyển hướng về trang chủ `/` |
+| `/staff/check-in` (Soát vé) | ❌ | ❌ | ✅ | ❌ | ❌ | Chuyển hướng về trang chủ của vai trò |
 
-#### Backend REST API Route Matrix
-| API Endpoint | HTTP Method | Public | `AUDIENCE` | `STAFF` | `ORGANIZER` | `ADMIN` | Expected Unauthorized Status |
+### 2. Phân quyền trên APIs (Backend REST API)
+
+| API Endpoint | HTTP Method | Public | `AUDIENCE` | `STAFF` | `ORGANIZER` | `ADMIN` | Mã lỗi khi không có quyền |
 | --- | --- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `/api/auth/login`, `/register` | POST | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed |
-| `/api/concerts/**` (View catalog) | GET | ✅ | ✅ | ✅ | ✅ | ✅ | Allowed |
+| `/api/auth/login`, `/register` | POST | ✅ | ✅ | ✅ | ✅ | ✅ | Cho phép truy cập |
+| `/api/concerts/**` (Xem danh sách) | GET | ✅ | ✅ | ✅ | ✅ | ✅ | Cho phép truy cập |
 | `/api/profile/**` | GET/PUT | ❌ | ✅ | ✅ | ✅ | ✅ | `401 Unauthorized` |
-| `/api/reservations/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
-| `/api/orders/**` | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
-| `/api/checkin/**` | POST/GET | ❌ | ❌ | ✅ | ❌ | ✅ | `403 Forbidden` |
+| `/api/reservations/**` (Giữ chỗ) | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
+| `/api/orders/**` (Đặt hàng) | POST/GET | ❌ | ✅ | ❌ | ❌ | ❌ | `403 Forbidden` |
+| `/api/checkin/**` (Quét vé) | POST/GET | ❌ | ❌ | ✅ | ❌ | ✅ | `403 Forbidden` |
 | `/api/organizer/**` | GET/POST | ❌ | ❌ | ❌ | ✅ | ❌ | `403 Forbidden` |
 | `/api/admin/users/**` | GET/PUT | ❌ | ❌ | ❌ | ❌ | ✅ | `403 Forbidden` |
 
 ---
 
-## How to Test & Verify RBAC
+## Cách kiểm thử & Xác minh phân quyền (RBAC)
 
-### Method A: Manual Testing via Frontend Web UI
+### Cách A: Thử nghiệm thủ công trên Web UI
+1. **Kiểm tra cách ly người dùng thường (Audience vs Admin/Organizer):**
+   * Đăng nhập bằng `audience@ticketbox.com`.
+   * Thử gõ trực tiếp URL quản trị trên thanh trình duyệt: `http://localhost:5173/admin` hoặc `http://localhost:5173/admin/users`.
+   * **Kết quả mong muốn:** Bạn lập tức bị chuyển hướng về trang chủ `/`. Menu quản trị trên thanh sidebar cũng hoàn toàn bị ẩn.
+2. **Kiểm tra quyền hạn của Organizer và Admin:**
+   * Đăng nhập bằng `organizer@ticketbox.com`. Bạn có quyền vào trang `/organizer` nhưng nếu cố truy cập vào `http://localhost:5173/admin/users` của Admin thì sẽ bị hệ thống chặn lại và chuyển hướng về.
+   * Đăng xuất và đăng nhập lại bằng `admin@ticketbox.com`. Lúc này bạn mới có quyền vào xem, đổi vai trò người dùng, kích hoạt/vô hiệu hóa tài khoản ở trang `/admin/users`.
+3. **Kiểm tra quyền kiểm soát soát vé (Staff):**
+   * Đăng nhập bằng `audience@ticketbox.com` hoặc `organizer@ticketbox.com` và truy cập `http://localhost:5173/staff/check-in`.
+   * **Kết quả mong muốn:** Truy cập bị từ chối và bị đẩy về trang chủ. Chỉ khi đăng nhập bằng tài khoản `staff@ticketbox.com` hoặc `admin@ticketbox.com` thì màn hình soát vé mới hiển thị.
 
-1. **Test User Isolation (Audience vs Admin/Organizer)**:
-   - Log in with `audience@ticketbox.com`.
-   - Attempt to manually enter the admin URL in your browser: `http://localhost:5173/admin` or `http://localhost:5173/admin/users`.
-   - **Verification**: You will be immediately redirected to the homepage `/`. The admin navigation menu is completely hidden from the sidebar.
-
-2. **Test Admin-Only Management (Admin vs Organizer)**:
-   - Log in with `organizer@ticketbox.com`. Go to `/organizer`.
-   - Notice that organizer has its own workspace and cannot access the admin-only user management page.
-   - Attempt to manually navigate to `http://localhost:5173/admin/users`.
-   - **Verification**: You will be redirected back, protecting admin-only screens from organizer users.
-   - Log out, then log in with `admin@ticketbox.com`. You can now view and access the `/admin/users` page, modify roles, and activate/deactivate users.
-
-3. **Test Staff Gate Check-in Restriction**:
-   - Log in with `audience@ticketbox.com` or `organizer@ticketbox.com`.
-   - Try accessing `http://localhost:5173/staff/checkin`.
-   - **Verification**: Access is blocked and redirects to the homepage. Only accounts with `STAFF` or `ADMIN` roles can load the gate check-in page.
-
----
-
-### Method B: REST API Security Testing (Backend Verification)
-
-We have verified security hardening using Spring integration tests (under `SecurityHardeningTest` and `SecurityRbacTest`). You can perform manual API checks using `curl`:
-
-1. **Access Admin-Only Endpoints with No Token**:
+### Cách B: Gọi API trực tiếp bằng cURL
+1. **Truy cập API Admin khi chưa đăng nhập:**
    ```bash
    curl -i http://localhost:8080/api/admin/users
    ```
-   *Expected Response*: `401 Unauthorized`
-
-2. **Access Admin-Only Endpoints with Audience Role**:
-   - Perform a POST to `/api/auth/login` using `audience@ticketbox.com` to get a Bearer token.
-   - Request the admin users list:
+   *Kết quả mong muốn:* Trả về mã lỗi `401 Unauthorized`.
+2. **Truy cập API Admin bằng Token của Audience:**
+   * Thực hiện đăng nhập để lấy Bearer token của `audience@ticketbox.com`.
+   * Gửi request lấy danh sách user:
      ```bash
      curl -i -H "Authorization: Bearer <AUDIENCE_TOKEN>" http://localhost:8080/api/admin/users
      ```
-   *Expected Response*: `403 Forbidden`
+   *Kết quả mong muốn:* Trả về mã lỗi `403 Forbidden`.
+3. **Xác minh bảo mật Token hàng chờ (Queue Bypass Protection):**
+   * Khi gọi API giữ chỗ (`/api/reservations/...`), nếu bạn không truyền kèm Header `Queue-Access-Token` hợp lệ (được sinh ra sau khi vượt qua hàng chờ), API Backend sẽ từ chối xử lý và trả về lỗi `403 Forbidden` hoặc lỗi validate để ngăn việc bỏ qua hàng đợi.
 
-3. **Access Admin-Only Endpoints with Admin Role**:
-   - Login with `admin@ticketbox.com` to get the token.
-   - Request:
+---
+
+## Hướng dẫn cấu hình Ngrok để test VNPAY / MoMo Sandbox
+
+Khi khách hàng thanh toán qua cổng thanh toán Sandbox (VNPAY/MoMo), các cổng này sẽ gửi một yêu cầu xác thực thanh toán bất đồng bộ (gọi là **IPN Webhook**) trực tiếp đến Backend của bạn. Do máy local của bạn không có IP public, bạn phải dùng **ngrok** để mở một đường hầm public dẫn về backend local (cổng `8080`).
+
+### Các bước cài đặt và cấu hình:
+
+1. **Cài đặt ngrok:**
+   * Tải ngrok phù hợp với hệ điều hành của bạn từ trang chủ [ngrok.com](https://ngrok.com/) hoặc cài qua Package Manager:
+     * *macOS (Homebrew):* `brew install ngrok/ngrok/ngrok`
+     * *Windows (Chocolatey):* `choco install ngrok`
+     * *Linux (APT):* Làm theo hướng dẫn trên trang chủ ngrok.
+
+2. **Kết nối tài khoản ngrok (Chỉ cần làm lần đầu):**
+   * Đăng ký tài khoản ngrok miễn phí và chạy lệnh sau để thiết lập auth token của bạn (lấy token tại trang Dashboard của ngrok):
      ```bash
-     curl -i -H "Authorization: Bearer <ADMIN_TOKEN>" http://localhost:8080/api/admin/users
+     ngrok config add-authtoken <YOUR_PERSONAL_AUTHTOKEN>
      ```
-   *Expected Response*: `200 OK` with the JSON list of registered users.
 
-4. **Verify Queue Security Token Enforcement**:
-   - Attempting to reserve a ticket:
+3. **Khởi tạo đường hầm dẫn tới Backend (cổng 8080):**
+   * Chạy lệnh sau để ngrok tạo ra một URL public trỏ về backend:
      ```bash
-     curl -i -X POST -H "Authorization: Bearer <AUDIENCE_TOKEN>" -H "Content-Type: application/json" -d '{"quantity": 2}' http://localhost:8080/api/reservations/concerts/<CONCERT_ID>/ticket-types/<TICKET_TYPE_ID>/reserve
+     ngrok http 8080
      ```
-   - **Verification**: If no `Queue-Access-Token` is supplied in the headers, or if a fake/invalid/expired token is passed, the backend immediately rejects the request with a `403 Forbidden` or validation error, preventing queue bypass.
+   * Sau khi chạy, ngrok sẽ cung cấp một liên kết public dạng: `https://xxxx-xxxx-xxxx.ngrok-free.app`. Hãy copy đường link này.
 
-## Payment Demo
+4. **Cập nhật cấu hình trong tệp `.env`:**
+   Mở tệp `.env` của dự án ra và thay thế phần tiền tố URL trong cấu hình IPN bằng link ngrok của bạn:
+   ```properties
+   # VNPAY Webhook URL (Thay phần subdomain bằng link ngrok của bạn)
+   VNPAY_IPN_URL=https://xxxx-xxxx-xxxx.ngrok-free.app/api/payments/webhooks/vnpay
 
-Local demo supports two payment paths:
+   # MoMo Webhook URL (Thay phần subdomain bằng link ngrok của bạn)
+   MOMO_IPN_URL=https://xxxx-xxxx-xxxx.ngrok-free.app/api/payments/webhooks/momo
+   ```
+   *(Lưu ý: Không đổi các cấu hình VNPAY_RETURN_URL hay MOMO_RETURN_URL vì các luồng đó chạy trên trình duyệt client nên trỏ về localhost:5173 là chính xác).*
 
-1. Mock payment for fast local testing.
-   - Create an order from the audience flow.
-   - Use the mock payment success path to mark the order paid.
-   - The backend generates tickets and publishes notification events.
+---
 
-2. VNPAY sandbox configuration.
-   - Set `VNPAY_TMN_CODE` and `VNPAY_HASH_SECRET` in `.env`.
-   - Set `VNPAY_IPN_URL` to a public tunnel pointing to `/api/payments/webhooks/vnpay`.
-   - Keep `VNPAY_RETURN_URL=http://localhost:5173/payment/result` for the local frontend return screen.
+## Trình diễn Thanh toán (Payment Demo)
 
-The payment adapter is protected by Resilience4j circuit breaker settings in `backend/src/main/resources/application.yml`. Duplicate webhooks are handled idempotently so tickets are not generated twice.
+Hệ thống hỗ trợ 3 cách kiểm thử luồng thanh toán:
 
-## Email And Notifications
+1. **Mock Payment (Thanh toán giả lập tại local):**
+   * Khách hàng đặt mua vé trên giao diện web.
+   * Bấm nút "Thanh toán giả lập" để mô phỏng thanh toán thành công ngay lập tức.
+   * Hệ thống sinh vé tự động, gửi email thông báo và lưu lịch sử mua. Đây là luồng nhanh nhất để test tính năng hàng đợi và soát vé mà không cần cấu hình internet.
+2. **VNPAY Sandbox:**
+   * Điền mã `VNPAY_TMN_CODE` và `VNPAY_HASH_SECRET` của bạn vào `.env`.
+   * Cấu hình Ngrok để nhận webhook IPN (như hướng dẫn ở mục trên).
+   * Tiến hành đặt vé trên Web, bạn sẽ được chuyển hướng tới cổng thanh toán sandbox của VNPAY để nhập tài khoản thẻ test và hoàn thành thanh toán thực tế.
+3. **MoMo Sandbox:**
+   * Cập nhật các khóa `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, và `MOMO_SECRET_KEY` vào `.env`.
+   * Cấu hình IPN Webhook qua ngrok.
+   * Tiến hành đặt vé và quét mã QR MoMo Sandbox để thực hiện thanh toán thử nghiệm.
 
-The Docker stack starts MailHog for local SMTP capture.
+---
 
-- SMTP host inside Docker: `mailhog`
-- SMTP port inside Docker: `1025`
-- Web inbox: http://localhost:8025
+## Quản lý Email và Thông báo
 
-After successful purchase or reminder jobs, app notifications are persisted and email messages can be inspected in MailHog. RabbitMQ Management at http://localhost:15672 can be used to inspect notification queues and retry/DLQ behavior.
+Hệ thống khởi chạy MailHog để giả lập một máy chủ SMTP local giúp bạn bắt và đọc tất cả email hệ thống gửi ra:
+* **SMTP Host:** `mailhog` (trong Docker network) hoặc `localhost` (ngoài Docker)
+* **SMTP Port:** `1025`
+* **Giao diện Hòm thư (Web Inbox):** http://localhost:8025
 
-## Useful API Docs And Scripts
+Khi có đơn hàng thanh toán thành công hoặc scheduler quét lịch gửi nhắc nhở trước 24 giờ diễn ra concert, hệ thống sẽ đồng thời gửi thông báo qua app (lưu DB hiển thị trên Web) và gửi email qua MailHog. Bạn có thể kiểm tra danh sách hàng đợi xử lý thông báo và cơ chế Dead Letter Queue (DLQ) bằng công cụ quản lý RabbitMQ Management tại địa chỉ http://localhost:15672.
 
-- API contract: `docs/api/api-endpoints.md`
-- Full Postman collection: `docs/api/full API/TicketBox-FULL-Demo.postman_collection.json`
-- Order/payment concurrency guide: `docs/api/order-payment-concurrency-test-guide.md`
-- Local API flow script: `scripts/test-api-flows.ps1`
-- Order concurrency script: `scripts/test-order-concurrency.sh`
+---
 
-## Run Services Separately
+## Các tài liệu API và Script bổ trợ
 
-Backend only:
+* **Đặc tả API gốc:** [api-endpoints.md](file:///e:/just%20write%20some%20code/ticketbox-modular-monolith/docs/api/api-endpoints.md)
+* **Postman Collection đầy đủ:** [TicketBox-FULL-Demo.postman_collection.json](file:///e:/just%20write%20some%20code/ticketbox-modular-monolith/docs/api/full%20API/TicketBox-FULL-Demo.postman_collection.json)
+* **Hướng dẫn kiểm thử đồng thời (Concurrency):** [order-payment-concurrency-test-guide.md](file:///e:/just%20write%20some%20code/ticketbox-modular-monolith/docs/api/order-payment-concurrency-test-guide.md)
+* **Script PowerShell chạy thử luồng API:** `scripts/test-api-flows.ps1`
+* **Script Bash kiểm tra tải đặt hàng đồng thời:** `scripts/test-order-concurrency.sh`
+
+---
+
+## Chạy các dịch vụ độc lập (Không dùng Docker toàn bộ)
+
+Nếu bạn muốn chạy backend và frontend trực tiếp trên máy của mình để phục vụ phát triển (hot reload, sửa code trực tiếp, debug dễ dàng), bạn chỉ cần chạy phần hạ tầng hỗ trợ (Database, Redis, RabbitMQ, MailHog) bằng Docker Compose:
 
 ```bash
-cd backend
-./mvnw spring-boot:run
+docker compose up -d postgres redis rabbitmq mailhog
 ```
 
-Frontend only:
+Sau đó, tiến hành khởi chạy các service:
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+* **Chạy Backend:**
+  ```bash
+  cd backend
+  ./mvnw spring-boot:run
+  ```
+* **Chạy Frontend:**
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+  *Giao diện Frontend đọc cấu hình biến `VITE_API_BASE_URL` trong file `.env` local để trỏ về API của backend tại `http://localhost:8080`.*
 
-The frontend reads `VITE_API_BASE_URL`; use `http://localhost:8080` for the local backend.
+---
 
-## Verification Checklist
+## Danh sách kiểm tra nghiệm thu (Verification Checklist)
 
-Before final submission or a pull request:
+Trước khi gửi Pull Request hoặc bàn giao code, hãy đảm bảo bạn đã kiểm tra qua các mục sau:
+* [ ] Cả 2 phần Frontend và Backend đều chạy trơn tru (Web mở tại cổng 5173, Backend trả về trạng thái OK tại `/api/health`).
+* [ ] Đăng nhập thành công với cả 4 vai trò tài khoản demo: Audience, Organizer, Staff và Admin.
+* [ ] Khán giả có thể vào phòng chờ, xếp hàng tự động, vào trang chọn vé, đặt mua và xem vé đã thanh toán.
+* [ ] Ban tổ chức (Organizer) và Admin truy cập được trang quản lý của mình; xem được lịch sử xử lý tệp Excel khách mời.
+* [ ] Nhân viên (Staff) bị chặn truy cập vào trang Admin web nhưng có quyền gọi API soát vé.
+* [ ] Luồng thanh toán (Mock/Sandbox) hoạt động chính xác; tạo được vé mới có mã QR và gửi email xác nhận.
+* [ ] MailHog nhận được email xác nhận mua vé và email nhắc lịch trước 24 giờ.
+* [ ] Các dịch vụ PostgreSQL, Redis, RabbitMQ hoạt động ổn định, dữ liệu không bị thất thoát khi có tải cao.
 
-```bash
-docker compose up --build
-```
+---
 
-Then verify:
+## Cấu trúc thư mục dự án
 
-- Frontend opens at http://localhost:5173.
-- Backend health returns OK at http://localhost:8080/api/health.
-- Login works for audience, organizer, staff, and admin demo accounts.
-- Audience can access purchase/profile/ticket flows.
-- Organizer/admin can access admin dashboard and guest-list batch logs.
-- Staff is blocked from admin web but can use staff scanner APIs/mobile flow.
-- Mock payment success generates tickets and notifications.
-- MailHog receives purchase/reminder email.
-- RabbitMQ, Redis, and PostgreSQL containers are healthy.
+* `/backend`: Mã nguồn ứng dụng Spring Boot, tổ chức theo gói nghiệp vụ (package-by-domain).
+* `/frontend`: Ứng dụng web React TypeScript Vite.
+* `/mobile-scanner`: Ứng dụng soát vé React Native (Expo) dành cho nhân viên soát vé ngoại tuyến.
+* `/blueprint`: Bản đề xuất, bản thiết kế kiến trúc và đặc tả nghiệp vụ dự án.
+* `/docs`: Bản hợp đồng API, tài liệu làm việc nhóm và cẩm nang kiểm thử.
+* `/scripts`: Các script tự động hóa hỗ trợ chạy thử luồng.
 
-## Project Structure
+---
 
-- `backend/`: Spring Boot API server organized by package-by-domain.
-- `frontend/`: React TypeScript Vite web application.
-- `mobile-scanner/`: Expo TypeScript scanner for offline gate check-in.
-- `blueprint/`: Proposal, design, and OpenSpec-style requirement docs.
-- `docs/`: API contracts, team plan, and demo/testing guides.
-- `scripts/`: Local verification helpers.
-- `skills/`: TicketBox frontend design guidance for Codex.
+## Quy ước đặt tên Commit (Commit Convention)
 
-## Commit Convention
+Dự án áp dụng quy ước **Conventional Commits** để quản lý lịch sử git rõ ràng:
 
-Use conventional commits:
-
-- `chore:` tooling, configuration, and maintenance
-- `feat:` user-facing feature work
-- `fix:` bug fixes
-- `docs:` documentation-only changes
-- `test:` test-only changes
+* `feat:` Tính năng mới cho người dùng.
+* `fix:` Vá lỗi trong mã nguồn.
+* `docs:` Thay đổi hoặc bổ sung tài liệu.
+* `test:` Thêm hoặc sửa mã nguồn kiểm thử (unit/integration test).
+* `chore:` Cập nhật thư viện, file cấu hình, tooling hỗ trợ.
